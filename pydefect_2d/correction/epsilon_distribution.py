@@ -11,17 +11,19 @@ def make_epsilon_distribution(dielectric_constants: List[float],
                               z_latt: float,
                               slab_left: float,
                               slab_right: float,
-                              error_func_width):
+                              error_func_width) -> List[List[float]]:
     """ Make dielectric constant (epsilon) distribution in 3D.
+    The slab normal is assumed to be in the z-direction.
 
     :param dielectric_constants: Three values along x, y ,and z-directions.
-    :param grid: Three values
-    :param z_latt:
-    :param slab_left:
-    :param slab_right:
+    :param grid: Cartesian coordinates in Å.
+    :param z_latt: Cartesian coord in Å
+    :param slab_left: Cartesian coord in Å
+    :param slab_right: Cartesian coord in Å
     :param error_func_width: Width in Å.
 
     :return:
+        Dielectric constant along x, y, and z-directions at each grid.
     """
 
     def func_left(z):
