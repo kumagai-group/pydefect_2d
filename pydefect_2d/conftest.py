@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
+from pathlib import Path
+
 import pytest
 from pymatgen.core import Lattice, IStructure
+
+
+@pytest.fixture(scope="session")
+def test_files():
+    return Path(__file__).parent / "test_files"
 
 
 @pytest.fixture(scope="session")
