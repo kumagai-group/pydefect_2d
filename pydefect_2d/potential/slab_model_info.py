@@ -137,8 +137,8 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
         return np.real(self.real_potential.mean(axis=(0, 1)))
 
     @property
-    def xy_averaged_charge(self):
-        return np.real(self.real_charge.mean(axis=(0, 1)))
+    def xy_sum_charge(self):
+        return np.real(self.real_charge.sum(axis=(0, 1)))
 
     @property
     def electrostatic_energy(self):

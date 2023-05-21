@@ -3,8 +3,10 @@
 import numpy as np
 import pytest
 
-from pydefect_2d.correction.plotter import ProfilePlotter
-from pydefect_2d.correction.slab_model_info import SlabGaussModel
+from pydefect_2d.potential.first_principles_potential import \
+    FirstPrinciplesPotentialProfile
+from pydefect_2d.potential.plotter import ProfilePlotter
+from pydefect_2d.potential.slab_model_info import SlabGaussModel
 
 
 @pytest.fixture

@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-from dataclasses import dataclass
-from math import ceil
-from typing import List
 
 import numpy as np
 import pytest
-from monty.json import MSONable
 from numpy import pi
-from numpy.testing import assert_almost_equal, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
-from pydefect_2d.correction.slab_model_info import SlabGaussModel
-from pydefect_2d.correction.matsurf import SlabModel
+from pydefect_2d.potential.slab_model_info import SlabGaussModel
 
 
 @pytest.fixture

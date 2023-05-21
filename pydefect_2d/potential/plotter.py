@@ -2,7 +2,9 @@
 #  Copyright (c) 2023 Kumagai group.
 from matplotlib import pyplot as plt
 
-from pydefect_2d.correction.slab_model_info import SlabGaussModel
+from pydefect_2d.potential.first_principles_potential import \
+    FirstPrinciplesPotentialProfile
+from pydefect_2d.potential.slab_model_info import SlabGaussModel
 
 
 class ProfilePlotter:

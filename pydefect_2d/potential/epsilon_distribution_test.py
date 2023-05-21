@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-import pytest
 from numpy import linspace
 
-from pydefect_2d.correction.epsilon_distribution import \
+from pydefect_2d.potential.epsilon_distribution import \
     make_epsilon_distribution
 
 
