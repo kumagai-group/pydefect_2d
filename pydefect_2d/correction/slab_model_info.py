@@ -3,7 +3,7 @@
 import itertools
 import multiprocessing as multi
 from dataclasses import dataclass
-from functools import cache, cached_property
+from functools import cached_property
 from itertools import product
 from math import pi, exp
 from multiprocessing import Pool
@@ -25,7 +25,8 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
     charge: float
     std_dev: float
     defect_z_pos: float  # in fractional coord. x=y=0
-    potential: Optional[np.array] = None
+    charge_profile: Optional[np.array] = None
+    potential_profile: Optional[np.array] = None
     multiprocess: bool = True
 
     @property
@@ -57,15 +58,25 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def real_charge(self):
+        if self.charge_profile is None:
+            self._calc_charge_profile()
+        return self.charge_profile
+
+    def _calc_charge_profile(self):
         coefficient = self.charge / self.std_dev ** 3 / (2 * pi) ** 1.5
-        gauss = np.zeros(self.num_grids, dtype=np.complex_)
+        gauss = np.zeros(self.num_grids)
+        lx, ly, lz = self.lattice_constants
         for ix, iy, iz in itertools.product(range(self.num_grids[0]),
                                             range(self.num_grids[1]),
                                             range(self.num_grids[2])):
-            x2, y2 = self.grids[0][ix] ** 2, self.grids[1][iy] ** 2
-            z2 = (self.grids[2][iz] - self.defect_z_pos) ** 2
+            x2 = np.minimum(self.grids[0][ix] ** 2,
+                            (lx - self.grids[0][ix]) ** 2)
+            y2 = np.minimum(self.grids[0][iy] ** 2,
+                            (ly - self.grids[0][iy]) ** 2)
+            dz = abs(self.grids[2][iz] - self.defect_z_pos)
+            z2 = np.minimum(dz ** 2, (lz - dz) ** 2)
             gauss[ix, iy, iz] = exp(-(x2 + y2 + z2) / (2 * self.std_dev ** 2))
-        return coefficient * gauss
+        self.charge_profile = coefficient * gauss
 
     @cached_property
     def reciprocal_charge(self):
@@ -113,9 +124,9 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def real_potential(self):
-        if self.potential is None:
-            self.potential = ifftn(self.reciprocal_potential)
-        return self.potential
+        if self.potential_profile is None:
+            self.potential_profile = ifftn(self.reciprocal_potential)
+        return self.potential_profile
 
     @property
     def volume(self):
@@ -140,3 +151,5 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
         if result > self.lattice_constants[2]:
             result -= self.lattice_constants[2]
         return result
+
+
