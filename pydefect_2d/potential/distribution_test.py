@@ -30,7 +30,7 @@ def test_rescale_distribution_ionic():
 
 
 def test_rescale_distribution_ion_clamped():
-    actual = rescale_distribution(dist=[1.0, 3.0], average=1.2,
+    actual = rescale_distribution(dist=[0.0, 1.0], average=1.2,
                                   is_ionic=False)
     expected = [1.0, 1.4]
     assert actual == expected

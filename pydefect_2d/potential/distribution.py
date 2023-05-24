@@ -70,6 +70,8 @@ def rescale_distribution(dist: List[float],
         scale = average / np.mean(dist)
         return (np.array(dist) * scale).tolist()
     else:
-        scale = (average - 1) / np.mean(dist)
-        return (np.array(dist) * scale + 1).tolist()
+        vac_removed_ave = average - 1.
+        scale = vac_removed_ave / np.mean(dist)
+        print(scale, average, dist)
+        return (np.array(dist) * scale + 1.).tolist()
 
