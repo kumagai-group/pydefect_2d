@@ -63,7 +63,13 @@ def make_gaussian_distribution(grid: List[float],
     return result
 
 
-def rescale_distribution(dist: List[float], average: float) -> List[float]:
-    scale = average / np.mean(dist)
-    return (np.array(dist) * scale).tolist()
+def rescale_distribution(dist: List[float],
+                         average: float,
+                         is_ionic: bool) -> List[float]:
+    if is_ionic:
+        scale = average / np.mean(dist)
+        return (np.array(dist) * scale).tolist()
+    else:
+        scale = (average - 1) / np.mean(dist)
+        return (np.array(dist) * scale + 1).tolist()
 

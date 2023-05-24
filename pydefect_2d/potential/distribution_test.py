@@ -22,7 +22,15 @@ def test_make_gaussian_epsilon():
     assert actual[1] == 0.6065306597126334
 
 
-def test_rescale_distribution():
-    actual = rescale_distribution(dist=[1.0, 3.0], average=1.0)
+def test_rescale_distribution_ionic():
+    actual = rescale_distribution(dist=[1.0, 3.0], average=1.0,
+                                  is_ionic=True)
     expected = [0.5, 1.5]
+    assert actual == expected
+
+
+def test_rescale_distribution_ion_clamped():
+    actual = rescale_distribution(dist=[1.0, 3.0], average=1.2,
+                                  is_ionic=False)
+    expected = [1.0, 1.4]
     assert actual == expected
