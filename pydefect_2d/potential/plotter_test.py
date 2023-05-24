@@ -24,5 +24,10 @@ def slab_gauss_model():
 
 
 def test_plot_profile(slab_gauss_model):
-    plotter = ProfilePlotter(slab_gauss_model)
+    fp_pot = FirstPrinciplesPotentialProfile(
+        z_length=10.0,
+        z_grid=[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.],
+        xy_ave_potential=[-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5],
+        num_grid_per_unit=4)
+    plotter = ProfilePlotter(slab_gauss_model, fp_pot)
     plotter.plt.show()

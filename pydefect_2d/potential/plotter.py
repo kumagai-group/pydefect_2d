@@ -9,14 +9,16 @@ from pydefect_2d.potential.slab_model_info import SlabGaussModel
 
 class ProfilePlotter:
 
-    def __init__(self, model: SlabGaussModel):
-        print(model.charge_profile)
+    def __init__(self,
+                 model: SlabGaussModel,
+                 fp_potential: FirstPrinciplesPotentialProfile = None):
         self.plt = plt
         self.z_grid = model.grids[2]
         self.charge = model.xy_sum_charge
         self.epsilon = model.epsilon
+        self.fp_potential = fp_potential
 
-        if model.potential_profile is None:
+        if model.potential_profile is None and fp_potential is None:
             _, (self.ax1, self.ax2) = plt.subplots(2, 1, sharex="all")
         else:
             self.potential = model.xy_ave_potential
@@ -41,5 +43,11 @@ class ProfilePlotter:
 
     def _plot_potential(self):
         self.ax3.set_ylabel("Potential energy (eV)")
-        self.ax3.plot(self.z_grid, self.potential,
-                      label="potential", color="black")
+        if self.potential is not None:
+            self.ax3.plot(self.z_grid, self.potential,
+                          label="Gaussian model", color="red")
+        if self.fp_potential is not None:
+            fp = self.fp_potential
+            self.ax3.plot(fp.z_grid, fp.xy_ave_potential,
+                          label="calculated", color="blue")
+        self.ax3.legend()
