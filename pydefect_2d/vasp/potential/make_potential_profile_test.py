@@ -12,7 +12,7 @@ def test_make_potential_profiler(test_files):
     locpot = Locpot.from_file(test_files / "model_LOCPOT")
     actual = make_potential_profiler(locpot=locpot,
                                      defect_pos=0.0,
-                                     num_grid_per_atom=2)
+                                     num_grid_per_unit=2)
     expected = FirstPrinciplesPotentialProfile(
         z_length=2.0,
         defect_position_in_frac_coord=0.0,

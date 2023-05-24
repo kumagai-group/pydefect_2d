@@ -13,5 +13,4 @@ def make_epsilon_distribution(args):
     ionic = list(np.diag(args.unitcell.ion_dielectric_const))
     epsilon_distribution = make_gaussian_epsilon_distribution(
         list(grid), clamped, ionic, args.position, args.sigma)
-    print(epsilon_distribution)
-    epsilon_distribution.to_json()
+    epsilon_distribution.to_json_file()
