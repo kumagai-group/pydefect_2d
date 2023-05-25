@@ -9,6 +9,8 @@ from pydefect_2d.potential.make_epsilon_distribution import \
     make_gaussian_epsilon_distribution
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import SlabGaussModel
+from pydefect_2d.vasp.potential.make_potential_profile import \
+    make_potential_profiler
 
 
 def make_epsilon_distribution(args):
@@ -18,6 +20,11 @@ def make_epsilon_distribution(args):
     epsilon_distribution = make_gaussian_epsilon_distribution(
         list(grid), clamped, ionic, args.position, args.sigma)
     epsilon_distribution.to_json_file()
+
+
+def make_fp_pot(args):
+    pot = make_potential_profiler(args.locpot, args.defect_entry.defect_center)
+    pot.to_json_file()
 
 
 def make_slab_gauss_model(args):
