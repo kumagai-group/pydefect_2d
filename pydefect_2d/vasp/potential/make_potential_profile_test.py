@@ -10,13 +10,10 @@ from pydefect_2d.vasp.potential.make_potential_profile import \
 
 def test_make_potential_profiler(test_files):
     locpot = Locpot.from_file(test_files / "model_LOCPOT")
-    actual = make_potential_profiler(locpot=locpot,
-                                     defect_pos=0.0,
-                                     num_grid_per_unit=2)
+    actual = make_potential_profiler(locpot=locpot, defect_pos=0.0)
     expected = FirstPrinciplesPotentialProfile(
-        z_length=2.0,
+        lattice_constants=[1.0, 1.0, 2.0],
+        num_grids=[4, 4, 4],
         defect_position_in_frac_coord=0.0,
-        z_grid=[0.0, 0.5, 1.0, 1.5],
-        xy_ave_potential=[7.5, 23.5, 39.5, 55.5],
-        num_grid_per_unit=2)
+        xy_ave_potential=[7.5, 23.5, 39.5, 55.5])
     assert actual == expected

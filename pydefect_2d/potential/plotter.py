@@ -48,6 +48,6 @@ class ProfilePlotter:
                           label="Gaussian model", color="red")
         if self.fp_potential is not None:
             fp = self.fp_potential
-            self.ax3.plot(fp.z_grid, fp.xy_ave_potential,
+            self.ax3.plot(fp.grids[2], fp.xy_ave_potential,
                           label="calculated", color="blue")
         self.ax3.legend()

@@ -42,6 +42,14 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
 
         return tabulate(list_, tablefmt="plain", floatfmt=".2f", headers=header)
 
+    def to_plot(self, ax):
+        ax.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
+        for e, direction in zip(self.ion_clamped, ["x", "y", "z"]):
+            ax.plot(self.grid, e, label=f"ε_inf_{direction}")
+        for e, direction in zip(self.ionic, ["x", "y", "z"]):
+            ax.plot(self.grid, e, label=f"ε_ion_{direction}")
+        ax.legend()
+
 
 def make_gaussian_epsilon_distribution(grid: List[float],
                                        ave_ion_clamped_epsilon: List[float],

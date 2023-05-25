@@ -10,34 +10,22 @@ from multiprocessing import Pool
 from typing import List, Optional
 
 import numpy as np
-from monty.json import MSONable
-from numpy import linspace
 from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fft import fftn, fft, ifftn
 from tqdm import tqdm
-from vise.util.mix_in import ToJsonFileMixIn
+
+from pydefect_2d.potential.grids import Grids
 
 
 @dataclass
-class SlabGaussModel(MSONable, ToJsonFileMixIn):
-    lattice_constants: List[float]  # assume orthogonal system
-    epsilon: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z]
+class SlabGaussModel(Grids):
+    epsilon: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z] along z
     charge: float
-    std_dev: float
+    sigma: float
     defect_z_pos: float  # in fractional coord. x=y=0
     charge_profile: Optional[np.array] = None
     potential_profile: Optional[np.array] = None
     multiprocess: bool = True
-
-    @property
-    def num_grids(self):
-        return \
-            [len(self.epsilon[0]), len(self.epsilon[1]), len(self.epsilon[2])]
-
-    @cached_property
-    def grids(self):
-        return [linspace(0, lat, grids, False)
-                for lat, grids in zip(self.lattice_constants, self.num_grids)]
 
     @cached_property
     def Gs(self):
@@ -63,7 +51,7 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
         return self.charge_profile
 
     def _calc_charge_profile(self):
-        coefficient = self.charge / self.std_dev ** 3 / (2 * pi) ** 1.5
+        coefficient = self.charge / self.sigma ** 3 / (2 * pi) ** 1.5
         gauss = np.zeros(self.num_grids)
         lx, ly, lz = self.lattice_constants
         for ix, iy, iz in itertools.product(range(self.num_grids[0]),
@@ -75,7 +63,7 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
                             (ly - self.grids[0][iy]) ** 2)
             dz = abs(self.grids[2][iz] - self.defect_z_pos)
             z2 = np.minimum(dz ** 2, (lz - dz) ** 2)
-            gauss[ix, iy, iz] = exp(-(x2 + y2 + z2) / (2 * self.std_dev ** 2))
+            gauss[ix, iy, iz] = exp(-(x2 + y2 + z2) / (2 * self.sigma ** 2))
         self.charge_profile = coefficient * gauss
 
     @cached_property
@@ -112,7 +100,7 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
 
         if self.multiprocess:
             with p:
-                collected_data = p.map(self._solve_poisson_eq, tqdm(grids))
+                collected_data = tqdm(p.map(self._solve_poisson_eq, tqdm(grids)))
         else:
             collected_data = [self._solve_poisson_eq(g) for g in grids]
 

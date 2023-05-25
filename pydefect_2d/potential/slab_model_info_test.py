@@ -12,11 +12,12 @@ from pydefect_2d.potential.slab_model_info import SlabGaussModel
 
 @pytest.fixture
 def slab_gauss_model():
-    return SlabGaussModel(lattice_constants=[10.0]*3,
+    return SlabGaussModel(lattice_constants=[10., 10., 10.],
+                          num_grids=[4, 4, 4],
                           epsilon=[[1.0, 2.0, 2.0, 1.0],
                                    [1.0, 2.0, 2.0, 1.0],
                                    [1.0, 2.0, 2.0, 1.0]],
-                          charge=1.0, std_dev=1.0, defect_z_pos=0.0)
+                          charge=1.0, sigma=1.0, defect_z_pos=0.0)
 
 
 def test_json_file_mixin(slab_gauss_model, tmpdir):

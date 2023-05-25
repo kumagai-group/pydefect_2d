@@ -4,10 +4,12 @@
 import argparse
 import sys
 
+from monty.serialization import loadfn
 from pydefect.analyzer.unitcell import Unitcell
 from pymatgen.core import Structure
 
-from pydefect_2d.vasp.cli.main_function import make_epsilon_distribution
+from pydefect_2d.vasp.cli.main_function import make_epsilon_distribution, \
+    make_slab_gauss_model
 
 
 def parse_args_main_vasp(args):
@@ -42,6 +44,27 @@ def parse_args_main_vasp(args):
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")
     parser_make_epsilon_dist.set_defaults(func=make_epsilon_distribution)
+
+    # -- Make SlabGaussModel. --------------------------------------------
+    parser_make_slab_gauss_model = subparsers.add_parser(
+        name="make_slab_gauss_model",
+        description="Make SlabGaussModel.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        aliases=['msgm'])
+
+    parser_make_slab_gauss_model.add_argument(
+        "-d", "--defect_entry", required=True, type=loadfn,
+        help="defect_entry.json file.")
+    parser_make_slab_gauss_model.add_argument(
+        "-e", "--epsilon_dist", required=True, type=loadfn,
+        help="epsilon_distribution.json file")
+    parser_make_slab_gauss_model.add_argument(
+        "--sigma", default=0.5, type=float,
+        help="Sigma of the gaussian smearing.")
+    parser_make_slab_gauss_model.add_argument(
+        "--no_potential_calc", dest="calc_potential", action="store_false",
+        help="Set if potential needs not to be calcualted.")
+    parser_make_slab_gauss_model.set_defaults(func=make_slab_gauss_model)
 
     # ------------------------------------------------------------------------
     return parser.parse_args(args)

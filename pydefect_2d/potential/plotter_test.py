@@ -14,8 +14,9 @@ def slab_gauss_model():
     charge = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
     potential = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
     return SlabGaussModel(
-        charge=1.0, std_dev=1.0, defect_z_pos=0.0,
         lattice_constants=[1.0, 1.0, 10.0],
+        num_grids=[2, 2, 10],
+        charge=1.0, sigma=1.0, defect_z_pos=0.0,
         epsilon=[[1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 1.5, 1.0, 1.0],
                  [1.0, 1.0, 1.0, 2.5, 4.0, 4.0, 4.0, 2.5, 1.0, 1.0],
                  [1.0, 1.0, 1.0, 3.5, 6.0, 6.0, 6.0, 3.5, 1.0, 1.0]],
@@ -25,9 +26,9 @@ def slab_gauss_model():
 
 def test_plot_profile(slab_gauss_model):
     fp_pot = FirstPrinciplesPotentialProfile(
-        z_length=10.0,
-        z_grid=[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.],
-        xy_ave_potential=[-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5],
-        num_grid_per_unit=4)
+        lattice_constants=[2., 2., 10.0],
+        num_grids=[2, 2, 10],
+        defect_position_in_frac_coord=0.5,
+        xy_ave_potential=[-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
     plotter = ProfilePlotter(slab_gauss_model, fp_pot)
     plotter.plt.show()
