@@ -7,11 +7,10 @@ from monty.serialization import loadfn
 
 
 def main():
-    ax = plt.gca()
     filename = sys.argv[1]
     obj = loadfn(filename)
     try:
-        obj.to_plot(ax)
+        obj.to_plot(plt)
         pdf_name = filename.split(".")[0] + ".pdf"
         plt.savefig(pdf_name)
     except AttributeError:

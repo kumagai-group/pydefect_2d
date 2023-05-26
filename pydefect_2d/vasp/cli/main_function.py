@@ -6,8 +6,7 @@ from pydefect.input_maker.defect_entry import DefectEntry
 
 from pydefect_2d.potential.make_epsilon_distribution import \
     make_gaussian_epsilon_distribution
-from pydefect_2d.potential.plotter import ProfilePlotter
-from pydefect_2d.potential.slab_model_info import SlabGaussModel
+from pydefect_2d.potential.slab_model_info import SlabGaussModel, ProfilePlotter
 
 
 def make_epsilon_distribution(args):

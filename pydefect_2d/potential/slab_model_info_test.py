@@ -3,11 +3,12 @@
 
 import numpy as np
 import pytest
+from matplotlib import pyplot as plt
 from numpy import pi
 from numpy.testing import assert_array_almost_equal
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
-from pydefect_2d.potential.slab_model_info import SlabGaussModel
+from pydefect_2d.potential.slab_model_info import SlabGaussModel, ProfilePlotter
 
 
 @pytest.fixture
@@ -50,6 +51,23 @@ def test_slab_gauss_model_volume(slab_gauss_model):
 def test_slab_gauss_model_electrostat_energy(slab_gauss_model: SlabGaussModel):
     assert slab_gauss_model.electrostatic_energy == 4.259041251566515
 
+
+def test_plot_profile():
+    charge = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+    potential = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
+
+    model = SlabGaussModel(
+        lattice_constants=[1.0, 1.0, 10.0],
+        num_grids=[2, 2, 10],
+        charge=1.0, sigma=1.0, defect_z_pos=0.0,
+        epsilon=[[1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 1.5, 1.0, 1.0],
+                 [1.0, 1.0, 1.0, 2.5, 4.0, 4.0, 4.0, 2.5, 1.0, 1.0],
+                 [1.0, 1.0, 1.0, 3.5, 6.0, 6.0, 6.0, 3.5, 1.0, 1.0]],
+        charge_profile=np.array([[charge]*2]*2),
+        potential_profile=np.array([[potential]*2]*2),
+        fp_xy_ave_potential=[-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
+    plotter = ProfilePlotter(model, plt)
+    plotter.plt.show()
 
 
 

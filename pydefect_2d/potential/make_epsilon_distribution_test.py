@@ -28,8 +28,7 @@ def test_epsilon_str(epsilon):
 
 
 def test_epsilon_to_plot(epsilon):
-    ax = plt.gca()
-    epsilon.to_plot(ax)
+    epsilon.to_plot(plt)
     plt.show()
 
 
