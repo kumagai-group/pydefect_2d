@@ -3,7 +3,6 @@
 import numpy as np
 from numpy import linspace
 from pydefect.input_maker.defect_entry import DefectEntry
-from pymatgen.io.vasp import Outcar
 
 from pydefect_2d.potential.make_epsilon_distribution import \
     make_gaussian_epsilon_distribution
