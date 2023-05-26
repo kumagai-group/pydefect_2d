@@ -3,8 +3,6 @@
 import numpy as np
 import pytest
 
-from pydefect_2d.potential.first_principles_potential import \
-    FirstPrinciplesPotentialProfile
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import SlabGaussModel
 
@@ -25,10 +23,6 @@ def slab_gauss_model():
 
 
 def test_plot_profile(slab_gauss_model):
-    fp_pot = FirstPrinciplesPotentialProfile(
-        lattice_constants=[2., 2., 10.0],
-        num_grids=[2, 2, 10],
-        defect_position_in_frac_coord=0.5,
-        xy_ave_potential=[-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
-    plotter = ProfilePlotter(slab_gauss_model, fp_pot)
+    slab_gauss_model.fp_xy_ave_potential = [-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5]
+    plotter = ProfilePlotter(slab_gauss_model)
     plotter.plt.show()

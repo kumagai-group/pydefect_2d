@@ -2,23 +2,19 @@
 #  Copyright (c) 2023 Kumagai group.
 from matplotlib import pyplot as plt
 
-from pydefect_2d.potential.first_principles_potential import \
-    FirstPrinciplesPotentialProfile
 from pydefect_2d.potential.slab_model_info import SlabGaussModel
 
 
 class ProfilePlotter:
 
-    def __init__(self,
-                 model: SlabGaussModel,
-                 fp_potential: FirstPrinciplesPotentialProfile = None):
+    def __init__(self, model: SlabGaussModel):
         self.plt = plt
         self.z_grid = model.grids[2]
         self.charge = model.xy_sum_charge
         self.epsilon = model.epsilon
-        self.fp_potential = fp_potential
+        self.fp_potential = model.fp_xy_ave_potential
 
-        if model.potential_profile is None and fp_potential is None:
+        if model.potential_profile is None and self.fp_potential is None:
             _, (self.ax1, self.ax2) = plt.subplots(2, 1, sharex="all")
         else:
             self.potential = model.xy_ave_potential
@@ -46,6 +42,7 @@ class ProfilePlotter:
         if self.potential is not None:
             self.ax3.plot(self.z_grid, self.potential,
                           label="Gaussian model", color="red")
-        if isinstance(self.fp_potential, FirstPrinciplesPotentialProfile):
-            self.fp_potential.to_plot(self.ax3)
+        if isinstance(self.fp_potential, list):
+            self.ax3.plot(self.z_grid, self.fp_potential,
+                          label="FP", color="blue")
         self.ax3.legend()

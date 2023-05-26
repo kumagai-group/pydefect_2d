@@ -8,8 +8,6 @@ from pydefect_2d.potential.make_epsilon_distribution import \
     make_gaussian_epsilon_distribution
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import SlabGaussModel
-from pydefect_2d.vasp.potential.make_potential_profile import \
-    make_potential_profiler
 
 
 def make_epsilon_distribution(args):
@@ -21,19 +19,16 @@ def make_epsilon_distribution(args):
     epsilon_distribution.to_json_file()
 
 
-def make_fp_pot(args):
-    pot = make_potential_profiler(args.locpot, args.defect_entry.defect_center)
-    pot.to_json_file()
-
-
 def make_slab_gauss_model(args):
     de: DefectEntry = args.defect_entry
     lat = de.structure.lattice
     model = SlabGaussModel(lattice_constants=[lat.a, lat.b, lat.c],
+                           num_grids=list(args.locpot.dim),
                            epsilon=args.epsilon_dist.static,
                            charge=de.charge,
                            sigma=args.sigma,
-                           defect_z_pos=de.defect_center[2])
+                           defect_z_pos=de.defect_center[2],
+                           fp_xy_ave_potential=args.locpot.get_average_along_axis(ind=2).tolist())
     if args.calc_potential:
         model.real_potential
     model.to_json_file()

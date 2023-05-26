@@ -10,7 +10,7 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.vasp.cli.main_function import make_epsilon_distribution, \
-    make_slab_gauss_model, make_fp_pot
+    make_slab_gauss_model
 
 
 def parse_args_main_vasp(args):
@@ -46,21 +46,6 @@ def parse_args_main_vasp(args):
         help="Sigma of the gaussian smearing.")
     parser_make_epsilon_dist.set_defaults(func=make_epsilon_distribution)
 
-    # -- Make make_fp_pot. --------------------------------------------
-    parser_make_fp_potential = subparsers.add_parser(
-        name="make_fp_potential",
-        description="Make SlabGaussModel.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        aliases=['mfpp'])
-
-    parser_make_fp_potential.add_argument(
-        "-l", "--locpot", required=True, type=Locpot.from_file,
-        help="LOCPOT file.")
-    parser_make_fp_potential.add_argument(
-        "-d", "--defect_entry", required=True, type=loadfn,
-        help="defect_entry.json file.")
-    parser_make_fp_potential.set_defaults(func=make_fp_pot)
-
     # -- Make SlabGaussModel. --------------------------------------------
     parser_make_slab_gauss_model = subparsers.add_parser(
         name="make_slab_gauss_model",
@@ -71,6 +56,9 @@ def parse_args_main_vasp(args):
     parser_make_slab_gauss_model.add_argument(
         "-d", "--defect_entry", required=True, type=loadfn,
         help="defect_entry.json file.")
+    parser_make_slab_gauss_model.add_argument(
+        "-l", "--locpot", required=True, type=Locpot.from_file,
+        help="LOCPOT file.")
     parser_make_slab_gauss_model.add_argument(
         "-e", "--epsilon_dist", required=True, type=loadfn,
         help="epsilon_distribution.json file")

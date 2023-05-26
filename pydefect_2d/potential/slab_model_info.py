@@ -10,15 +10,18 @@ from multiprocessing import Pool
 from typing import List, Optional
 
 import numpy as np
+from monty.json import MSONable
+from numpy import linspace
 from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fft import fftn, fft, ifftn
 from tqdm import tqdm
-
-from pydefect_2d.potential.grids import Grids
+from vise.util.mix_in import ToJsonFileMixIn
 
 
 @dataclass
-class SlabGaussModel(Grids):
+class SlabGaussModel(MSONable, ToJsonFileMixIn):
+    lattice_constants: List[float]  # assume orthogonal system
+    num_grids: List[int]
     epsilon: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z] along z
     charge: float
     sigma: float
@@ -26,6 +29,12 @@ class SlabGaussModel(Grids):
     charge_profile: Optional[np.array] = None
     potential_profile: Optional[np.array] = None
     multiprocess: bool = True
+    fp_xy_ave_potential: List[float] = None
+
+    @property
+    def grids(self):
+        return [linspace(0, lat, grids, False)
+                for lat, grids in zip(self.lattice_constants, self.num_grids)]
 
     @cached_property
     def Gs(self):
