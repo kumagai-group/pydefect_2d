@@ -46,8 +46,6 @@ class ProfilePlotter:
         if self.potential is not None:
             self.ax3.plot(self.z_grid, self.potential,
                           label="Gaussian model", color="red")
-        if self.fp_potential is not None:
-            fp = self.fp_potential
-            self.ax3.plot(fp.grids[2], fp.xy_ave_potential,
-                          label="calculated", color="blue")
+        if isinstance(self.fp_potential, FirstPrinciplesPotentialProfile):
+            self.fp_potential.to_plot(self.ax3)
         self.ax3.legend()

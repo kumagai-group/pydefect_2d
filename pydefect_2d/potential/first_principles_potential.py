@@ -25,6 +25,13 @@ class FirstPrinciplesPotentialProfile(Grids):
     #                             size=self.num_grid_per_unit,
     #                             mode="wrap").tolist()
 
+    def to_plot(self, ax, add_labels=True):
+        ax.plot(self.grids[2], self.xy_ave_potential,
+                label="calculated", color="blue")
+        if add_labels:
+            ax.set_xlabel("Distance (Å)")
+            ax.set_ylabel("Potential energy (eV)")
+
     @property
     def pot_at_farthest_point(self):
         pass
