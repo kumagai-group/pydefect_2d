@@ -34,7 +34,6 @@ def test_make_epsilon_distribution(mocker):
 def test_make_slab_gauss_model(mocker):
     mock_defect_entry = mocker.Mock(spec=DefectEntry, autospec=True)
     mock_epsilon_dist = mocker.Mock(spec=EpsilonDistribution, autospec=True)
-    mocker_locpot = mocker.patch("pydefect_2d.vasp.cli.main.Locpot")
 
     def side_effect(filename):
         if filename == "defect_entry.json":
@@ -46,15 +45,31 @@ def test_make_slab_gauss_model(mocker):
 
     mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
 
+    mock_locpot_defect = mocker.Mock()
+    mock_locpot_perfect = mocker.Mock()
+
+    def side_effect_locpot(filename):
+        if filename == "LOCPOT_defect":
+            return mock_locpot_defect
+        elif filename == "LOCPOT_perfect":
+            return mock_locpot_perfect
+        else:
+            raise ValueError
+
+    mocker.patch("pydefect_2d.vasp.cli.main.Locpot.from_file",
+                 side_effect=side_effect_locpot)
+
     parsed_args = parse_args_main_vasp(["msgm",
                                         "-d", "defect_entry.json",
-                                        "-l", "LOCPOT",
+                                        "-dl", "LOCPOT_defect",
+                                        "-pl", "LOCPOT_perfect",
                                         "-e", "epsilon_distribution.json",
                                         "--sigma", "0.1",
                                         "--no_potential_calc"])
     expected = Namespace(
         defect_entry=mock_defect_entry,
-        locpot=mocker_locpot.from_file.return_value,
+        defect_locpot=mock_locpot_defect,
+        perfect_locpot=mock_locpot_perfect,
         epsilon_dist=mock_epsilon_dist,
         sigma=0.1,
         calc_potential=False,

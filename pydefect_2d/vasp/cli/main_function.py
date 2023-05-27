@@ -31,8 +31,10 @@ def make_slab_gauss_model(args):
 
     defect_z_pos = lat.c * de.defect_center[2]
 
-    fp_grid = args.locpot.get_axis_grid(2)
-    fp_pot = args.locpot.get_average_along_axis(ind=2).tolist()
+    fp_grid = args.defect_locpot.get_axis_grid(2)
+    fp_defect_pot = args.defect_locpot.get_average_along_axis(ind=2)
+    fp_perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
+    fp_pot = (fp_defect_pot - fp_perfect_pot).tolist()
 
     model = SlabGaussModel(lattice_constants=[lat.a, lat.b, lat.c],
                            num_grids=[x_num_grid, y_num_grid, z_num_grid],
@@ -42,6 +44,7 @@ def make_slab_gauss_model(args):
                            defect_z_pos=defect_z_pos,
                            fp_grid=fp_grid,
                            fp_xy_ave_potential=fp_pot)
+
     if args.calc_potential:
         model.real_potential
     model.to_json_file()

@@ -57,8 +57,11 @@ def parse_args_main_vasp(args):
         "-d", "--defect_entry", required=True, type=loadfn,
         help="defect_entry.json file.")
     parser_make_slab_gauss_model.add_argument(
-        "-l", "--locpot", required=True, type=Locpot.from_file,
-        help="LOCPOT file.")
+        "-dl", "--defect_locpot", required=True, type=Locpot.from_file,
+        help="LOCPOT file from a defect calculation.")
+    parser_make_slab_gauss_model.add_argument(
+        "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
+        help="LOCPOT file from a perfect supercell calculation.")
     parser_make_slab_gauss_model.add_argument(
         "-e", "--epsilon_dist", required=True, type=loadfn,
         help="epsilon_distribution.json file")

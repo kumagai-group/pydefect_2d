@@ -37,27 +37,3 @@ Direct
     print(actual)
 
 
-def test_make_(mocker):
-    unitcell = mocker.MagicMock(ele_dielectric_const=list(np.eye(3)*2),
-                                ion_dielectric_const=list(np.eye(3)*3))
-    unitcell_structure = Structure.from_str("""B1 N1
-    1.000000000000000
-     2.5049600544457160    0.0000000000000000    0.0000000000000000
-    -1.2524800272228580    2.1693590426340372    0.0000000000000000
-     0.0000000000000000    0.0000000000000000   10.0000000000000000
-   B    N
-     1     1
-Direct
-  0.0000000000000000  0.0000000000000000  0.5000000000000000
-  0.3333333332999970  0.6666666667000030  0.5000000000000000""", fmt="poscar")
-    args = Namespace(unitcell=unitcell,
-                     structure=unitcell_structure,
-                     position=0.5,
-                     num_grid=10,
-                     sigma=0.5)
-
-    actual = make_epsilon_distribution(args)
-    expected = EpsilonDistribution(list(linspace(0, 10.0, 10, endpoint=False)),
-                                   ion_clamped=[[]],
-                                   ionic=[[]])
-    print(actual)
