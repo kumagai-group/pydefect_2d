@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 from matplotlib import pyplot as plt
-from numpy import pi
+from numpy import pi, linspace
 from numpy.testing import assert_array_almost_equal
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
@@ -65,6 +65,7 @@ def test_plot_profile():
                  [1.0, 1.0, 1.0, 3.5, 6.0, 6.0, 6.0, 3.5, 1.0, 1.0]],
         charge_profile=np.array([[charge]*2]*2),
         potential_profile=np.array([[potential]*2]*2),
+        fp_grid=list(linspace(0, 10.0, 10, endpoint=False)),
         fp_xy_ave_potential=[-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
     plotter = ProfilePlotter(model, plt)
     plotter.plt.show()

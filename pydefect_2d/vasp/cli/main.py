@@ -68,6 +68,9 @@ def parse_args_main_vasp(args):
     parser_make_slab_gauss_model.add_argument(
         "--no_potential_calc", dest="calc_potential", action="store_false",
         help="Set if potential needs not to be calcualted.")
+    parser_make_slab_gauss_model.add_argument(
+        "--grid_divisor", dest="grid_divisor", type=int, default=10,
+        help=".")
     parser_make_slab_gauss_model.set_defaults(func=make_slab_gauss_model)
 
     # ------------------------------------------------------------------------

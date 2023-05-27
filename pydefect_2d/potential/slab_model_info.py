@@ -29,6 +29,7 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
     charge_profile: Optional[np.array] = None
     potential_profile: Optional[np.array] = None
     multiprocess: bool = True
+    fp_grid: List[float] = None
     fp_xy_ave_potential: List[float] = None
 
     @property
@@ -160,6 +161,7 @@ class ProfilePlotter:
         self.z_grid = model.grids[2]
         self.charge = model.xy_sum_charge
         self.epsilon = model.epsilon
+        self.fp_grid = model.fp_grid
         self.fp_potential = model.fp_xy_ave_potential
 
         if model.potential_profile is None and self.fp_potential is None:
@@ -191,6 +193,6 @@ class ProfilePlotter:
             self.ax3.plot(self.z_grid, self.potential,
                           label="Gaussian model", color="red")
         if isinstance(self.fp_potential, list):
-            self.ax3.plot(self.z_grid, self.fp_potential,
+            self.ax3.plot(self.fp_grid, self.fp_potential,
                           label="FP", color="blue")
         self.ax3.legend()

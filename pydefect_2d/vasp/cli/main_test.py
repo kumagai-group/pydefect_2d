@@ -58,6 +58,7 @@ def test_make_slab_gauss_model(mocker):
         epsilon_dist=mock_epsilon_dist,
         sigma=0.1,
         calc_potential=False,
+        grid_divisor=10,
         func=parsed_args.func)
 
     assert parsed_args == expected
