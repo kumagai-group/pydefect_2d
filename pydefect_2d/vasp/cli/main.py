@@ -3,6 +3,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 
 from monty.serialization import loadfn
 from pydefect.analyzer.unitcell import Unitcell
@@ -10,7 +11,7 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.vasp.cli.main_function import make_epsilon_distribution, \
-    make_slab_gauss_model
+    make_slab_gauss_model, plot_volumetric_data
 
 
 def parse_args_main_vasp(args):
@@ -21,6 +22,17 @@ def parse_args_main_vasp(args):
     files for pydefect_2d.""")
 
     subparsers = parser.add_subparsers()
+
+    # -- Plot volumetric data. --------------------------------------------
+    parser_plot_volumetric_data = subparsers.add_parser(
+        name="plot_volumetric_data",
+        description="Plot volumetric data.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        aliases=['pvd'])
+    parser_plot_volumetric_data.add_argument(
+        "-f", "--filename", required=True, type=str,
+        help="filename.")
+    parser_plot_volumetric_data.set_defaults(func=plot_volumetric_data)
 
     # -- Make epsilon distribution. --------------------------------------------
     parser_make_epsilon_dist = subparsers.add_parser(

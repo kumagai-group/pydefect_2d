@@ -6,10 +6,31 @@ import numpy as np
 from matplotlib import pyplot as plt
 from numpy import linspace
 from pydefect.input_maker.defect_entry import DefectEntry
+from pymatgen.io.vasp import Chgcar, Locpot
 
 from pydefect_2d.potential.make_epsilon_distribution import \
     make_gaussian_epsilon_distribution
 from pydefect_2d.potential.slab_model_info import SlabGaussModel, ProfilePlotter
+
+
+def plot_volumetric_data(args):
+    if "CHG" in args.filename:
+        vol_data = Chgcar.from_file(args.filename)
+        is_sum = True
+    elif "LOCPOT" in args.filename:
+        vol_data = Locpot.from_file(args.filename)
+        is_sum = False
+    else:
+        raise ValueError
+
+    ax = plt.gca()
+    z_grid = vol_data.get_axis_grid(2)
+    values = vol_data.get_average_along_axis(ind=2)
+    if is_sum:
+        surface_area = np.prod(vol_data.structure.lattice.lengths[:2])
+        values *= surface_area
+    ax.plot(z_grid, values, color="red")
+    plt.savefig(f"{args.filename}.pdf")
 
 
 def make_epsilon_distribution(args):
