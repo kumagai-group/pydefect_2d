@@ -49,7 +49,9 @@ def test_slab_gauss_model_volume(slab_gauss_model):
 
 
 def test_slab_gauss_model_electrostat_energy(slab_gauss_model: SlabGaussModel):
-    assert slab_gauss_model.electrostatic_energy == 4.259041251566515
+    print("reciprocal_pot", slab_gauss_model.reciprocal_potential[0, 0])
+#    print("real_pot", slab_gauss_model.real_potential)
+    assert slab_gauss_model.electrostatic_energy == 4.827933538413449
 
 
 def test_plot_profile():

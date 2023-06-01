@@ -95,6 +95,8 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
                  self.reciprocal_epsilon[1][i_gz - i_gz_prime] * gy ** 2 +
                  self.reciprocal_epsilon[2][i_gz - i_gz_prime] * gz * gz_prime
                  for i_gz_prime, gz_prime in enumerate(self.Gs[2])]
+            if i_gx == 0 and i_gy == 0 and i_gz == 0:
+                inv_rho_by_mz[0] = 1.0
             factors.append(inv_rho_by_mz)
         factors = np.array(factors)
         inv_pot_by_mz = np.linalg.solve(factors, rec_chg * self.num_grids[2])
@@ -105,7 +107,6 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
         result = np.zeros(self.num_grids, dtype=np.complex_)
         grids = [[i_gx, i_gy] for i_gx, i_gy
                  in product(range(self.num_grids[0]), range(self.num_grids[1]))]
-        grids.pop(0)  # pop i_gx == 0 and i_gy == 0:
         p = Pool(multi.cpu_count())
 
         if self.multiprocess:
