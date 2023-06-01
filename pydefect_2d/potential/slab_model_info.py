@@ -13,7 +13,9 @@ import numpy as np
 from monty.json import MSONable
 from numpy import linspace
 from scipy.constants import epsilon_0, elementary_charge, angstrom
-from scipy.fft import fftn, fft, ifftn
+from scipy.fftpack import ifftn, fft, fftn
+from scipy.interpolate import interpolate
+from tabulate import tabulate
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
@@ -31,6 +33,32 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
     multiprocess: bool = True
     fp_grid: List[float] = None
     fp_xy_ave_potential: List[float] = None
+
+    def __str__(self):
+        header = ["pos (Å)", "charge", "potential"]
+        list_ = []
+        for i, pos in enumerate(self.grids[2]):
+            data = [pos]
+            if self.charge_profile is not None:
+                data.append(self.xy_integrated_charge[i])
+            else:
+                data.append("--")
+
+            if self.potential_profile is not None:
+                data.append(self.xy_ave_potential_energy[i])
+            else:
+                data.append("--")
+            list_.append(data)
+
+        result = [tabulate(list_, tablefmt="plain", headers=header)]
+
+        if self.charge_profile is not None:
+            charge_sum = self.charge_profile.mean() * self.volume
+            result.append(f"Charge sum (|e|): {charge_sum:.3}")
+
+        result.append(f"Electrostatic energy (eV): "
+                      f"{self.electrostatic_energy:.3}")
+        return "\n".join(result)
 
     @property
     def grids(self):
@@ -131,15 +159,19 @@ class SlabGaussModel(MSONable, ToJsonFileMixIn):
     def volume(self):
         return np.prod(self.lattice_constants)
 
-    @property
-    def xy_ave_potential(self):
+    @cached_property
+    def xy_ave_potential_energy(self):
         return np.real(self.real_potential.mean(axis=(0, 1)))
 
     @property
-    def xy_sum_charge(self):
-        return np.real(self.real_charge.sum(axis=(0, 1)))
+    def xy_area(self):
+        return np.prod(self.lattice_constants[:2])
 
-    @property
+    @cached_property
+    def xy_integrated_charge(self):
+        return np.real(self.real_charge.mean(axis=(0, 1))) * self.xy_area
+
+    @cached_property
     def electrostatic_energy(self):
         return np.real((np.mean(self.real_potential * self.real_charge)
                         * self.volume / 2))
@@ -160,7 +192,7 @@ class ProfilePlotter:
     def __init__(self, model: SlabGaussModel, plt):
         self.plt = plt
         self.z_grid = model.grids[2]
-        self.charge = model.xy_sum_charge
+        self.charge = model.xy_integrated_charge
         self.epsilon = model.epsilon
         self.fp_grid = model.fp_grid
         self.fp_potential = model.fp_xy_ave_potential
@@ -168,7 +200,7 @@ class ProfilePlotter:
         if model.potential_profile is None and self.fp_potential is None:
             _, (self.ax1, self.ax2) = plt.subplots(2, 1, sharex="all")
         else:
-            self.potential = model.xy_ave_potential
+            self.potential = model.xy_ave_potential_energy
             _, (self.ax1, self.ax2, self.ax3) = plt.subplots(3, 1, sharex="all")
             self._plot_potential()
 
@@ -196,4 +228,13 @@ class ProfilePlotter:
         if isinstance(self.fp_potential, list):
             self.ax3.plot(self.fp_grid, self.fp_potential,
                           label="FP", color="blue")
+        if self.potential is not None and isinstance(self.fp_potential, list):
+            self.ax3.plot(self.z_grid, self._diff_potential,
+                          label="diff", color="green", linestyle=":")
         self.ax3.legend()
+
+    @property
+    def _diff_potential(self):
+        f = interpolate.interp1d(self.fp_grid, self.fp_potential)
+        fp_pot = f(self.z_grid)
+        return fp_pot - self.potential

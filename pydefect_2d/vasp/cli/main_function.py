@@ -55,7 +55,12 @@ def make_slab_gauss_model(args):
     fp_grid = args.defect_locpot.get_axis_grid(2)
     fp_defect_pot = args.defect_locpot.get_average_along_axis(ind=2)
     fp_perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
-    fp_pot = (fp_defect_pot - fp_perfect_pot).tolist()
+    try:
+        # minus is necessary because the VASP potential is for electrons.
+        fp_pot = (-(fp_defect_pot - fp_perfect_pot)).tolist()
+    except ValueError:
+        print("The size of two LOCPOT files seems different.")
+        raise
 
     model = SlabGaussModel(lattice_constants=[lat.a, lat.b, lat.c],
                            num_grids=[x_num_grid, y_num_grid, z_num_grid],
@@ -67,6 +72,7 @@ def make_slab_gauss_model(args):
                            fp_xy_ave_potential=fp_pot)
 
     if args.calc_potential:
+        model.real_charge
         model.real_potential
     model.to_json_file()
     model.to_plot(plt)
