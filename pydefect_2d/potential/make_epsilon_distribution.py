@@ -14,9 +14,10 @@ from pydefect_2d.potential.distribution import make_gaussian_distribution, \
 
 @dataclass
 class EpsilonDistribution(MSONable, ToJsonFileMixIn):
-    grid: List[float]  # assume orthogonal system
+    grid: List[float]  # in Å assume orthogonal system
     ion_clamped: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z]
     ionic: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z]
+    center: float  # in Å
 
     @property
     def static(self):
@@ -29,6 +30,7 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         return list(clamped + clamped**2/ionic)
 
     def __str__(self):
+        result = [f"center: {self.center:.2f} Å"]
         header = ["pos (Å)"]
         for e in ["ε_inf", "ε_ion", "ε_0"]:
             for direction in ["x", "y", "z"]:
@@ -40,7 +42,10 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
 #            for e in [self.ion_clamped, self.ionic, self.static, self.effective]:
                 list_[-1].extend([e[0][i], e[1][i], e[2][i]])
 
-        return tabulate(list_, tablefmt="plain", floatfmt=".2f", headers=header)
+        result.append(tabulate(list_, tablefmt="plain", floatfmt=".2f",
+                               headers=header))
+
+        return "\n".join(result)
 
     def to_plot(self, plt):
         ax = plt.gca()

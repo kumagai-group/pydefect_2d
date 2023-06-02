@@ -9,9 +9,10 @@ from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
 
 @pytest.fixture
 def epsilon():
-    return EpsilonDistribution(grid=[0.0, 1.0],
+    return EpsilonDistribution(grid=[0.0, 10.0],
                                ion_clamped=[[2., 3.], [2., 3.], [2., 3.]],
-                               ionic=[[2., 3.], [2., 3.], [2., 3.]])
+                               ionic=[[2., 3.], [2., 3.], [2., 3.]],
+                               center=5.001)
 
 
 def test_epsilon_properties(epsilon):
@@ -21,9 +22,10 @@ def test_epsilon_properties(epsilon):
 
 def test_epsilon_str(epsilon):
     actual = epsilon.__str__()
-    expected = """  pos (Å)    ε_inf_x    ε_inf_y    ε_inf_z    ε_ion_x    ε_ion_y    ε_ion_z    ε_0_x    ε_0_y    ε_0_z
+    expected = """center: 5.00 Å
+  pos (Å)    ε_inf_x    ε_inf_y    ε_inf_z    ε_ion_x    ε_ion_y    ε_ion_z    ε_0_x    ε_0_y    ε_0_z
      0.00       2.00       2.00       2.00       2.00       2.00       2.00     4.00     4.00     4.00
-     1.00       3.00       3.00       3.00       3.00       3.00       3.00     6.00     6.00     6.00"""
+    10.00       3.00       3.00       3.00       3.00       3.00       3.00     6.00     6.00     6.00"""
     assert actual == expected
 
 
