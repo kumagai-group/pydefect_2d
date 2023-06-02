@@ -66,5 +66,5 @@ def make_gaussian_epsilon_distribution(grid: List[float],
     clamped = [rescale_distribution(dist, ave_clamped, False)
                for ave_clamped in ave_ion_clamped_epsilon]
     ionic = [rescale_distribution(dist, ave_ionic, True)
-               for ave_ionic in ave_ionic_epsilon]
-    return EpsilonDistribution(grid, clamped, ionic)
+             for ave_ionic in ave_ionic_epsilon]
+    return EpsilonDistribution(grid, clamped, ionic, position)

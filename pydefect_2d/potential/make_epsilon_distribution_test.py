@@ -4,7 +4,8 @@ import pytest
 from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
-from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution, \
+    make_gaussian_epsilon_distribution
 
 
 @pytest.fixture
@@ -34,10 +35,18 @@ def test_epsilon_to_plot(epsilon):
     plt.show()
 
 
-# def test_make_epsilon_distribution():
-#     MakeEpsilonDistribution(lattice_constants=[10.0]*3,
-#                             ave_ion_clamped_epsilon=[2.0, 3.0, 4.0],
-#                             ave_ionic_epsilon=[2.0, 3.0, 4.0],
-#                             model=
-#                            )
-
+def test_make_epsilon_distribution(mocker):
+    mock = mocker.patch("pydefect_2d.potential.make_epsilon_distribution.make_gaussian_distribution")
+    mock.return_value = [0.0, 1.0]
+    actual = make_gaussian_epsilon_distribution(
+        grid=[0.0, 1.0],
+        ave_ion_clamped_epsilon=[2.0, 4.0, 6.0],
+        ave_ionic_epsilon=[2.0, 3.0, 4.0],
+        position=2.0,
+        sigma=1.0)
+    expected = EpsilonDistribution(
+        grid=[0.0, 1.0],
+        ion_clamped=[[1.0, 3.0], [1.0, 7.0], [1.0, 11.0]],
+        ionic=[[0.0, 4.0], [0.0, 6.0], [0.0, 8.0]],
+        center=2.0)
+    assert actual == expected
