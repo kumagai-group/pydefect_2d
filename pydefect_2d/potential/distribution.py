@@ -48,7 +48,10 @@ def make_step_like_distribution(grid: List[float],
 def make_gaussian_distribution(grid: List[float],
                                position: float,
                                sigma: float) -> List[float]:
-    """Make gaussian distribution w/o normalization. """
+    """Make gaussian dist. w/o normalization under periodic boundary condition.
+
+    All lengths are in Å.
+    """
     z_length = grid[-1] + grid[1]
 
     def gaussian(length):
