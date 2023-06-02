@@ -4,72 +4,81 @@
 import numpy as np
 import pytest
 from matplotlib import pyplot as plt
-from numpy import pi, linspace
-from numpy.testing import assert_array_almost_equal
+from numpy import linspace
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
-from pydefect_2d.potential.slab_model_info import SlabGaussModel, ProfilePlotter
+from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution, \
+    Grid
+from pydefect_2d.potential.slab_model_info import CalcPotential, \
+    ProfilePlotter, GaussChargeModel, SlabModel, Potential, FP1dPotential
+
+grid = Grid(10., 4)
 
 
-@pytest.fixture
-def slab_gauss_model():
-    return SlabGaussModel(lattice_constants=[10., 10., 10.],
-                          num_grids=[4, 4, 4],
-                          epsilon=[[1.0, 2.0, 2.0, 1.0],
-                                   [1.0, 2.0, 2.0, 1.0],
-                                   [1.0, 2.0, 2.0, 1.0]],
-                          charge=1.0, sigma=1.0, defect_z_pos=0.0)
+@pytest.fixture(scope="session")
+def epsilon_dist():
+    return EpsilonDistribution(grid=grid,
+                               electronic=[[0., 1., 1., 0.]] * 3,
+                               ionic=[[0., 0., 0., 0.]] * 3,
+                               center=5.0)
 
 
-def test_json_file_mixin(slab_gauss_model, tmpdir):
-    print(slab_gauss_model.real_charge)
-    assert_json_roundtrip(slab_gauss_model, tmpdir)
+@pytest.fixture(scope="session")
+def gauss_model():
+    return GaussChargeModel([grid, grid, grid],
+                            charge=1.0,
+                            sigma=1.0,
+                            defect_z_pos=0.0)
 
 
-def test_slab_gauss_model_grids(slab_gauss_model):
-    assert slab_gauss_model.num_grids == [4, 4, 4]
-    assert_array_almost_equal(slab_gauss_model.grids, np.array([[0.0, 2.5, 5.0, 7.5],
-                                                                [0.0, 2.5, 5.0, 7.5],
-                                                                [0.0, 2.5, 5.0, 7.5]]))
+@pytest.fixture(scope="session")
+def potential(epsilon_dist, gauss_model):
+    return CalcPotential(epsilon_dist, gauss_model=gauss_model).potential
 
 
-def test_slab_gauss_model_Gs(slab_gauss_model):
-    pi_over_lat = 2 * pi / 10
-    expected = np.array([[0, pi_over_lat, 2*pi_over_lat, pi_over_lat]] * 3)
-    assert_array_almost_equal(slab_gauss_model.Gs, expected)
+@pytest.fixture(scope="session")
+def slab_model(epsilon_dist, gauss_model, potential):
+    return SlabModel(epsilon_dist, gauss_model, potential)
 
 
-def test_slab_gauss_model_reciprocal_epsilon(slab_gauss_model):
-    assert_array_almost_equal(slab_gauss_model.reciprocal_epsilon,
-                              [np.array([6.+0j, -1.-1.j, 0.+0j, -1.+1.j])] * 3)
+def test_gauss_charge_model_charges(gauss_model):
+    assert gauss_model.charges[0][0][0] == 0.06349363593424097
 
 
-def test_slab_gauss_model_volume(slab_gauss_model):
-    assert slab_gauss_model.volume == 1000.0
+def test_json_file_mixin(gauss_model, potential, tmpdir):
+    assert_json_roundtrip(gauss_model, tmpdir)
+    assert_json_roundtrip(potential, tmpdir)
 
 
-def test_slab_gauss_model_electrostat_energy(slab_gauss_model: SlabGaussModel):
-    print("reciprocal_pot", slab_gauss_model.reciprocal_potential[0, 0])
-#    print("real_pot", slab_gauss_model.real_potential)
-    assert slab_gauss_model.electrostatic_energy == 4.827933538413449
+def test_slab_gauss_model_electrostatic_energy(slab_model):
+    assert slab_model.electrostatic_energy == 4.827933538413449
 
 
 def test_plot_profile():
-    charge = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-    potential = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
+    grid_plot = Grid(10.0, 10)
+    epsilon = EpsilonDistribution(
+        grid=grid_plot,
+        electronic=[[1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 1.5, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 2.5, 4.0, 4.0, 4.0, 2.5, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 3.5, 6.0, 6.0, 6.0, 3.5, 1.0, 1.0]],
+        ionic=[[0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 0.5, 0.0, 0.0],
+               [0.0, 0.0, 0.0, 1.5, 3.0, 3.0, 3.0, 1.5, 0.0, 0.0],
+               [0.0, 0.0, 0.0, 2.5, 5.0, 5.0, 5.0, 2.5, 0.0, 0.0]],
+        center=0.5)
+    grid_xy = Grid(1.0, 2)
+    charges = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+    charge = GaussChargeModel(grids=[grid_xy, grid_xy, grid_plot],
+                              charge=1.0, sigma=1.0, defect_z_pos=0.0,
+                              charges=np.array([[charges]*2]*2))
+    pot = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
+    potential = Potential(
+        grids=[grid_xy, grid_xy, grid_plot],
+        potential=np.array([[pot]*2]*2))
 
-    model = SlabGaussModel(
-        lattice_constants=[1.0, 1.0, 10.0],
-        num_grids=[2, 2, 10],
-        charge=1.0, sigma=1.0, defect_z_pos=0.0,
-        epsilon=[[1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 1.5, 1.0, 1.0],
-                 [1.0, 1.0, 1.0, 2.5, 4.0, 4.0, 4.0, 2.5, 1.0, 1.0],
-                 [1.0, 1.0, 1.0, 3.5, 6.0, 6.0, 6.0, 3.5, 1.0, 1.0]],
-        charge_profile=np.array([[charge]*2]*2),
-        potential_profile=np.array([[potential]*2]*2),
-        fp_grid=list(linspace(0, 10.0, 10, endpoint=False)),
-        fp_xy_ave_potential=[-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
-    plotter = ProfilePlotter(model, plt)
+    fp_pot = FP1dPotential(grid_plot, [-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
+
+    slab_model = SlabModel(epsilon, charge, potential)
+    plotter = ProfilePlotter(plt, slab_model, fp_pot)
     plotter.plt.show()
 
 

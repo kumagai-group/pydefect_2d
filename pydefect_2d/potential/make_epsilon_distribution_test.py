@@ -5,18 +5,19 @@ from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
 from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution, \
-    make_gaussian_epsilon_distribution
+    make_gaussian_epsilon_distribution, make_large_model
 
 
 @pytest.fixture
 def epsilon():
     return EpsilonDistribution(grid=[0.0, 10.0],
-                               ion_clamped=[[2., 3.], [2., 3.], [2., 3.]],
+                               electronic=[[1., 2.], [1., 2.], [1., 2.]],
                                ionic=[[2., 3.], [2., 3.], [2., 3.]],
                                center=5.001)
 
 
 def test_epsilon_properties(epsilon):
+    assert_almost_equal(epsilon.ion_clamped, [[2., 3.], [2., 3.], [2., 3.]])
     assert_almost_equal(epsilon.static, [[4., 6.], [4., 6.], [4., 6.]])
     assert_almost_equal(epsilon.effective, [[4., 6.], [4., 6.], [4., 6.]])
 
@@ -49,4 +50,17 @@ def test_make_epsilon_distribution(mocker):
         ion_clamped=[[1.0, 3.0], [1.0, 7.0], [1.0, 11.0]],
         ionic=[[0.0, 4.0], [0.0, 6.0], [0.0, 8.0]],
         center=2.0)
+    assert actual == expected
+
+
+def test_make_large_model():
+    e_dist = EpsilonDistribution(grid=[0.0, 2.0, 4.0],
+                                 ion_clamped=[[1., 2., 2.]]*3,
+                                 ionic=[[0., 2., 2.]]*3,
+                                 center=3.)
+    actual = make_large_model(epsilon_dist=e_dist, mul=2)
+    expected = EpsilonDistribution(grid=[0.0, 2.0, 4.0, 6.0, 8.0, 10.0],
+                                   ion_clamped=[[1., 2., 2., 1., 1., 1.]] * 3,
+                                   ionic=[[0., 2., 2., 0., 0., 0.]] * 3,
+                                   center=3.)
     assert actual == expected
