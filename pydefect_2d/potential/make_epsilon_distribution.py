@@ -7,6 +7,7 @@ from typing import List
 import numpy as np
 from monty.json import MSONable
 from numpy import linspace
+from numpy.testing import assert_array_almost_equal, assert_almost_equal
 from scipy.fftpack import fft
 from tabulate import tabulate
 from vise.util.mix_in import ToJsonFileMixIn
@@ -17,8 +18,17 @@ from pydefect_2d.potential.distribution import make_gaussian_distribution, \
 
 @dataclass
 class Grid(MSONable):
-    length: float  # in Å
-    num_grid: int
+    base_length: float  # in Å
+    base_num_grid: int
+    mul: int = 1
+
+    @property
+    def length(self):
+        return self.base_length * self.mul
+
+    @property
+    def num_grid(self):
+        return self.base_num_grid * self.mul
 
     @property
     def grid_points(self):
@@ -30,7 +40,15 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
     grid: Grid
     electronic: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z]
     ionic: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z]
-    center: float  # in Å
+
+    def __eq__(self, other):
+        try:
+            assert self.grid == other.grid
+            assert_almost_equal(self.electronic, other.electronic)
+            assert_almost_equal(self.ionic, other.ionic)
+        except AssertionError:
+            return False
+        return True
 
     @property
     def ion_clamped(self) -> List[List[float]]:
@@ -46,8 +64,16 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         ionic = np.array(self.ionic)
         return list(clamped + clamped**2/ionic)
 
+    @property
+    def ave_ele(self) -> np.array:
+        return np.array(self.electronic).mean(axis=1)
+
+    @property
+    def ave_ion(self) -> np.array:
+        return np.array(self.ionic).mean(axis=1)
+
     def __str__(self):
-        result = [f"center: {self.center:.2f} Å"]
+        result = []
         header = ["pos (Å)"]
         for e in ["ε_inf", "ε_ion", "ε_0"]:
             for direction in ["x", "y", "z"]:
@@ -68,9 +94,11 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         ax = plt.gca()
         ax.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
         for e, direction in zip(self.ion_clamped, ["x", "y", "z"]):
-            ax.plot(self.grid, e, label=f"ε_inf_{direction}")
+            ax.plot(self.grid.grid_points, e, label=f"ε_inf_{direction}")
         for e, direction in zip(self.ionic, ["x", "y", "z"]):
-            ax.plot(self.grid, e, label=f"ε_ion_{direction}")
+            ax.plot(self.grid.grid_points, e, label=f"ε_ion_{direction}")
+        for e, direction in zip(self.static, ["x", "y", "z"]):
+            ax.plot(self.grid.grid_points, e, label=f"ε_0_{direction}")
         ax.legend()
 
     @cached_property
@@ -78,29 +106,43 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         return [fft(e) for e in self.static]
 
 
-def make_gaussian_epsilon_distribution(length: float,
-                                       num_gird: int,
-                                       ave_electronic_epsilon: List[float],
-                                       ave_ionic_epsilon: List[float],
-                                       position: float,
-                                       sigma: float):
-    grid = Grid(length, num_gird)
+@dataclass
+class EpsilonGaussianDistribution(EpsilonDistribution):
+    center: float  # in Å
+    sigma: float  # in Å
+
+    def __str__(self):
+        result = [f"center: {self.center:.2f} Å",
+                  f"sigma: {self.sigma:.2f} Å",
+                  super().__str__()]
+        return "\n".join(result)
+
+
+def make_epsilon_gaussian_dist(length: float,
+                               num_grid: int,
+                               ave_electronic_epsilon: List[float],
+                               ave_ionic_epsilon: List[float],
+                               position: float,
+                               sigma: float):
+    grid = Grid(length, num_grid)
     dist = make_gaussian_distribution(grid.grid_points, position, sigma)
     electronic = [rescale_distribution(dist, ave_ele)
                   for ave_ele in ave_electronic_epsilon]
     ionic = [rescale_distribution(dist, ave_ionic)
              for ave_ionic in ave_ionic_epsilon]
-    return EpsilonDistribution(grid, electronic, ionic, position)
+    return EpsilonGaussianDistribution(grid, electronic, ionic, position, sigma)
 
 
-def make_large_model(epsilon_dist: EpsilonDistribution,
-                     mul: int):
+def make_large_gaussian_dist(
+        base_epsilon_dist: EpsilonGaussianDistribution, mul: int):
+    ave_ele_e = base_epsilon_dist.ave_ele / mul
+    ave_ion_e = base_epsilon_dist.ave_ion / mul
 
-
-
-    return EpsilonDistribution(grid=[0.0, 2.0, 4.0, 6.0, 8.0, 10.0],
-                               ion_clamped=[[1., 2., 2., 1., 1., 1.]] * 3,
-                               ionic=[[0., 2., 2., 0., 0., 0.]] * 3,
-                               center=epsilon_dist.center)
+    return make_epsilon_gaussian_dist(base_epsilon_dist.grid.length * mul,
+                                      base_epsilon_dist.grid.num_grid * mul,
+                                      ave_ele_e,
+                                      ave_ion_e,
+                                      base_epsilon_dist.center,
+                                      sigma=base_epsilon_dist.sigma)
 
 

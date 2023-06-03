@@ -68,5 +68,5 @@ def make_gaussian_distribution(grid: List[float],
 
 def rescale_distribution(dist: List[float], average: float) -> List[float]:
     scale = average / np.mean(dist)
-    return (np.array(dist) * scale).tolist()
+    return (np.round(np.array(dist) * scale, decimals=7)).tolist()
 

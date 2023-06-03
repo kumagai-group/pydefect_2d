@@ -52,7 +52,7 @@ def parse_args_main_vasp(args):
         help="Position of layer in fractional coordinates.")
     parser_make_epsilon_dist.add_argument(
         "-n", "--num_grid", required=True, type=int,
-        help="Number of grid.")
+        help="Number of all_grid_points.")
     parser_make_epsilon_dist.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")

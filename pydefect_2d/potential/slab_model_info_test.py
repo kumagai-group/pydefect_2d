@@ -4,28 +4,27 @@
 import numpy as np
 import pytest
 from matplotlib import pyplot as plt
-from numpy import linspace
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
 from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution, \
-    Grid
+    Grid, EpsilonGaussianDistribution
 from pydefect_2d.potential.slab_model_info import CalcPotential, \
-    ProfilePlotter, GaussChargeModel, SlabModel, Potential, FP1dPotential
+    ProfilePlotter, GaussChargeModel, SlabModel, Potential, FP1dPotential, Grids
 
 grid = Grid(10., 4)
 
 
 @pytest.fixture(scope="session")
 def epsilon_dist():
-    return EpsilonDistribution(grid=grid,
-                               electronic=[[0., 1., 1., 0.]] * 3,
-                               ionic=[[0., 0., 0., 0.]] * 3,
-                               center=5.0)
+    return EpsilonGaussianDistribution(grid=grid,
+                                       electronic=[[0., 1., 1., 0.]] * 3,
+                                       ionic=[[0., 0., 0., 0.]] * 3,
+                                       center=5.0, sigma=0.1)
 
 
 @pytest.fixture(scope="session")
 def gauss_model():
-    return GaussChargeModel([grid, grid, grid],
+    return GaussChargeModel(Grids([grid, grid, grid]),
                             charge=1.0,
                             sigma=1.0,
                             defect_z_pos=0.0)
@@ -63,16 +62,15 @@ def test_plot_profile():
                     [1.0, 1.0, 1.0, 3.5, 6.0, 6.0, 6.0, 3.5, 1.0, 1.0]],
         ionic=[[0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 0.5, 0.0, 0.0],
                [0.0, 0.0, 0.0, 1.5, 3.0, 3.0, 3.0, 1.5, 0.0, 0.0],
-               [0.0, 0.0, 0.0, 2.5, 5.0, 5.0, 5.0, 2.5, 0.0, 0.0]],
-        center=0.5)
+               [0.0, 0.0, 0.0, 2.5, 5.0, 5.0, 5.0, 2.5, 0.0, 0.0]])
     grid_xy = Grid(1.0, 2)
     charges = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-    charge = GaussChargeModel(grids=[grid_xy, grid_xy, grid_plot],
+    charge = GaussChargeModel(grids=Grids([grid_xy, grid_xy, grid_plot]),
                               charge=1.0, sigma=1.0, defect_z_pos=0.0,
                               charges=np.array([[charges]*2]*2))
     pot = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
     potential = Potential(
-        grids=[grid_xy, grid_xy, grid_plot],
+        grids=Grids([grid_xy, grid_xy, grid_plot]),
         potential=np.array([[pot]*2]*2))
 
     fp_pot = FP1dPotential(grid_plot, [-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])

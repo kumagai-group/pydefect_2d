@@ -9,8 +9,8 @@ from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
 from pydefect_2d.potential.make_epsilon_distribution import \
-    make_gaussian_epsilon_distribution
-from pydefect_2d.potential.slab_model_info import SlabGaussModel, ProfilePlotter
+    make_epsilon_gaussian_dist
+from pydefect_2d.potential.slab_model_info import CalcPotential, ProfilePlotter
 
 
 def plot_volumetric_data(args):
@@ -38,7 +38,7 @@ def make_epsilon_distribution(args):
     clamped = list(np.diag(args.unitcell.ele_dielectric_const))
     ionic = list(np.diag(args.unitcell.ion_dielectric_const))
     position = args.structure.lattice.c * args.position
-    epsilon_distribution = make_gaussian_epsilon_distribution(
+    epsilon_distribution = make_epsilon_gaussian_dist(
         list(grid), clamped, ionic, position, args.sigma)
     epsilon_distribution.to_json_file()
 
@@ -62,14 +62,14 @@ def make_slab_gauss_model(args):
         print("The size of two LOCPOT files seems different.")
         raise
 
-    model = SlabGaussModel(lattice_constants=[lat.a, lat.b, lat.c],
-                           num_grids=[x_num_grid, y_num_grid, z_num_grid],
-                           epsilon=args.epsilon_dist.static,
-                           charge=de.charge,
-                           sigma=args.sigma,
-                           defect_z_pos=defect_z_pos,
-                           fp_grid=fp_grid,
-                           fp_xy_ave_potential=fp_pot)
+    model = CalcPotential(lattice_constants=[lat.a, lat.b, lat.c],
+                          num_grids=[x_num_grid, y_num_grid, z_num_grid],
+                          epsilon=args.epsilon_dist.static,
+                          charge=de.charge,
+                          sigma=args.sigma,
+                          defect_z_pos=defect_z_pos,
+                          fp_grid=fp_grid,
+                          fp_xy_ave_potential=fp_pot)
 
     if args.calc_potential:
         model.real_charge

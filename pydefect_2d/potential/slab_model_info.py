@@ -23,8 +23,44 @@ from pydefect_2d.potential.make_epsilon_distribution import Grid, \
 
 
 @dataclass
+class Grids(MSONable):
+    grids: List[Grid]
+
+    def __call__(self, *args, **kwargs):
+        return self.grids
+
+    @property
+    def all_grid_points(self):
+        return [g.grid_points for g in self.grids]
+
+    @property
+    def num_grid_points(self):
+        return [grid.num_grid for grid in self.grids]
+
+    @property
+    def lengths(self):
+        return [grid.length for grid in self.grids]
+
+    @property
+    def xy_area(self):
+        return np.prod(self.lengths[:2])
+
+    @property
+    def z_length(self):
+        return self.grids[2].length
+
+    @property
+    def z_grid_points(self):
+        return self.grids[2].grid_points
+
+    @property
+    def volume(self):
+        return np.prod(self.lengths)
+
+
+@dataclass
 class GaussChargeModel(MSONable, ToJsonFileMixIn):
-    grids: List[Grid]  # assume orthogonal system
+    grids: Grids  # assume orthogonal system
     charge: float
     sigma: float
     defect_z_pos: float  # in fractional coord. x=y=0
@@ -38,9 +74,9 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
     def _make_gauss_charge_profile(self):
         coefficient = self.charge / self.sigma ** 3 / (2 * pi) ** 1.5
 
-        x_pts, y_pts, z_pts = [g.grid_points for g in self.grids]
-        nx, ny, nz = [grid.num_grid for grid in self.grids]
-        lx, ly, lz = [grid.length for grid in self.grids]
+        x_pts, y_pts, z_pts = self.grids.all_grid_points
+        nx, ny, nz = self.grids.num_grid_points
+        lx, ly, lz = self.grids.lengths
 
         gauss = np.zeros([nx, ny, nz])
 
@@ -53,36 +89,27 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
         return coefficient * gauss
 
-    @property
-    def lattice_constants(self):
-        return [g.length for g in self.grids]
-
     @cached_property
     def reciprocal_charge(self):
         result = fftn(self.charges)
         result[0, 0, 0] = 0  # introduce background charge
         return result
 
-    @property
-    def xy_area(self):
-        return np.prod(self.lattice_constants[:2])
-
     @cached_property
     def xy_integrated_charge(self):
-        return np.real(self.charges.mean(axis=(0, 1))) * self.xy_area
+        return np.real(self.charges.mean(axis=(0, 1))) * self.grids.xy_area
 
     @property
     def farthest_z_from_defect(self):
-        z_lattice_const = self.lattice_constants[2]
-        result = self.defect_z_pos + z_lattice_const / 2
-        if result > z_lattice_const:
-            result -= z_lattice_const
+        result = self.defect_z_pos + self.grids.z_length / 2
+        if result > self.grids.z_length:
+            result -= self.grids.z_length
         return result
 
 
 @dataclass
 class Potential(MSONable, ToJsonFileMixIn):
-    grids: List[Grid]  # assume orthogonal system
+    grids: Grids  # assume orthogonal system
     potential: np.array  # potential for positive charge
 
     @cached_property
@@ -96,34 +123,30 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     charge: GaussChargeModel
     potential: Potential
 
-    @property
-    def grid_points(self):
-        return [g.grid_points for g in self.charge.grids]
+    def __post_init__(self):
+        assert self.epsilon.grid == self.charge.grids()[2]
+        assert self.charge.grids == self.potential.grids
 
     @property
-    def volume(self):
-        return np.prod(self.charge.lattice_constants)
+    def grids(self) -> Grids:
+        return self.charge.grids
 
     @cached_property
     def electrostatic_energy(self):
         return np.real((np.mean(self.potential.potential * self.charge.charges)
-                        * self.volume / 2))
-
-    @property
-    def z_grid(self):
-        return self.charge.grids[2].grid_points
+                        * self.charge.grids.volume / 2))
 
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]
         list_ = []
-        for i, pos in enumerate(self.z_grid):
+        for i, pos in enumerate(self.grids.z_length):
             list_.append([pos,
                           self.charge.xy_integrated_charge[i],
                           self.potential.xy_ave_potential[i]])
 
         result = [tabulate(list_, tablefmt="plain", headers=header)]
 
-        charge_sum = self.charge.charges.mean() * self.volume
+        charge_sum = self.charge.charges.mean() * self.grids.volume
         result.append(f"Charge sum (|e|): {charge_sum:.3}")
         result.append(f"Electrostatic energy (eV): "
                       f"{self.electrostatic_energy:.3}")
@@ -138,11 +161,9 @@ class CalcPotential(MSONable, ToJsonFileMixIn):
 
     def __post_init__(self):
         try:
-            np.testing.assert_array_almost_equal(
-                self.epsilon.grid.grid_points,
-                self.gauss_model.grids[2].grid_points)
+            assert self.epsilon.grid == self.gauss_model.grids()[2]
         except AssertionError:
-            e_z_gird, g_z_grid = self.epsilon.grid, self.gauss_model.grids[2]
+            e_z_gird, g_z_grid = self.epsilon.grid, self.gauss_model.grids()[2]
             print(f"epsilon z lattice length {e_z_gird.length}")
             print(f"epsilon num grid {e_z_gird.num_grid}")
             print(f"gauss model lattice length {g_z_grid.length}")
@@ -151,15 +172,11 @@ class CalcPotential(MSONable, ToJsonFileMixIn):
 
     @property
     def num_grids(self):
-        return [g.num_grid for g in self.gauss_model.grids]
-
-    @property
-    def z_grids(self):
-        return self.gauss_model.grids[2].num_grid
+        return [g.num_grid for g in self.gauss_model.grids()]
 
     @property
     def lattice_constants(self):
-        return [g.length for g in self.gauss_model.grids]
+        return [g.length for g in self.gauss_model.grids()]
 
     @cached_property
     def Gs(self):
@@ -235,7 +252,7 @@ class ProfilePlotter:
                  slab_model: SlabModel,
                  fp_potential: FP1dPotential = None):
         self.plt = plt
-        self.z_grid = slab_model.z_grid
+        self.z_grid_points = slab_model.grids.z_grid_points
         self.charge = slab_model.charge.xy_integrated_charge
         self.epsilon = slab_model.epsilon.static
 
@@ -256,28 +273,28 @@ class ProfilePlotter:
 
     def _plot_charge(self):
         self.ax1.set_ylabel("Charge (|e|/Å)")
-        self.ax1.plot(self.z_grid, self.charge,
+        self.ax1.plot(self.z_grid_points, self.charge,
                       label="charge", color="black")
 
     def _plot_epsilon(self):
         self.ax2.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
         for e, direction in zip(self.epsilon, ["x", "y", "z"]):
-            self.ax2.plot(self.z_grid, e, label=direction)
+            self.ax2.plot(self.z_grid_points, e, label=direction)
         self.ax2.legend()
 
     def _plot_potential(self):
         self.ax3.set_ylabel("Potential energy (eV)")
-        self.ax3.plot(self.z_grid, self.potential,
+        self.ax3.plot(self.z_grid_points, self.potential,
                       label="Gaussian model", color="red")
         if self.fp_potential:
             self.ax3.plot(self.fp_grid, self.fp_potential,
                           label="FP", color="blue")
-            self.ax3.plot(self.z_grid, self._diff_potential,
+            self.ax3.plot(self.z_grid_points, self._diff_potential,
                           label="diff", color="green", linestyle=":")
         self.ax3.legend()
 
     @property
     def _diff_potential(self):
         f = interpolate.interp1d(self.fp_grid, self.fp_potential)
-        fp_pot = f(self.z_grid)
+        fp_pot = f(self.z_grid_points)
         return fp_pot - self.potential
