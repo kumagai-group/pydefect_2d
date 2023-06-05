@@ -8,9 +8,11 @@ from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
 from pydefect_2d.potential.make_epsilon_distribution import \
-    make_epsilon_gaussian_dist, Grid
+    make_epsilon_gaussian_dist
+from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.slab_model_info import CalcPotential, \
-    GaussChargeModel, Grids, FP1dPotential, SlabModel, ProfilePlotter
+    GaussChargeModel, FP1dPotential, SlabModel
+from pydefect_2d.potential.plotter import ProfilePlotter
 
 
 def plot_volumetric_data(args):

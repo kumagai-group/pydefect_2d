@@ -6,8 +6,8 @@ import numpy as np
 from numpy import linspace
 from pymatgen.core import Structure
 
-from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution, \
-    Grid
+from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.grids import Grid
 from pydefect_2d.vasp.cli.main_function import \
     make_epsilon_distributions
 

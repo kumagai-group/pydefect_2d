@@ -5,7 +5,8 @@ from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
 from pydefect_2d.potential.make_epsilon_distribution import \
-    make_epsilon_gaussian_dist, Grid, EpsilonGaussianDistribution
+    make_epsilon_gaussian_dist, EpsilonGaussianDistribution
+from pydefect_2d.potential.grids import Grid
 
 
 @pytest.fixture
@@ -25,6 +26,13 @@ def test_epsilon_properties(epsilon):
 
 def test_epsilon_averages(epsilon):
     assert_almost_equal(epsilon.ave_ele, [1.5, 1.5, 1.5])
+    assert_almost_equal(epsilon.ave_ion, [2.5, 2.5, 2.5])
+
+
+def test_reciprocal_static(epsilon):
+    """The returned complex array contains ``y(0), y(1),..., y(n-1)``, where
+       ``y(j) = (x * exp(-2*pi*sqrt(-1)*j*np.arange(n)/n)).sum()``."""
+    assert_almost_equal(epsilon.reciprocal_static[0], [10.-0.j, -2.-0.j])
 
 
 def test_epsilon_str(epsilon):
@@ -42,27 +50,9 @@ def test_epsilon_to_plot(epsilon):
     plt.show()
 
 
-def test_make_epsilon_distribution(mocker):
-    mock = mocker.patch("pydefect_2d.potential.make_epsilon_distribution.make_gaussian_distribution")
-    mock.return_value = [0.0, 1.0]
-    actual = make_epsilon_gaussian_dist(
-        length=2.0,
-        num_grid=2,
-        ave_electronic_epsilon=[1.0, 3.0, 5.0],
-        ave_ionic_epsilon=[2.0, 3.0, 4.0],
-        position=2.0,
-        sigma=1.0)
-    expected = EpsilonGaussianDistribution(
-        grid=Grid(2.0, 2),
-        electronic=[[0.0, 2.0], [0.0, 6.0], [0.0, 10.0]],
-        ionic=[[0.0, 4.0], [0.0, 6.0], [0.0, 8.0]],
-        center=2.0,
-        sigma=1.0)
-    assert actual == expected
-
-
 def test_make_large_model():
-    actual = make_epsilon_gaussian_dist(6.0, 3, [2/3.]*3, [4/3]*3, position=3., sigma=0.1, mul=2)
+    actual = make_epsilon_gaussian_dist(6.0, 3, [2/3.]*3, [4/3]*3,
+                                        position=3., sigma=0.1, mul=2)
     expected = EpsilonGaussianDistribution(
         grid=Grid(6.0, 3, 2),
         electronic=[[0., 1., 1., 0., 0., 0.]] * 3,

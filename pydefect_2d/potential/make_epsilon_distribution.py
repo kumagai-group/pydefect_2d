@@ -6,33 +6,14 @@ from typing import List
 
 import numpy as np
 from monty.json import MSONable
-from numpy import linspace
-from numpy.testing import assert_array_almost_equal, assert_almost_equal
+from numpy.testing import assert_almost_equal
 from scipy.fftpack import fft
 from tabulate import tabulate
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.potential.distribution import make_gaussian_distribution, \
     rescale_distribution
-
-
-@dataclass
-class Grid(MSONable):
-    base_length: float  # in Å
-    base_num_grid: int
-    mul: int = 1
-
-    @property
-    def length(self):
-        return self.base_length * self.mul
-
-    @property
-    def num_grid(self):
-        return self.base_num_grid * self.mul
-
-    @property
-    def grid_points(self):
-        return list(linspace(0, self.length, self.num_grid, endpoint=False))
+from pydefect_2d.potential.grids import Grid
 
 
 @dataclass
@@ -66,11 +47,16 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
 
     @property
     def ave_ele(self) -> np.array:
+        """ Averages of e_x, e_y, e_z in the z-direction."""
         return np.array(self.electronic).mean(axis=1)
 
     @property
     def ave_ion(self) -> np.array:
         return np.array(self.ionic).mean(axis=1)
+
+    @cached_property
+    def reciprocal_static(self):
+        return [fft(e) for e in self.static]
 
     def __str__(self):
         result = []
@@ -100,10 +86,6 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         for e, direction in zip(self.static, ["x", "y", "z"]):
             ax.plot(self.grid.grid_points, e, label=f"ε_0_{direction}")
         ax.legend()
-
-    @cached_property
-    def reciprocal_static(self):
-        return [fft(e) for e in self.static]
 
 
 @dataclass

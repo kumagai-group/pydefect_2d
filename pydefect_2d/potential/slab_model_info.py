@@ -7,7 +7,7 @@ from functools import cached_property
 from itertools import product
 from math import pi, exp
 from multiprocessing import Pool
-from typing import List, Any, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from monty.json import MSONable
@@ -18,47 +18,8 @@ from tabulate import tabulate
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
-from pydefect_2d.potential.make_epsilon_distribution import Grid, \
-    EpsilonDistribution
-
-
-@dataclass
-class Grids(MSONable):
-    grids: List[Grid]
-
-    def __call__(self, *args, **kwargs):
-        return self.grids
-
-    @property
-    def all_grid_points(self):
-        return [g.grid_points for g in self.grids]
-
-    @property
-    def num_grid_points(self):
-        return [grid.num_grid for grid in self.grids]
-
-    @property
-    def lengths(self):
-        return [grid.length for grid in self.grids]
-
-    @property
-    def xy_area(self):
-        return np.prod(self.lengths[:2])
-
-    @property
-    def z_length(self):
-        return self.grids[2].length
-
-    @property
-    def z_grid_points(self):
-        return self.grids[2].grid_points
-
-    @property
-    def volume(self):
-        return np.prod(self.lengths)
-
-    def nearest_z_grid_point(self, z) -> Tuple[int, float]:
-        return min(enumerate(self.z_grid_points), key=lambda x: abs(x[1]-z))
+from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.grids import Grid, Grids
 
 
 @dataclass
@@ -292,54 +253,3 @@ class SlabModel:
                                         self.potential_diff)
 
 
-class ProfilePlotter:
-
-    def __init__(self,
-                 plt,
-                 slab_model: SlabModel):
-        self.plt = plt
-        self.z_grid_points = slab_model.grids.z_grid_points
-        self.charge = slab_model.charge.xy_integrated_charge
-        self.epsilon = slab_model.epsilon.static
-
-        self.fp_potential = None
-        if slab_model.fp_potential:
-            self.fp_potential = slab_model.fp_potential
-
-        self.potential = slab_model.potential.xy_ave_potential
-        _, (self.ax1, self.ax2, self.ax3) = plt.subplots(3, 1, sharex="all")
-
-        self._plot_potential()
-        self._plot_charge()
-        self._plot_epsilon()
-
-        plt.subplots_adjust(hspace=.0)
-        plt.xlabel("Distance (Å)")
-
-    def _plot_charge(self):
-        self.ax1.set_ylabel("Charge (|e|/Å)")
-        self.ax1.plot(self.z_grid_points, self.charge,
-                      label="charge", color="black")
-
-    def _plot_epsilon(self):
-        self.ax2.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
-        for e, direction in zip(self.epsilon, ["x", "y", "z"]):
-            self.ax2.plot(self.z_grid_points, e, label=direction)
-        self.ax2.legend()
-
-    def _plot_potential(self):
-        self.ax3.set_ylabel("Potential energy (eV)")
-        self.ax3.plot(self.z_grid_points, self.potential,
-                      label="Gauss model", color="red")
-        if self.fp_potential:
-            self.ax3.plot(self.fp_potential.grid.grid_points,
-                          self.fp_potential.potential,
-                          label="FP", color="blue")
-            self.ax3.plot(self.z_grid_points, self._diff_potential,
-                          label="diff", color="green", linestyle=":")
-        self.ax3.legend()
-
-    @property
-    def _diff_potential(self):
-        fp_pot = self.fp_potential.f(self.z_grid_points)
-        return fp_pot - self.potential
