@@ -98,7 +98,7 @@ class GaussElectrostaticEnergy(MSONable, ToJsonFileMixIn):
 
 
 @dataclass
-class CalcPotential(MSONable, ToJsonFileMixIn):
+class CalcPotential:
     epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
     gauss_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
