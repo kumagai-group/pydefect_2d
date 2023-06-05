@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
-from pydefect_2d.potential.make_epsilon_distribution import \
+from pydefect_2d.potential.epsilon_distribution import \
     make_epsilon_gaussian_dist
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.slab_model_info import CalcPotential, \
@@ -51,7 +51,7 @@ def make_epsilon_distributions(args):
     for mul in args.muls:
         epsilon_distribution = make_epsilon_gaussian_dist(
             args.structure.lattice.c, args.num_grid, electronic, ionic,
-            position, args.sigma)
+            position, args.sigma, mul)
         filename = _add_mul(epsilon_distribution._json_filename, mul)
         epsilon_distribution.to_json_file(filename)
 
@@ -59,7 +59,7 @@ def make_epsilon_distributions(args):
 def make_gauss_charge_models(args):
     de: DefectEntry = args.defect_entry
     lat = de.structure.lattice
-    z_num_grid = len(args.epsilon_dist.static[0])
+    z_num_grid = args.epsilon_dist.grid.num_grid
     x_num_grid = ceil(lat.a / lat.c * z_num_grid / 2) * 2
     y_num_grid = ceil(lat.b / lat.c * z_num_grid / 2) * 2
 
@@ -87,7 +87,7 @@ def calc_potential(args):
 
 
 def make_fp_1d_potential(args):
-    length = args.defect_locpot.structure.lattice.lengths(args.axis)
+    length = args.defect_locpot.structure.lattice.lengths[args.axis]
     grid_num = args.defect_locpot.dim[args.axis]
 
     defect_pot = args.defect_locpot.get_average_along_axis(ind=args.axis)
@@ -100,7 +100,7 @@ def make_fp_1d_potential(args):
         print("The size of two LOCPOT files seems different.")
         raise
 
-    FP1dPotential(Grid(length, grid_num), pot).to_json_file()
+    FP1dPotential(Grid(length, grid_num), pot).to_json_file("fp_potential.json")
 
 
 def potential_prof(args):

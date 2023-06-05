@@ -4,7 +4,7 @@ from argparse import Namespace
 
 from pydefect.input_maker.defect_entry import DefectEntry
 
-from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
 from pydefect_2d.potential.slab_model_info import GaussChargeModel
 from pydefect_2d.vasp.cli.main import parse_args_main_vasp
 

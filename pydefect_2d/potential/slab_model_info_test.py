@@ -4,7 +4,7 @@
 import pytest
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
-from pydefect_2d.potential.make_epsilon_distribution import \
+from pydefect_2d.potential.epsilon_distribution import \
     EpsilonGaussianDistribution
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.slab_model_info import CalcPotential, \

@@ -4,7 +4,7 @@ import pytest
 from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
-from pydefect_2d.potential.make_epsilon_distribution import \
+from pydefect_2d.potential.epsilon_distribution import \
     make_epsilon_gaussian_dist, EpsilonGaussianDistribution
 from pydefect_2d.potential.grids import Grid
 

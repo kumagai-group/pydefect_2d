@@ -18,7 +18,7 @@ from tabulate import tabulate
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
-from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
 from pydefect_2d.potential.grids import Grid, Grids
 
 

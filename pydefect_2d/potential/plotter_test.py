@@ -3,7 +3,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import GaussChargeModel, Potential, FP1dPotential, SlabModel

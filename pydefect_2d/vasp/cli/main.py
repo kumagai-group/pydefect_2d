@@ -10,7 +10,8 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
-    make_epsilon_distributions, make_gauss_charge_models, make_fp_1d_potential
+    make_epsilon_distributions, make_gauss_charge_models, make_fp_1d_potential, \
+    calc_potential
 
 
 def parse_args_main_vasp(args):
@@ -53,7 +54,7 @@ def parse_args_main_vasp(args):
         "-n", "--num_grid", required=True, type=int,
         help="Number of all_grid_points.")
     parser_make_epsilon_dist.add_argument(
-        "-m", "--muls", type=float, default=[1],
+        "-m", "--muls", type=int, default=[1], nargs="+",
         help="Multipliers of the supercell.")
     parser_make_epsilon_dist.add_argument(
         "--sigma", default=0.5, type=float,
@@ -73,6 +74,9 @@ def parse_args_main_vasp(args):
     parser_make_gauss_charge_model.add_argument(
         "-e", "--epsilon_dist", required=True, type=loadfn,
         help="epsilon_distribution.json file")
+    parser_make_gauss_charge_model.add_argument(
+        "-m", "--muls", type=int, default=[1], nargs="+",
+        help="Multipliers of the supercell.")
     parser_make_gauss_charge_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")
@@ -95,7 +99,7 @@ def parse_args_main_vasp(args):
     parser_calc_potential.add_argument(
         "--no_multiprocess", dest="multiprocess", action="store_false",
         help="Switch of the multiprocess.")
-    parser_calc_potential.set_defaults(func=make_gauss_charge_models)
+    parser_calc_potential.set_defaults(func=calc_potential)
 
     # -- Make fp 1D potential. ---------------------------------------------
     parser_make_fp_1d_potential = subparsers.add_parser(
@@ -111,7 +115,7 @@ def parse_args_main_vasp(args):
         "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
         help="LOCPOT file from a perfect supercell calculation.")
     parser_make_fp_1d_potential.add_argument(
-        "-a", "--axis", type=int, choices=[0, 1, 2],
+        "-a", "--axis", type=int, choices=[0, 1, 2], default=2,
         help="Set axis along the normal direction to slab model. "
              "0, 1, and 2 correspond to x, y, and z directions, respectively")
     parser_make_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
