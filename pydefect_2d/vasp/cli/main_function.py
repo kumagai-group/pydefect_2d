@@ -4,13 +4,13 @@ from math import ceil
 
 import numpy as np
 from matplotlib import pyplot as plt
-from numpy import linspace
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
 from pydefect_2d.potential.make_epsilon_distribution import \
-    make_epsilon_gaussian_dist
-from pydefect_2d.potential.slab_model_info import CalcPotential, ProfilePlotter
+    make_epsilon_gaussian_dist, Grid
+from pydefect_2d.potential.slab_model_info import CalcPotential, \
+    GaussChargeModel, Grids, FP1dPotential, SlabModel, ProfilePlotter
 
 
 def plot_volumetric_data(args):
@@ -33,17 +33,28 @@ def plot_volumetric_data(args):
     plt.savefig(f"{args.filename}.pdf")
 
 
-def make_epsilon_distribution(args):
-    grid = linspace(0., args.structure.lattice.c, args.num_grid, endpoint=False)
-    clamped = list(np.diag(args.unitcell.ele_dielectric_const))
+def _add_mul(filename: str, mul):
+    if mul == 1:
+        return filename
+    x, y = filename.split(".")
+    return f"{x}_{mul}.{y}"
+
+
+def make_epsilon_distributions(args):
+    clamped = np.diag(args.unitcell.ele_dielectric_const)
+    electronic = list(clamped - 1.)
     ionic = list(np.diag(args.unitcell.ion_dielectric_const))
     position = args.structure.lattice.c * args.position
-    epsilon_distribution = make_epsilon_gaussian_dist(
-        list(grid), clamped, ionic, position, args.sigma)
-    epsilon_distribution.to_json_file()
+
+    for mul in args.muls:
+        epsilon_distribution = make_epsilon_gaussian_dist(
+            args.structure.lattice.c, args.num_grid, electronic, ionic,
+            position, args.sigma)
+        filename = _add_mul(epsilon_distribution._json_filename, mul)
+        epsilon_distribution.to_json_file(filename)
 
 
-def make_slab_gauss_model(args):
+def make_gauss_charge_models(args):
     de: DefectEntry = args.defect_entry
     lat = de.structure.lattice
     z_num_grid = len(args.epsilon_dist.static[0])
@@ -52,28 +63,53 @@ def make_slab_gauss_model(args):
 
     defect_z_pos = lat.c * de.defect_center[2]
 
-    fp_grid = args.defect_locpot.get_axis_grid(2)
-    fp_defect_pot = args.defect_locpot.get_average_along_axis(ind=2)
-    fp_perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
+    for mul in args.muls:
+        grids = Grids([Grid(lat.a, x_num_grid, mul),
+                       Grid(lat.b, y_num_grid, mul),
+                       Grid(lat.c, z_num_grid, mul)])
+
+        model = GaussChargeModel(grids,
+                                 charge=de.charge,
+                                 sigma=args.sigma,
+                                 defect_z_pos=defect_z_pos)
+        filename = _add_mul("gauss_charge_model.json", mul)
+        model.to_json_file(filename)
+
+
+def calc_potential(args):
+    calc_pot = CalcPotential(epsilon=args.epsilon_dist,
+                             gauss_model=args.gauss_model,
+                             multiprocess=args.multiprocess)
+    filename = _add_mul("potential.json", args.epsilon_dist.grid.mul)
+    calc_pot.potential.to_json_file(filename)
+
+
+def make_fp_1d_potential(args):
+    length = args.defect_locpot.structure.lattice.lengths(args.axis)
+    grid_num = args.defect_locpot.dim[args.axis]
+
+    defect_pot = args.defect_locpot.get_average_along_axis(ind=args.axis)
+    perfect_pot = args.perfect_locpot.get_average_along_axis(ind=args.axis)
+
     try:
         # minus is necessary because the VASP potential is for electrons.
-        fp_pot = (-(fp_defect_pot - fp_perfect_pot)).tolist()
+        pot = (-(defect_pot - perfect_pot)).tolist()
     except ValueError:
         print("The size of two LOCPOT files seems different.")
         raise
 
-    model = CalcPotential(lattice_constants=[lat.a, lat.b, lat.c],
-                          num_grids=[x_num_grid, y_num_grid, z_num_grid],
-                          epsilon=args.epsilon_dist.static,
-                          charge=de.charge,
-                          sigma=args.sigma,
-                          defect_z_pos=defect_z_pos,
-                          fp_grid=fp_grid,
-                          fp_xy_ave_potential=fp_pot)
+    FP1dPotential(Grid(length, grid_num), pot).to_json_file()
 
-    if args.calc_potential:
-        model.real_charge
-        model.real_potential
-    model.to_json_file()
-    model.to_plot(plt)
-    plt.savefig("slab_gauss_model.pdf")
+
+def potential_prof(args):
+    slab_model = SlabModel(epsilon=args.epsilon,
+                           charge=args.gauss_model,
+                           potential=args.potential,
+                           fp_potential=args.fp_potential)
+    ele_energy = slab_model.to_electrostatic_energy
+    filename = _add_mul("electrostatic_energy.json", args.epsilon.grid.mul)
+    ele_energy.to_json_file(filename)
+
+    ProfilePlotter(plt, slab_model)
+    filename = _add_mul("potential.pdf", args.epsilon.grid.mul)
+    plt.savefig(filename)

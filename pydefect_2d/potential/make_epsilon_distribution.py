@@ -123,26 +123,17 @@ def make_epsilon_gaussian_dist(length: float,
                                ave_electronic_epsilon: List[float],
                                ave_ionic_epsilon: List[float],
                                position: float,
-                               sigma: float):
-    grid = Grid(length, num_grid)
+                               sigma: float,
+                               mul: int = 1):
+    grid = Grid(length, num_grid, mul)
     dist = make_gaussian_distribution(grid.grid_points, position, sigma)
+    ave_electronic_epsilon = list(np.array(ave_electronic_epsilon) / mul)
+    ave_ionic_epsilon = list(np.array(ave_ionic_epsilon) / mul)
+
     electronic = [rescale_distribution(dist, ave_ele)
                   for ave_ele in ave_electronic_epsilon]
     ionic = [rescale_distribution(dist, ave_ionic)
              for ave_ionic in ave_ionic_epsilon]
     return EpsilonGaussianDistribution(grid, electronic, ionic, position, sigma)
-
-
-def make_large_gaussian_dist(
-        base_epsilon_dist: EpsilonGaussianDistribution, mul: int):
-    ave_ele_e = base_epsilon_dist.ave_ele / mul
-    ave_ion_e = base_epsilon_dist.ave_ion / mul
-
-    return make_epsilon_gaussian_dist(base_epsilon_dist.grid.length * mul,
-                                      base_epsilon_dist.grid.num_grid * mul,
-                                      ave_ele_e,
-                                      ave_ion_e,
-                                      base_epsilon_dist.center,
-                                      sigma=base_epsilon_dist.sigma)
 
 

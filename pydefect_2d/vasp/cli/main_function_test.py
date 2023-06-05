@@ -6,12 +6,13 @@ import numpy as np
 from numpy import linspace
 from pymatgen.core import Structure
 
-from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution, \
+    Grid
 from pydefect_2d.vasp.cli.main_function import \
-    make_epsilon_distribution
+    make_epsilon_distributions
 
 
-def test_make_epsilon_distribution(mocker):
+def test_make_epsilon_distributions(mocker):
     unitcell = mocker.MagicMock(ele_dielectric_const=list(np.eye(3)*2),
                                 ion_dielectric_const=list(np.eye(3)*3))
     unitcell_structure = Structure.from_str("""B1 N1
@@ -28,11 +29,12 @@ Direct
                      structure=unitcell_structure,
                      position=0.5,
                      num_grid=10,
-                     sigma=0.5)
+                     sigma=0.5,
+                     muls=[1, 2])
 
-    actual = make_epsilon_distribution(args)
-    expected = EpsilonDistribution(list(linspace(0, 10.0, 10, endpoint=False)),
-                                   ion_clamped=[[]],
+    actual = make_epsilon_distributions(args)
+    expected = EpsilonDistribution(Grid(10.0, 10),
+                                   electronic=[[]],
                                    ionic=[[]])
     print(actual)
 

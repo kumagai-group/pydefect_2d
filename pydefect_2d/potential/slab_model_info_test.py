@@ -66,7 +66,7 @@ def test_plot_profile():
     grid_xy = Grid(1.0, 2)
     charges = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
     charge = GaussChargeModel(grids=Grids([grid_xy, grid_xy, grid_plot]),
-                              charge=1.0, sigma=1.0, defect_z_pos=0.0,
+                              charge=1, sigma=1.0, defect_z_pos=0.0,
                               charges=np.array([[charges]*2]*2))
     pot = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
     potential = Potential(
@@ -75,8 +75,8 @@ def test_plot_profile():
 
     fp_pot = FP1dPotential(grid_plot, [-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
 
-    slab_model = SlabModel(epsilon, charge, potential)
-    plotter = ProfilePlotter(plt, slab_model, fp_pot)
+    slab_model = SlabModel(epsilon, charge, potential, fp_pot)
+    plotter = ProfilePlotter(plt, slab_model)
     plotter.plt.show()
 
 

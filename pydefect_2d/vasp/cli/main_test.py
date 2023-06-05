@@ -5,6 +5,7 @@ from argparse import Namespace
 from pydefect.input_maker.defect_entry import DefectEntry
 
 from pydefect_2d.potential.make_epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.slab_model_info import GaussChargeModel
 from pydefect_2d.vasp.cli.main import parse_args_main_vasp
 
 
@@ -23,6 +24,7 @@ def test_make_epsilon_distribution(mocker):
         structure=mock_structure.from_file.return_value,
         position=0.5,
         num_grid=100,
+        muls=[1],
         sigma=0.1,
         func=parsed_args.func)
 
@@ -31,7 +33,7 @@ def test_make_epsilon_distribution(mocker):
     mock_structure.from_file.assert_called_once_with("CONTCAR")
 
 
-def test_make_slab_gauss_model(mocker):
+def test_make_gauss_charge_models(mocker):
     mock_defect_entry = mocker.Mock(spec=DefectEntry, autospec=True)
     mock_epsilon_dist = mocker.Mock(spec=EpsilonDistribution, autospec=True)
 
@@ -45,6 +47,47 @@ def test_make_slab_gauss_model(mocker):
 
     mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
 
+    parsed_args = parse_args_main_vasp(["mgcm",
+                                        "-d", "defect_entry.json",
+                                        "-e", "epsilon_distribution.json",
+                                        "--sigma", "0.1"])
+    expected = Namespace(
+        defect_entry=mock_defect_entry,
+        epsilon_dist=mock_epsilon_dist,
+        sigma=0.1,
+        func=parsed_args.func)
+
+    assert parsed_args == expected
+
+
+def test_calc_potential(mocker):
+    mock_epsilon_dist = mocker.Mock(spec=EpsilonDistribution, autospec=True)
+    mock_gauss_model = mocker.Mock(spec=GaussChargeModel, autospec=True)
+
+    def side_effect(filename):
+        if filename == "epsilon_distribution.json":
+            return mock_epsilon_dist
+        elif filename == "gauss_charge_model.json":
+            return mock_gauss_model
+        else:
+            raise ValueError
+
+    mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
+
+    parsed_args = parse_args_main_vasp(["cp",
+                                        "-e", "epsilon_distribution.json",
+                                        "-g", "gauss_charge_model.json",
+                                        "--no_multiprocess"])
+    expected = Namespace(
+        epsilon_dist=mock_epsilon_dist,
+        gauss_model=mock_gauss_model,
+        multiprocess=False,
+        func=parsed_args.func)
+
+    assert parsed_args == expected
+
+
+def test_make_fp_1d_potential(mocker):
     mock_locpot_defect = mocker.Mock()
     mock_locpot_perfect = mocker.Mock()
 
@@ -59,21 +102,14 @@ def test_make_slab_gauss_model(mocker):
     mocker.patch("pydefect_2d.vasp.cli.main.Locpot.from_file",
                  side_effect=side_effect_locpot)
 
-    parsed_args = parse_args_main_vasp(["msgm",
-                                        "-d", "defect_entry.json",
+    parsed_args = parse_args_main_vasp(["mfp",
                                         "-dl", "LOCPOT_defect",
                                         "-pl", "LOCPOT_perfect",
-                                        "-e", "epsilon_distribution.json",
-                                        "--sigma", "0.1",
-                                        "--no_potential_calc"])
+                                        "-a", "1"])
     expected = Namespace(
-        defect_entry=mock_defect_entry,
         defect_locpot=mock_locpot_defect,
         perfect_locpot=mock_locpot_perfect,
-        epsilon_dist=mock_epsilon_dist,
-        sigma=0.1,
-        calc_potential=False,
-        grid_divisor=10,
+        axis=1,
         func=parsed_args.func)
 
     assert parsed_args == expected
