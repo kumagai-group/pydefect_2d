@@ -10,8 +10,8 @@ from pymatgen.io.vasp import Chgcar, Locpot
 from pydefect_2d.potential.epsilon_distribution import \
     make_epsilon_gaussian_dist
 from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.potential.slab_model_info import CalcPotential, \
-    GaussChargeModel, FP1dPotential, SlabModel
+from pydefect_2d.potential.slab_model_info import CalcSingleChargePotential, \
+    SingleGaussChargeModel, FP1dPotential, SlabModel
 from pydefect_2d.potential.plotter import ProfilePlotter
 
 
@@ -70,18 +70,18 @@ def make_gauss_charge_models(args):
                        Grid(lat.b, y_num_grid, mul),
                        Grid(lat.c, z_num_grid, mul)])
 
-        model = GaussChargeModel(grids,
-                                 charge=de.charge,
-                                 sigma=args.sigma,
-                                 defect_z_pos=defect_z_pos)
+        model = SingleGaussChargeModel(grids,
+                                       charge=de.charge,
+                                       sigma=args.sigma,
+                                       defect_z_pos=defect_z_pos)
         filename = _add_mul("gauss_charge_model.json", mul)
         model.to_json_file(filename)
 
 
 def calc_potential(args):
-    calc_pot = CalcPotential(epsilon=args.epsilon_dist,
-                             gauss_model=args.gauss_model,
-                             multiprocess=args.multiprocess)
+    calc_pot = CalcSingleChargePotential(epsilon=args.epsilon_dist,
+                                         gauss_model=args.gauss_model,
+                                         multiprocess=args.multiprocess)
     filename = _add_mul("potential.json", args.epsilon_dist.grid.mul)
     calc_pot.potential.to_json_file(filename)
 
@@ -103,15 +103,15 @@ def make_fp_1d_potential(args):
     FP1dPotential(Grid(length, grid_num), pot).to_json_file("fp_potential.json")
 
 
-def potential_prof(args):
-    slab_model = SlabModel(epsilon=args.epsilon,
+def plot_profiles(args):
+    slab_model = SlabModel(epsilon=args.epsilon_dist,
                            charge=args.gauss_model,
                            potential=args.potential,
                            fp_potential=args.fp_potential)
     ele_energy = slab_model.to_electrostatic_energy
-    filename = _add_mul("electrostatic_energy.json", args.epsilon.grid.mul)
+    filename = _add_mul("electrostatic_energy.json", args.epsilon_dist.grid.mul)
     ele_energy.to_json_file(filename)
 
     ProfilePlotter(plt, slab_model)
-    filename = _add_mul("potential.pdf", args.epsilon.grid.mul)
+    filename = _add_mul("potential.pdf", args.epsilon_dist.grid.mul)
     plt.savefig(filename)

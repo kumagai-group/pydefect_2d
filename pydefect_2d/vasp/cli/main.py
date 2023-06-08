@@ -11,7 +11,7 @@ from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
     make_epsilon_distributions, make_gauss_charge_models, make_fp_1d_potential, \
-    calc_potential
+    calc_potential, plot_profiles
 
 
 def parse_args_main_vasp(args):
@@ -119,6 +119,48 @@ def parse_args_main_vasp(args):
         help="Set axis along the normal direction to slab model. "
              "0, 1, and 2 correspond to x, y, and z directions, respectively")
     parser_make_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
+
+    # -- Plot profiles ---------------------------------------------
+    parser_plot_profiles = subparsers.add_parser(
+        name="Plot profiles",
+        description="Plot all profiles.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        aliases=['pp'])
+
+    parser_plot_profiles.add_argument(
+        "-e", "--epsilon_dist", required=True, type=loadfn,
+        help="epsilon_distribution.json file")
+    parser_plot_profiles.add_argument(
+        "-g", "--gauss_model", required=True, type=loadfn,
+        help="gauss_charge_model.json file")
+    parser_plot_profiles.add_argument(
+        "-p", "--potential", required=True, type=loadfn,
+        help="potential.json file")
+    parser_plot_profiles.add_argument(
+        "-fp", "--fp_potential", type=loadfn,
+        help="fp_potential.json file")
+    parser_plot_profiles.set_defaults(func=plot_profiles)
+
+    # -- k1G ---------------------------------------------
+    parser_plot_profiles = subparsers.add_parser(
+        name="Plot profiles",
+        description="Plot all profiles.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        aliases=['pp'])
+
+    parser_plot_profiles.add_argument(
+        "-e", "--epsilon_dist", required=True, type=loadfn,
+        help="epsilon_distribution.json file")
+    parser_plot_profiles.add_argument(
+        "-g", "--gauss_model", required=True, type=loadfn,
+        help="gauss_charge_model.json file")
+    parser_plot_profiles.add_argument(
+        "-p", "--potential", required=True, type=loadfn,
+        help="potential.json file")
+    parser_plot_profiles.add_argument(
+        "-fp", "--fp_potential", type=loadfn,
+        help="fp_potential.json file")
+    parser_plot_profiles.set_defaults(func=plot_profiles)
 
     # ------------------------------------------------------------------------
     return parser.parse_args(args)

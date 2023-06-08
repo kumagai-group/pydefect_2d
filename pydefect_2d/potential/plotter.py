@@ -10,7 +10,7 @@ class ProfilePlotter:
                  slab_model: SlabModel):
         self.plt = plt
         self.z_grid_points = slab_model.grids.z_grid_points
-        self.charge = slab_model.charge.xy_integrated_charge
+        self.charge = slab_model.charge_model.xy_integrated_charge
         self.epsilon = slab_model.epsilon.static
 
         self.fp_potential = None

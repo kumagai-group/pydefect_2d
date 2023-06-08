@@ -5,7 +5,7 @@ from argparse import Namespace
 from pydefect.input_maker.defect_entry import DefectEntry
 
 from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
-from pydefect_2d.potential.slab_model_info import GaussChargeModel
+from pydefect_2d.potential.slab_model_info import SingleGaussChargeModel
 from pydefect_2d.vasp.cli.main import parse_args_main_vasp
 
 
@@ -55,6 +55,7 @@ def test_make_gauss_charge_models(mocker):
         defect_entry=mock_defect_entry,
         epsilon_dist=mock_epsilon_dist,
         sigma=0.1,
+        muls=[1],
         func=parsed_args.func)
 
     assert parsed_args == expected
@@ -62,7 +63,7 @@ def test_make_gauss_charge_models(mocker):
 
 def test_calc_potential(mocker):
     mock_epsilon_dist = mocker.Mock(spec=EpsilonDistribution, autospec=True)
-    mock_gauss_model = mocker.Mock(spec=GaussChargeModel, autospec=True)
+    mock_gauss_model = mocker.Mock(spec=SingleGaussChargeModel, autospec=True)
 
     def side_effect(filename):
         if filename == "epsilon_distribution.json":
