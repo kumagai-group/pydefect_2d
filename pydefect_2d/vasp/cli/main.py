@@ -144,26 +144,26 @@ def parse_args_main_vasp(args):
         help="defect_entry.json file.")
     parser_plot_profiles.set_defaults(func=plot_profiles)
 
-    # -- k1G ---------------------------------------------
-    parser_plot_profiles = subparsers.add_parser(
-        name="Plot profiles",
-        description="Plot all profiles.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        aliases=['pp'])
+    # # -- k1G ---------------------------------------------
+    # parser_plot_profiles = subparsers.add_parser(
+    #     name="Plot profiles",
+    #     description="Plot all profiles.",
+    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    #     aliases=['pp'])
 
-    parser_plot_profiles.add_argument(
-        "-e", "--epsilon_dist", required=True, type=loadfn,
-        help="epsilon_distribution.json file")
-    parser_plot_profiles.add_argument(
-        "-g", "--gauss_model", required=True, type=loadfn,
-        help="gauss_charge_model.json file")
-    parser_plot_profiles.add_argument(
-        "-p", "--potential", required=True, type=loadfn,
-        help="potential.json file")
-    parser_plot_profiles.add_argument(
-        "-fp", "--fp_potential", type=loadfn,
-        help="fp_potential.json file")
-    parser_plot_profiles.set_defaults(func=plot_profiles)
+    # parser_plot_profiles.add_argument(
+    #     "-e", "--epsilon_dist", required=True, type=loadfn,
+    #     help="epsilon_distribution.json file")
+    # parser_plot_profiles.add_argument(
+    #     "-g", "--gauss_model", required=True, type=loadfn,
+    #     help="gauss_charge_model.json file")
+    # parser_plot_profiles.add_argument(
+    #     "-p", "--potential", required=True, type=loadfn,
+    #     help="potential.json file")
+    # parser_plot_profiles.add_argument(
+    #     "-fp", "--fp_potential", type=loadfn,
+    #     help="fp_potential.json file")
+    # parser_plot_profiles.set_defaults(func=plot_profiles)
 
     # ------------------------------------------------------------------------
     return parser.parse_args(args)
