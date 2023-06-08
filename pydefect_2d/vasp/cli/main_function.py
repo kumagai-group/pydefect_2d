@@ -71,7 +71,6 @@ def make_gauss_charge_models(args):
                        Grid(lat.c, z_num_grid, mul)])
 
         model = SingleGaussChargeModel(grids,
-                                       charge=de.charge,
                                        sigma=args.sigma,
                                        defect_z_pos=defect_z_pos)
         filename = _add_mul("gauss_charge_model.json", mul)
@@ -104,8 +103,9 @@ def make_fp_1d_potential(args):
 
 
 def plot_profiles(args):
-    slab_model = SlabModel(epsilon=args.epsilon_dist,
-                           charge=args.gauss_model,
+    slab_model = SlabModel(charge=args.defect_entry.charge,
+                           epsilon=args.epsilon_dist,
+                           charge_model=args.gauss_model,
                            potential=args.potential,
                            fp_potential=args.fp_potential)
     ele_energy = slab_model.to_electrostatic_energy

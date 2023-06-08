@@ -139,6 +139,9 @@ def parse_args_main_vasp(args):
     parser_plot_profiles.add_argument(
         "-fp", "--fp_potential", type=loadfn,
         help="fp_potential.json file")
+    parser_plot_profiles.add_argument(
+        "-d", "--defect_entry", required=True, type=loadfn,
+        help="defect_entry.json file.")
     parser_plot_profiles.set_defaults(func=plot_profiles)
 
     # -- k1G ---------------------------------------------
