@@ -51,7 +51,7 @@ def parse_args_main_vasp(args):
         "-p", "--position", required=True, type=float,
         help="Position of layer in fractional coordinates.")
     parser_make_epsilon_dist.add_argument(
-        "-n", "--num_grid", required=True, type=int,
+        "-n", "--num_z_grid", required=True, type=int,
         help="Number of all_grid_points.")
     parser_make_epsilon_dist.add_argument(
         "-m", "--muls", type=int, default=[1], nargs="+",

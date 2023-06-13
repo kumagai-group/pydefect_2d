@@ -111,12 +111,12 @@ class CalcSingleChargePotential:
             print(f"epsilon z lattice length {e_z_gird.length}")
             print(f"epsilon num grid {e_z_gird.num_grid}")
             print(f"gauss model lattice length {g_z_grid.length}")
-            print(f"gauss model num grid {g_z_grid.num_grid}")
+            print(f"gauss model num grid {g_z_grid.num_z_grid}")
             raise
 
     @property
     def num_grids(self):
-        return [g.num_grid for g in self.gauss_model.grids()]
+        return [g.num_z_grid for g in self.gauss_model.grids()]
 
     @property
     def lattice_constants(self):

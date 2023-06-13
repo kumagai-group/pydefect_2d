@@ -17,7 +17,7 @@ def grids(grid):
 
 def test_grid_properties(grid):
     assert grid.length == 2.0
-    assert grid.num_grid == 4
+    assert grid.num_z_grid == 4
     assert grid.grid_points == [0.0, 0.5, 1.0, 1.5]
 
 

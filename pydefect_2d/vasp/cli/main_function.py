@@ -50,7 +50,7 @@ def make_epsilon_distributions(args):
 
     for mul in args.muls:
         epsilon_distribution = make_epsilon_gaussian_dist(
-            args.structure.lattice.c, args.num_grid, electronic, ionic,
+            args.structure.lattice.c, args.num_z_grid, electronic, ionic,
             position, args.sigma, mul)
         filename = _add_mul(epsilon_distribution._json_filename, mul)
         epsilon_distribution.to_json_file(filename)
@@ -59,7 +59,7 @@ def make_epsilon_distributions(args):
 def make_gauss_charge_models(args):
     de: DefectEntry = args.defect_entry
     lat = de.structure.lattice
-    z_num_grid = args.epsilon_dist.grid.num_grid
+    z_num_grid = args.epsilon_dist.grid.num_z_grid
     x_num_grid = ceil(lat.a / lat.c * z_num_grid / 2) * 2
     y_num_grid = ceil(lat.b / lat.c * z_num_grid / 2) * 2
 
