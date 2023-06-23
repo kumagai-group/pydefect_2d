@@ -70,9 +70,10 @@ def make_gauss_charge_models(args):
 
 
 def calc_potential(args):
-    calc_pot = CalcSingleChargePotential(epsilon=args.epsilon_dist,
-                                         gauss_model=args.gauss_model,
-                                         multiprocess=args.multiprocess)
+    calc_pot = CalcSingleChargePotential(
+        epsilon=args.epsilon_dist,
+        gauss_model=args.single_gauss_charge_model,
+        multiprocess=args.multiprocess)
     calc_pot.potential.to_json_file()
 
 
@@ -84,7 +85,7 @@ def make_fp_1d_potential(args):
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=args.axis)
 
     try:
-        # minus is necessary because the VASP potential is for electrons.
+        # "-" is needed because the VASP potential is defined for electrons.
         pot = (-(defect_pot - perfect_pot)).tolist()
     except ValueError:
         print("The size of two LOCPOT files seems different.")
@@ -96,11 +97,11 @@ def make_fp_1d_potential(args):
 def plot_profiles(args):
     slab_model = SlabModel(charge=args.defect_entry.charge,
                            epsilon=args.epsilon_dist,
-                           charge_model=args.gauss_model,
+                           charge_model=args.single_gauss_charge_model,
                            potential=args.potential,
                            fp_potential=args.fp_potential)
     ele_energy = slab_model.to_electrostatic_energy
     ele_energy.to_json_file()
 
     ProfilePlotter(plt, slab_model)
-    plt.savefig()
+    plt.savefig("potential_profile.pdf")

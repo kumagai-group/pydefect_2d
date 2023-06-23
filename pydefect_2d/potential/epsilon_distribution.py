@@ -68,7 +68,6 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         for i, pos in enumerate(self.grid.grid_points):
             list_.append([pos])
             for e in [self.ion_clamped, self.ionic, self.static]:
-#            for e in [self.ion_clamped, self.ionic, self.static, self.effective]:
                 list_[-1].extend([e[0][i], e[1][i], e[2][i]])
 
         result.append(tabulate(list_, tablefmt="plain", floatfmt=".2f",

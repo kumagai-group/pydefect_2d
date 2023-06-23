@@ -33,8 +33,8 @@ class SingleGaussChargeModel(MSONable, ToJsonFileMixIn):
     charges: np.array = None
 
     def __post_init__(self):
-        assert len(self.epsilon_x) == self.grids.num_grid_points[0]
-        assert len(self.epsilon_y) == self.grids.num_grid_points[0]
+        assert len(self.epsilon_x) == self.grids.num_grid_points[2]
+        assert len(self.epsilon_y) == self.grids.num_grid_points[2]
 
         if self.charges is None:
             self.charges = self._make_gauss_charge_profile
@@ -109,7 +109,6 @@ class SingleChargePotential(MSONable, ToJsonFileMixIn):
 class GaussElectrostaticEnergy(MSONable, ToJsonFileMixIn):
     charge: int
     electrostatic_energy: float
-    mul: int = 1
     alignment: float = None  # V_{q/b} - V_gauss
 
     @property
@@ -204,7 +203,6 @@ class CalcSingleChargePotential:
 
 @dataclass
 class FP1dPotential(MSONable, ToJsonFileMixIn):
-    charge: int
     grid: Grid
     potential: List[float]
 
@@ -231,10 +229,6 @@ class SlabModel:
     @property
     def grids(self) -> Grids:
         return self.charge_model.grids
-
-    @property
-    def mul(self) -> int:
-        return self.grids.grids[0].mul
 
     @cached_property
     def electrostatic_energy(self) -> float:
@@ -276,7 +270,6 @@ class SlabModel:
     def to_electrostatic_energy(self):
         return GaussElectrostaticEnergy(self.charge,
                                         self.electrostatic_energy,
-                                        self.mul,
                                         self.potential_diff)
 
 

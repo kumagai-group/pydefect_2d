@@ -23,6 +23,18 @@ def parse_args_main_vasp(args):
 
     subparsers = parser.add_subparsers()
 
+    # -- parent parser: single_gauss_charge_model
+    single_charge_model = argparse.ArgumentParser(
+        description="", add_help=False)
+    single_charge_model.add_argument(
+        "-s", "--single_gauss_charge_model", required=True, type=loadfn,
+        help="single_gauss_charge_model.json file")
+    epsilon_dist = argparse.ArgumentParser(
+        description="", add_help=False)
+    epsilon_dist.add_argument(
+        "-e", "--epsilon_dist", required=True, type=loadfn,
+        help="epsilon_distribution.json file")
+
     # -- Plot volumetric data. --------------------------------------------
     parser_plot_volumetric_data = subparsers.add_parser(
         name="plot_volumetric_data",
@@ -63,14 +75,12 @@ def parse_args_main_vasp(args):
         name="make_gauss_charge_models",
         description="Make Gauss charge models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[epsilon_dist],
         aliases=['mgcm'])
 
     parser_make_gauss_charge_model.add_argument(
         "-d", "--defect_entry", required=True, type=loadfn,
         help="defect_entry.json file.")
-    parser_make_gauss_charge_model.add_argument(
-        "-e", "--epsilon_dist", required=True, type=loadfn,
-        help="epsilon_distribution.json file")
     parser_make_gauss_charge_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")
@@ -82,14 +92,9 @@ def parse_args_main_vasp(args):
         name="calc_potential",
         description="calc potential.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[epsilon_dist, single_charge_model],
         aliases=['cp'])
 
-    parser_calc_potential.add_argument(
-        "-e", "--epsilon_dist", required=True, type=loadfn,
-        help="epsilon_distribution.json file")
-    parser_calc_potential.add_argument(
-        "-g", "--gauss_model", required=True, type=loadfn,
-        help="gauss_charge_model.json file")
     parser_calc_potential.add_argument(
         "--no_multiprocess", dest="multiprocess", action="store_false",
         help="Switch of the multiprocess.")
@@ -119,14 +124,9 @@ def parse_args_main_vasp(args):
         name="Plot profiles",
         description="Plot all profiles.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[epsilon_dist, single_charge_model],
         aliases=['pp'])
 
-    parser_plot_profiles.add_argument(
-        "-e", "--epsilon_dist", required=True, type=loadfn,
-        help="epsilon_distribution.json file")
-    parser_plot_profiles.add_argument(
-        "-g", "--gauss_model", required=True, type=loadfn,
-        help="gauss_charge_model.json file")
     parser_plot_profiles.add_argument(
         "-p", "--potential", required=True, type=loadfn,
         help="potential.json file")

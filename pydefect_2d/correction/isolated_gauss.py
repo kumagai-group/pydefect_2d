@@ -15,20 +15,38 @@ from scipy.constants import pi, epsilon_0, elementary_charge, angstrom
 from scipy.fft import fft
 from tqdm import tqdm
 
+from pydefect_2d.potential.slab_model_info import SingleGaussChargeModel
+
 
 @dataclass
 class IsolatedGaussEnergy:
+    charge_model: SingleGaussChargeModel
     charge: int
-    sigma: float
-    z0: float
-    L: float
     epsilon_z: List[float]
-    epsilon_xy: List[float]
-    num_grid: int
     k_max: float
     k_mesh_dist: float
     multiprocess: bool = True
     _U_ks: np.ndarray = None
+
+    @property
+    def sigma(self):
+        return self.charge_model.sigma
+
+    @property
+    def L(self):
+        return self.charge_model.grids.z_length
+
+    @property
+    def epsilon_xy(self):
+        return self.charge_model.epsilon_ave
+
+    @property
+    def z0(self):
+        return self.charge_model.defect_z_pos
+
+    @property
+    def num_grid(self):
+        return len(self.epsilon_z)
 
     @property
     def ks(self):

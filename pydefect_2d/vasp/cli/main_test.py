@@ -24,7 +24,6 @@ def test_make_epsilon_distribution(mocker):
         structure=mock_structure.from_file.return_value,
         position=0.5,
         num_grid=100,
-        muls=[1],
         sigma=0.1,
         func=parsed_args.func)
 
@@ -55,7 +54,6 @@ def test_make_gauss_charge_models(mocker):
         defect_entry=mock_defect_entry,
         epsilon_dist=mock_epsilon_dist,
         sigma=0.1,
-        muls=[1],
         func=parsed_args.func)
 
     assert parsed_args == expected
@@ -68,7 +66,7 @@ def test_calc_potential(mocker):
     def side_effect(filename):
         if filename == "epsilon_distribution.json":
             return mock_epsilon_dist
-        elif filename == "gauss_charge_model.json":
+        elif filename == "single_gauss_charge_model.json":
             return mock_gauss_model
         else:
             raise ValueError
@@ -77,11 +75,11 @@ def test_calc_potential(mocker):
 
     parsed_args = parse_args_main_vasp(["cp",
                                         "-e", "epsilon_distribution.json",
-                                        "-g", "gauss_charge_model.json",
+                                        "-s", "single_gauss_charge_model.json",
                                         "--no_multiprocess"])
     expected = Namespace(
         epsilon_dist=mock_epsilon_dist,
-        gauss_model=mock_gauss_model,
+        single_gauss_charge_model=mock_gauss_model,
         multiprocess=False,
         func=parsed_args.func)
 
