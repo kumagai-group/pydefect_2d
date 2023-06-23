@@ -54,9 +54,6 @@ def parse_args_main_vasp(args):
         "-n", "--num_grid", required=True, type=int,
         help="Number of all_grid_points.")
     parser_make_epsilon_dist.add_argument(
-        "-m", "--muls", type=int, default=[1], nargs="+",
-        help="Multipliers of the supercell.")
-    parser_make_epsilon_dist.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")
     parser_make_epsilon_dist.set_defaults(func=make_epsilon_distributions)
@@ -74,9 +71,6 @@ def parse_args_main_vasp(args):
     parser_make_gauss_charge_model.add_argument(
         "-e", "--epsilon_dist", required=True, type=loadfn,
         help="epsilon_distribution.json file")
-    parser_make_gauss_charge_model.add_argument(
-        "-m", "--muls", type=int, default=[1], nargs="+",
-        help="Multipliers of the supercell.")
     parser_make_gauss_charge_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")

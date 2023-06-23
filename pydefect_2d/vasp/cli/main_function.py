@@ -8,11 +8,11 @@ from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
 from pydefect_2d.potential.epsilon_distribution import \
-    make_epsilon_gaussian_dist, EpsilonDistribution
+    make_epsilon_gaussian_dist
 from pydefect_2d.potential.grids import Grid, Grids
+from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcSingleChargePotential, \
     SingleGaussChargeModel, FP1dPotential, SlabModel
-from pydefect_2d.potential.plotter import ProfilePlotter
 
 
 def plot_volumetric_data(args):
@@ -35,25 +35,16 @@ def plot_volumetric_data(args):
     plt.savefig(f"{args.filename}.pdf")
 
 
-def _add_mul(filename: str, mul):
-    if mul == 1:
-        return filename
-    x, y = filename.split(".")
-    return f"{x}_{mul}.{y}"
-
-
 def make_epsilon_distributions(args):
     clamped = np.diag(args.unitcell.ele_dielectric_const)
     electronic = list(clamped - 1.)
     ionic = list(np.diag(args.unitcell.ion_dielectric_const))
     position = args.structure.lattice.c * args.position
 
-    for mul in args.muls:
-        epsilon_distribution = make_epsilon_gaussian_dist(
-            args.structure.lattice.c, args.num_grid, electronic, ionic,
-            position, args.sigma, mul)
-        filename = _add_mul(epsilon_distribution._json_filename, mul)
-        epsilon_distribution.to_json_file(filename)
+    epsilon_distribution = make_epsilon_gaussian_dist(
+        args.structure.lattice.c, args.num_grid, electronic, ionic,
+        position, args.sigma)
+    epsilon_distribution.to_json_file()
 
 
 def make_gauss_charge_models(args):
@@ -66,26 +57,23 @@ def make_gauss_charge_models(args):
 
     defect_z_pos = lat.c * de.defect_center[2]
 
-    for mul in args.muls:
-        grids = Grids([Grid(lat.a, x_num_grid, mul),
-                       Grid(lat.b, y_num_grid, mul),
-                       Grid(lat.c, z_num_grid, mul)])
+    grids = Grids([Grid(lat.a, x_num_grid),
+                   Grid(lat.b, y_num_grid),
+                   Grid(lat.c, z_num_grid)])
 
-        model = SingleGaussChargeModel(grids,
-                                       sigma=args.sigma,
-                                       defect_z_pos=defect_z_pos,
-                                       epsilon_x=epsilon_dist.static[0],
-                                       epsilon_y=epsilon_dist.static[1])
-        filename = _add_mul("gauss_charge_model.json", mul)
-        model.to_json_file(filename)
+    model = SingleGaussChargeModel(grids,
+                                   sigma=args.sigma,
+                                   defect_z_pos=defect_z_pos,
+                                   epsilon_x=args.epsilon_dist.static[0],
+                                   epsilon_y=args.epsilon_dist.static[1])
+    model.to_json_file()
 
 
 def calc_potential(args):
     calc_pot = CalcSingleChargePotential(epsilon=args.epsilon_dist,
                                          gauss_model=args.gauss_model,
                                          multiprocess=args.multiprocess)
-    filename = _add_mul("potential.json", args.epsilon_dist.grid.mul)
-    calc_pot.potential.to_json_file(filename)
+    calc_pot.potential.to_json_file()
 
 
 def make_fp_1d_potential(args):
@@ -112,9 +100,7 @@ def plot_profiles(args):
                            potential=args.potential,
                            fp_potential=args.fp_potential)
     ele_energy = slab_model.to_electrostatic_energy
-    filename = _add_mul("electrostatic_energy.json", args.epsilon_dist.grid.mul)
-    ele_energy.to_json_file(filename)
+    ele_energy.to_json_file()
 
     ProfilePlotter(plt, slab_model)
-    filename = _add_mul("potential.pdf", args.epsilon_dist.grid.mul)
-    plt.savefig(filename)
+    plt.savefig()

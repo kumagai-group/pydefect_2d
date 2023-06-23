@@ -10,17 +10,8 @@ from numpy import linspace
 
 @dataclass
 class Grid(MSONable):
-    base_length: float  # in Å
-    base_num_grid: int
-    mul: int = 1
-
-    @property
-    def length(self):
-        return self.base_length * self.mul
-
-    @property
-    def num_grid(self):
-        return self.base_num_grid * self.mul
+    length: float  # in Å
+    num_grid: int
 
     @property
     def grid_points(self):

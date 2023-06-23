@@ -105,12 +105,9 @@ def make_epsilon_gaussian_dist(length: float,
                                ave_electronic_epsilon: List[float],
                                ave_ionic_epsilon: List[float],
                                position: float,
-                               sigma: float,
-                               mul: int = 1):
-    grid = Grid(length, num_grid, mul)
+                               sigma: float):
+    grid = Grid(length, num_grid)
     dist = make_gaussian_distribution(grid.grid_points, position, sigma)
-    ave_electronic_epsilon = list(np.array(ave_electronic_epsilon) / mul)
-    ave_ionic_epsilon = list(np.array(ave_ionic_epsilon) / mul)
 
     electronic = [rescale_distribution(dist, ave_ele)
                   for ave_ele in ave_electronic_epsilon]
