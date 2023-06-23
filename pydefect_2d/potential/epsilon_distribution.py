@@ -31,26 +31,26 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
             return False
         return True
 
-    @property
+    @cached_property
     def ion_clamped(self) -> List[List[float]]:
         return list(np.array(self.electronic) + 1.)
 
-    @property
+    @cached_property
     def static(self):
         return list(np.array(self.ion_clamped) + np.array(self.ionic))
 
-    @property
+    @cached_property
     def effective(self):
         clamped = np.array(self.ion_clamped)
         ionic = np.array(self.ionic)
         return list(clamped + clamped**2/ionic)
 
-    @property
+    @cached_property
     def ave_ele(self) -> np.array:
         """ Averages of e_x, e_y, e_z in the z-direction."""
         return np.array(self.electronic).mean(axis=1)
 
-    @property
+    @cached_property
     def ave_ion(self) -> np.array:
         return np.array(self.ionic).mean(axis=1)
 

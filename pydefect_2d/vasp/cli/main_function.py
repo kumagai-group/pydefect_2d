@@ -8,7 +8,7 @@ from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
 from pydefect_2d.potential.epsilon_distribution import \
-    make_epsilon_gaussian_dist
+    make_epsilon_gaussian_dist, EpsilonDistribution
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.slab_model_info import CalcSingleChargePotential, \
     SingleGaussChargeModel, FP1dPotential, SlabModel
@@ -50,7 +50,7 @@ def make_epsilon_distributions(args):
 
     for mul in args.muls:
         epsilon_distribution = make_epsilon_gaussian_dist(
-            args.structure.lattice.c, args.num_z_grid, electronic, ionic,
+            args.structure.lattice.c, args.num_grid, electronic, ionic,
             position, args.sigma, mul)
         filename = _add_mul(epsilon_distribution._json_filename, mul)
         epsilon_distribution.to_json_file(filename)
@@ -58,8 +58,9 @@ def make_epsilon_distributions(args):
 
 def make_gauss_charge_models(args):
     de: DefectEntry = args.defect_entry
+
     lat = de.structure.lattice
-    z_num_grid = args.epsilon_dist.grid.num_z_grid
+    z_num_grid = args.epsilon_dist.grid.num_grid
     x_num_grid = ceil(lat.a / lat.c * z_num_grid / 2) * 2
     y_num_grid = ceil(lat.b / lat.c * z_num_grid / 2) * 2
 
@@ -72,7 +73,9 @@ def make_gauss_charge_models(args):
 
         model = SingleGaussChargeModel(grids,
                                        sigma=args.sigma,
-                                       defect_z_pos=defect_z_pos)
+                                       defect_z_pos=defect_z_pos,
+                                       epsilon_x=epsilon_dist.static[0],
+                                       epsilon_y=epsilon_dist.static[1])
         filename = _add_mul("gauss_charge_model.json", mul)
         model.to_json_file(filename)
 

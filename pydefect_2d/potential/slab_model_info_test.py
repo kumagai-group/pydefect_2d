@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-
+import numpy as np
 import pytest
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
@@ -25,7 +25,9 @@ def epsilon_dist():
 def gauss_model():
     return SingleGaussChargeModel(Grids([grid, grid, grid]),
                                   sigma=1.0,
-                                  defect_z_pos=0.0)
+                                  defect_z_pos=0.0,
+                                  epsilon_x=np.array([1.0]*4),
+                                  epsilon_y=np.array([1.0]*4))
 
 
 @pytest.fixture(scope="session")

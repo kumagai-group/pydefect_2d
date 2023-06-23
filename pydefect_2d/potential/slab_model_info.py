@@ -24,15 +24,32 @@ from pydefect_2d.potential.grids import Grid, Grids
 
 @dataclass
 class SingleGaussChargeModel(MSONable, ToJsonFileMixIn):
-    # Here, assume charge is 1|e|.
+    # Here, assume that charge is 1|e|.
     grids: Grids  # assume orthogonal system
     sigma: float
     defect_z_pos: float  # in fractional coord. x=y=0
+    epsilon_x: np.array
+    epsilon_y: np.array
     charges: np.array = None
 
     def __post_init__(self):
+        assert len(self.epsilon_x) == self.grids.num_grid_points[0]
+        assert len(self.epsilon_y) == self.grids.num_grid_points[0]
+
         if self.charges is None:
             self.charges = self._make_gauss_charge_profile
+
+    @property
+    def epsilon_ave(self):
+        return np.sqrt(self.epsilon_x * self.epsilon_y)
+
+    @property
+    def square_x_scaling(self):
+        return self.epsilon_ave / self.epsilon_x
+
+    @property
+    def square_y_scaling(self):
+        return self.epsilon_ave / self.epsilon_y
 
     @property
     def _make_gauss_charge_profile(self):
@@ -49,6 +66,10 @@ class SingleGaussChargeModel(MSONable, ToJsonFileMixIn):
             y2 = np.minimum(y_pts[iy] ** 2, (ly - y_pts[iy]) ** 2)
             dz = abs(z_pts[iz] - self.defect_z_pos)
             z2 = np.minimum(dz ** 2, (lz - dz) ** 2)
+
+            x2 *= self.square_x_scaling[ix]
+            y2 *= self.square_y_scaling[iy]
+
             gauss[ix, iy, iz] = exp(-(x2 + y2 + z2) / (2 * self.sigma ** 2))
 
         return coefficient * gauss
@@ -111,12 +132,12 @@ class CalcSingleChargePotential:
             print(f"epsilon z lattice length {e_z_gird.length}")
             print(f"epsilon num grid {e_z_gird.num_grid}")
             print(f"gauss model lattice length {g_z_grid.length}")
-            print(f"gauss model num grid {g_z_grid.num_z_grid}")
+            print(f"gauss model num grid {g_z_grid.num_grid}")
             raise
 
     @property
     def num_grids(self):
-        return [g.num_z_grid for g in self.gauss_model.grids()]
+        return [g.num_grid for g in self.gauss_model.grids()]
 
     @property
     def lattice_constants(self):
