@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
+from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.epsilon_distribution import \
     make_epsilon_gaussian_dist
 from pydefect_2d.potential.grids import Grid, Grids
@@ -105,3 +106,11 @@ def plot_profiles(args):
 
     ProfilePlotter(plt, slab_model)
     plt.savefig("potential_profile.pdf")
+
+
+def isolated_gauss_energy(args):
+    isolated = IsolatedGaussEnergy(charge_model=args.single_gauss_charge_model,
+                                   epsilon_z=args.epsilon_dist.static[2],
+                                   k_max=args.k_max,
+                                   k_mesh_dist=args.k_mesh_dist)
+    isolated.to_json_file()

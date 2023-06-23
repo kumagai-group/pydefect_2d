@@ -33,17 +33,17 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def ion_clamped(self) -> List[List[float]]:
-        return list(np.array(self.electronic) + 1.)
+        return np.array(self.electronic) + 1.
 
     @cached_property
     def static(self):
-        return list(np.array(self.ion_clamped) + np.array(self.ionic))
+        return np.array(self.ion_clamped) + np.array(self.ionic)
 
     @cached_property
     def effective(self):
         clamped = np.array(self.ion_clamped)
         ionic = np.array(self.ionic)
-        return list(clamped + clamped**2/ionic)
+        return clamped + clamped**2/ionic
 
     @cached_property
     def ave_ele(self) -> np.array:

@@ -2,9 +2,8 @@
 #  Copyright (c) 2023 Kumagai group.
 import multiprocessing as multi
 from dataclasses import dataclass
-from functools import cached_property, cache
+from functools import cached_property
 from itertools import combinations_with_replacement
-from math import erfc
 from multiprocessing import Pool
 from typing import List
 
@@ -14,19 +13,22 @@ from scipy import integrate, e
 from scipy.constants import pi, epsilon_0, elementary_charge, angstrom
 from scipy.fft import fft
 from tqdm import tqdm
+from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.potential.slab_model_info import SingleGaussChargeModel
 
 
 @dataclass
-class IsolatedGaussEnergy:
+class IsolatedGaussEnergy(ToJsonFileMixIn):
     charge_model: SingleGaussChargeModel
-    charge: int
     epsilon_z: List[float]
     k_max: float
     k_mesh_dist: float
     multiprocess: bool = True
     _U_ks: np.ndarray = None
+
+    def __post_init__(self):
+        self.U_ks
 
     @property
     def sigma(self):

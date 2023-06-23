@@ -52,7 +52,7 @@ def test_epsilon_to_plot(epsilon):
 
 def test_make_large_model():
     actual = make_epsilon_gaussian_dist(6.0, 3, [2/3.]*3, [4/3]*3,
-                                        position=3., sigma=0.1, mul=2)
+                                        position=3., sigma=0.1)
     expected = EpsilonGaussianDistribution(
         grid=Grid(6.0, 3, 2),
         electronic=[[0., 1., 1., 0., 0., 0.]] * 3,

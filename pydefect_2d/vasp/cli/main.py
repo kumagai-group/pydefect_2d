@@ -11,7 +11,7 @@ from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
     make_epsilon_distributions, make_gauss_charge_models, make_fp_1d_potential, \
-    calc_potential, plot_profiles
+    calc_potential, plot_profiles, isolated_gauss_energy
 
 
 def parse_args_main_vasp(args):
@@ -121,7 +121,7 @@ def parse_args_main_vasp(args):
 
     # -- Plot profiles ---------------------------------------------
     parser_plot_profiles = subparsers.add_parser(
-        name="Plot profiles",
+        name="plot_profiles",
         description="Plot all profiles.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[epsilon_dist, single_charge_model],
@@ -138,26 +138,21 @@ def parse_args_main_vasp(args):
         help="defect_entry.json file.")
     parser_plot_profiles.set_defaults(func=plot_profiles)
 
-    # # -- k1G ---------------------------------------------
-    # parser_plot_profiles = subparsers.add_parser(
-    #     name="Plot profiles",
-    #     description="Plot all profiles.",
-    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    #     aliases=['pp'])
+    # -- isolated gauss energy ---------------------------------------------
+    parser_isolated_gauss_energy = subparsers.add_parser(
+        name="isolated_gauss_energy",
+        description="Calculate the isolated gauss energy.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[epsilon_dist, single_charge_model],
+        aliases=['ige'])
 
-    # parser_plot_profiles.add_argument(
-    #     "-e", "--epsilon_dist", required=True, type=loadfn,
-    #     help="epsilon_distribution.json file")
-    # parser_plot_profiles.add_argument(
-    #     "-g", "--gauss_model", required=True, type=loadfn,
-    #     help="gauss_charge_model.json file")
-    # parser_plot_profiles.add_argument(
-    #     "-p", "--potential", required=True, type=loadfn,
-    #     help="potential.json file")
-    # parser_plot_profiles.add_argument(
-    #     "-fp", "--fp_potential", type=loadfn,
-    #     help="fp_potential.json file")
-    # parser_plot_profiles.set_defaults(func=plot_profiles)
+    parser_isolated_gauss_energy.add_argument(
+        "--k_max", type=float, default=6.0,
+        help="Max of k integration range.")
+    parser_isolated_gauss_energy.add_argument(
+        "--k_mesh_dist", type=float, default=0.1,
+        help="Mesh distance of k integration.")
+    parser_isolated_gauss_energy.set_defaults(func=isolated_gauss_energy)
 
     # ------------------------------------------------------------------------
     return parser.parse_args(args)
