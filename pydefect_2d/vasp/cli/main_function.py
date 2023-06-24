@@ -7,13 +7,14 @@ from matplotlib import pyplot as plt
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
+from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.epsilon_distribution import \
     make_epsilon_gaussian_dist
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter
-from pydefect_2d.potential.slab_model_info import CalcSingleChargePotential, \
-    SingleGaussChargeModel, FP1dPotential, SlabModel
+from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
+    GaussChargeModel, FP1dPotential, SlabModel
 
 
 def plot_volumetric_data(args):
@@ -37,6 +38,7 @@ def plot_volumetric_data(args):
 
 
 def make_epsilon_distributions(args):
+    """depends on the supercell size"""
     clamped = np.diag(args.unitcell.ele_dielectric_const)
     electronic = list(clamped - 1.)
     ionic = list(np.diag(args.unitcell.ion_dielectric_const))
@@ -48,7 +50,8 @@ def make_epsilon_distributions(args):
     epsilon_distribution.to_json_file()
 
 
-def make_gauss_charge_models(args):
+def make_gauss_charge_model(args):
+    """depends on the supercell size and defect position"""
     de: DefectEntry = args.defect_entry
 
     lat = de.structure.lattice
@@ -62,20 +65,31 @@ def make_gauss_charge_models(args):
                    Grid(lat.b, y_num_grid),
                    Grid(lat.c, z_num_grid)])
 
-    model = SingleGaussChargeModel(grids,
-                                   sigma=args.sigma,
-                                   defect_z_pos=defect_z_pos,
-                                   epsilon_x=args.epsilon_dist.static[0],
-                                   epsilon_y=args.epsilon_dist.static[1])
+    model = GaussChargeModel(grids,
+                             sigma=args.sigma,
+                             defect_z_pos=defect_z_pos,
+                             epsilon_x=args.epsilon_dist.static[0],
+                             epsilon_y=args.epsilon_dist.static[1])
     model.to_json_file()
 
 
-def calc_potential(args):
-    calc_pot = CalcSingleChargePotential(
+def calc_gauss_charge_potential(args):
+    """depends on the supercell size and defect position"""
+    calc_pot = CalcGaussChargePotential(
         epsilon=args.epsilon_dist,
         gauss_model=args.single_gauss_charge_model,
         multiprocess=args.multiprocess)
     calc_pot.potential.to_json_file()
+
+
+def isolated_gauss_energy(args):
+    """depends on the supercell size, defect position"""
+    isolated = IsolatedGaussEnergy(charge_model=args.single_gauss_charge_model,
+                                   epsilon_z=args.epsilon_dist.static[2],
+                                   k_max=args.k_max,
+                                   k_mesh_dist=args.k_mesh_dist)
+    print(f"self energy: {isolated.self_energy} eV")
+    isolated.to_json_file()
 
 
 def make_fp_1d_potential(args):
@@ -95,22 +109,24 @@ def make_fp_1d_potential(args):
     FP1dPotential(Grid(length, grid_num), pot).to_json_file("fp_potential.json")
 
 
-def plot_profiles(args):
+def make_slab_model(args):
+    """depends on the supercell size, defect position and charge"""
     slab_model = SlabModel(charge=args.defect_entry.charge,
                            epsilon=args.epsilon_dist,
                            charge_model=args.single_gauss_charge_model,
-                           potential=args.potential,
+                           potential=args.single_charge_potential,
                            fp_potential=args.fp_potential)
-    ele_energy = slab_model.to_electrostatic_energy
-    ele_energy.to_json_file()
-
+    slab_model.to_json_file()
     ProfilePlotter(plt, slab_model)
     plt.savefig("potential_profile.pdf")
 
 
-def isolated_gauss_energy(args):
-    isolated = IsolatedGaussEnergy(charge_model=args.single_gauss_charge_model,
-                                   epsilon_z=args.epsilon_dist.static[2],
-                                   k_max=args.k_max,
-                                   k_mesh_dist=args.k_mesh_dist)
-    isolated.to_json_file()
+def make_correction(args):
+    """depends on the supercell size, defect position and charge"""
+    iso_e = args.isolated_gauss_energy.self_energy * args.slab_model.charge ** 2
+    correction = Gauss2dCorrection(args.slab_model.charge,
+                                   args.slab_model.electrostatic_energy,
+                                   iso_e,
+                                   args.slab_model.potential_diff)
+    print(correction)
+    correction.to_json_file()

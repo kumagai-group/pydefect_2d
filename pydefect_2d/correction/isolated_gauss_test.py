@@ -8,7 +8,7 @@ from scipy.constants import epsilon_0, elementary_charge, angstrom
 
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.grids import Grids, Grid
-from pydefect_2d.potential.slab_model_info import SingleGaussChargeModel
+from pydefect_2d.potential.slab_model_info import GaussChargeModel
 
 sigma = 1.0
 
@@ -17,11 +17,11 @@ sigma = 1.0
 def gauss_energy():
     n_grid = 50
     grids = Grids([Grid(length=100., num_grid=n_grid)] * 3)
-    charge_model = SingleGaussChargeModel(grids=grids,
-                                          sigma=sigma,
-                                          defect_z_pos=0.0,
-                                          epsilon_x=np.array([1.0] * n_grid),
-                                          epsilon_y=np.array([1.0] * n_grid))
+    charge_model = GaussChargeModel(grids=grids,
+                                    sigma=sigma,
+                                    defect_z_pos=0.0,
+                                    epsilon_x=np.array([1.0] * n_grid),
+                                    epsilon_y=np.array([1.0] * n_grid))
 
     return IsolatedGaussEnergy(charge_model=charge_model,
                                charge=1,

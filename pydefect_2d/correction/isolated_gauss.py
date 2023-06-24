@@ -8,6 +8,7 @@ from multiprocessing import Pool
 from typing import List
 
 import numpy as np
+from monty.json import MSONable
 from numpy import cos, exp, linspace
 from scipy import integrate, e
 from scipy.constants import pi, epsilon_0, elementary_charge, angstrom
@@ -15,12 +16,12 @@ from scipy.fft import fft
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
-from pydefect_2d.potential.slab_model_info import SingleGaussChargeModel
+from pydefect_2d.potential.slab_model_info import GaussChargeModel
 
 
 @dataclass
-class IsolatedGaussEnergy(ToJsonFileMixIn):
-    charge_model: SingleGaussChargeModel
+class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
+    charge_model: GaussChargeModel
     epsilon_z: List[float]
     k_max: float
     k_mesh_dist: float
@@ -120,7 +121,7 @@ class IsolatedGaussEnergy(ToJsonFileMixIn):
                 self._U_ks = np.array([self.U_k(k) for k in self.ks])
 
         factor = 1 / epsilon_0 * elementary_charge / angstrom / (4*pi)
-        return self._U_ks * factor
+        return self._U_ks.real * factor
 
     @cached_property
     def k_exps(self):
@@ -143,6 +144,9 @@ class IsolatedGaussEnergy(ToJsonFileMixIn):
             x = np.insert(self.ks, 0, 0.0)
             y = np.insert(vals, 0, 0.0)
             ax.plot(x, y)
+
+    def __str__(self):
+        return f"self energy: {self.self_energy:.5} eV"
 
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):

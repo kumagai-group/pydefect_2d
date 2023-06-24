@@ -5,7 +5,7 @@ from argparse import Namespace
 from pydefect.input_maker.defect_entry import DefectEntry
 
 from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
-from pydefect_2d.potential.slab_model_info import SingleGaussChargeModel
+from pydefect_2d.potential.slab_model_info import GaussChargeModel
 from pydefect_2d.vasp.cli.main import parse_args_main_vasp
 
 
@@ -13,7 +13,7 @@ def test_make_epsilon_distribution(mocker):
     mock_unitcell = mocker.patch("pydefect_2d.vasp.cli.main.Unitcell")
     mock_structure = mocker.patch("pydefect_2d.vasp.cli.main.Structure")
 
-    parsed_args = parse_args_main_vasp(["med",
+    parsed_args = parse_args_main_vasp(["ed",
                                         "-u", "unitcell.yaml",
                                         "-s", "CONTCAR",
                                         "-p", "0.5",
@@ -46,7 +46,7 @@ def test_make_gauss_charge_models(mocker):
 
     mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
 
-    parsed_args = parse_args_main_vasp(["mgcm",
+    parsed_args = parse_args_main_vasp(["gcm",
                                         "-d", "defect_entry.json",
                                         "-e", "epsilon_distribution.json",
                                         "--sigma", "0.1"])
@@ -61,7 +61,7 @@ def test_make_gauss_charge_models(mocker):
 
 def test_calc_potential(mocker):
     mock_epsilon_dist = mocker.Mock(spec=EpsilonDistribution, autospec=True)
-    mock_gauss_model = mocker.Mock(spec=SingleGaussChargeModel, autospec=True)
+    mock_gauss_model = mocker.Mock(spec=GaussChargeModel, autospec=True)
 
     def side_effect(filename):
         if filename == "epsilon_distribution.json":
@@ -101,7 +101,7 @@ def test_make_fp_1d_potential(mocker):
     mocker.patch("pydefect_2d.vasp.cli.main.Locpot.from_file",
                  side_effect=side_effect_locpot)
 
-    parsed_args = parse_args_main_vasp(["mfp",
+    parsed_args = parse_args_main_vasp(["fp",
                                         "-dl", "LOCPOT_defect",
                                         "-pl", "LOCPOT_perfect",
                                         "-a", "1"])

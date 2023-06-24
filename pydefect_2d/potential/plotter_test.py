@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter
-from pydefect_2d.potential.slab_model_info import SingleGaussChargeModel, SingleChargePotential, FP1dPotential, SlabModel
+from pydefect_2d.potential.slab_model_info import GaussChargeModel, GaussChargePotential, FP1dPotential, SlabModel
 
 
 def test_plot_profile():
@@ -21,11 +21,11 @@ def test_plot_profile():
                [0.0, 0.0, 0.0, 2.5, 5.0, 5.0, 5.0, 2.5, 0.0, 0.0]])
     grid_xy = Grid(1.0, 2)
     charges = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-    charge = SingleGaussChargeModel(grids=Grids([grid_xy, grid_xy, grid_plot]),
-                                    sigma=1.0, defect_z_pos=0.0,
-                                    charges=np.array([[charges]*2]*2))
+    charge = GaussChargeModel(grids=Grids([grid_xy, grid_xy, grid_plot]),
+                              sigma=1.0, defect_z_pos=0.0,
+                              charges=np.array([[charges]*2]*2))
     pot = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
-    potential = SingleChargePotential(
+    potential = GaussChargePotential(
         grids=Grids([grid_xy, grid_xy, grid_plot]),
         potential=np.array([[pot]*2]*2))
 

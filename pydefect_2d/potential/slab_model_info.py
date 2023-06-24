@@ -23,7 +23,7 @@ from pydefect_2d.potential.grids import Grid, Grids
 
 
 @dataclass
-class SingleGaussChargeModel(MSONable, ToJsonFileMixIn):
+class GaussChargeModel(MSONable, ToJsonFileMixIn):
     # Here, assume that charge is 1|e|.
     grids: Grids  # assume orthogonal system
     sigma: float
@@ -93,7 +93,7 @@ class SingleGaussChargeModel(MSONable, ToJsonFileMixIn):
 
 
 @dataclass
-class SingleChargePotential(MSONable, ToJsonFileMixIn):
+class GaussChargePotential(MSONable, ToJsonFileMixIn):
     grids: Grids  # assume orthogonal system
     potential: np.array  # potential for positive charge
 
@@ -106,21 +106,9 @@ class SingleChargePotential(MSONable, ToJsonFileMixIn):
 
 
 @dataclass
-class GaussElectrostaticEnergy(MSONable, ToJsonFileMixIn):
-    charge: int
-    electrostatic_energy: float
-    alignment: float = None  # V_{q/b} - V_gauss
-
-    @property
-    def alignment_term(self):
-        if self.alignment:
-            return - self.charge * self.alignment
-
-
-@dataclass
-class CalcSingleChargePotential:
+class CalcGaussChargePotential:
     epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
-    gauss_model: SingleGaussChargeModel  # assume orthogonal system
+    gauss_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
 
     def __post_init__(self):
@@ -198,7 +186,7 @@ class CalcSingleChargePotential:
     @cached_property
     def potential(self):
         real = ifftn(self.reciprocal_potential)
-        return SingleChargePotential(self.gauss_model.grids, real)
+        return GaussChargePotential(self.gauss_model.grids, real)
 
 
 @dataclass
@@ -207,19 +195,16 @@ class FP1dPotential(MSONable, ToJsonFileMixIn):
     potential: List[float]
 
     @cached_property
-    def f(self):
+    def interpol_pot_func(self):
         return interp1d(self.grid.grid_points, self.potential)
-
-    def interpolated_values(self, grid_points):
-        return self.f(grid_points)
 
 
 @dataclass
-class SlabModel:
+class SlabModel(MSONable, ToJsonFileMixIn):
     charge: int
     epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
-    charge_model: SingleGaussChargeModel
-    potential: SingleChargePotential
+    charge_model: GaussChargeModel
+    potential: GaussChargePotential
     fp_potential: FP1dPotential = None
 
     def __post_init__(self):
@@ -247,7 +232,7 @@ class SlabModel:
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]
         list_ = [[pos, charge, pot] for pos, charge, pot in
-                 zip(self.grids.z_length, self.xy_charge, self.xy_potential)]
+                 zip(self.grids.z_grid_points, self.xy_charge, self.xy_potential)]
         result = [tabulate(list_, tablefmt="plain", headers=header)]
 
         charge = (self.charge_model.charges.mean()
@@ -263,13 +248,6 @@ class SlabModel:
             return
         grid_idx, z = self.charge_model.farthest_z_from_defect
         gauss_pot = self.xy_potential[grid_idx]
-        fp_pot = self.fp_potential.f(z)
+        fp_pot = self.fp_potential.interpol_pot_func(z)
         return fp_pot - gauss_pot
-
-    @property
-    def to_electrostatic_energy(self):
-        return GaussElectrostaticEnergy(self.charge,
-                                        self.electrostatic_energy,
-                                        self.potential_diff)
-
 
