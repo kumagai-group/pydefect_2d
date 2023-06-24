@@ -21,7 +21,7 @@ from pydefect_2d.potential.slab_model_info import GaussChargeModel
 
 @dataclass
 class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
-    charge_model: GaussChargeModel
+    gauss_charge_model: GaussChargeModel
     epsilon_z: List[float]
     k_max: float
     k_mesh_dist: float
@@ -33,19 +33,19 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def sigma(self):
-        return self.charge_model.sigma
+        return self.gauss_charge_model.sigma
 
     @property
     def L(self):
-        return self.charge_model.grids.z_length
+        return self.gauss_charge_model.grids.z_length
 
     @property
     def epsilon_xy(self):
-        return self.charge_model.epsilon_ave
+        return self.gauss_charge_model.epsilon_ave
 
     @property
     def z0(self):
-        return self.charge_model.defect_z_pos
+        return self.gauss_charge_model.defect_z_pos
 
     @property
     def num_grid(self):

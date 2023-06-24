@@ -25,11 +25,12 @@ def parse_args_main_vasp(args):
     subparsers = parser.add_subparsers()
 
     # -- parent parser: single_gauss_charge_model
-    single_charge_model = argparse.ArgumentParser(
+    gauss_charge_model = argparse.ArgumentParser(
         description="", add_help=False)
-    single_charge_model.add_argument(
-        "-s", "--single_gauss_charge_model", required=True, type=loadfn,
+    gauss_charge_model.add_argument(
+        "-g", "--gauss_charge_model", required=True, type=loadfn,
         help="single_gauss_charge_model.json file")
+
     epsilon_dist = argparse.ArgumentParser(
         description="", add_help=False)
     epsilon_dist.add_argument(
@@ -93,8 +94,8 @@ def parse_args_main_vasp(args):
         name="calc_gauss_charge_potential",
         description="calc potential.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist, single_charge_model],
-        aliases=['cp'])
+        parents=[epsilon_dist, gauss_charge_model],
+        aliases=['gcp'])
 
     parser_calc_potential.add_argument(
         "--no_multiprocess", dest="multiprocess", action="store_false",
@@ -125,12 +126,12 @@ def parse_args_main_vasp(args):
         name="make_slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist, single_charge_model],
+        parents=[epsilon_dist, gauss_charge_model],
         aliases=['sm'])
 
     parser_make_slab_model.add_argument(
-        "-sp", "--single_charge_potential", required=True, type=loadfn,
-        help="single_charge_potential.json file")
+        "-gcp", "--gauss_charge_potential", required=True, type=loadfn,
+        help="gauss_charge_potential.json file")
     parser_make_slab_model.add_argument(
         "-fp", "--fp_potential", type=loadfn,
         help="fp_potential.json file")
@@ -144,7 +145,7 @@ def parse_args_main_vasp(args):
         name="isolated_gauss_energy",
         description="Calculate the isolated gauss energy.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist, single_charge_model],
+        parents=[epsilon_dist, gauss_charge_model],
         aliases=['ige'])
 
     parser_isolated_gauss_energy.add_argument(

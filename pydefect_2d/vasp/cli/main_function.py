@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 from math import ceil
+from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
+from monty.serialization import loadfn
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
@@ -50,6 +52,11 @@ def make_epsilon_distributions(args):
     epsilon_distribution.to_json_file()
 
 
+def _add_z_pos(filename: str, model: GaussChargeModel):
+    x, y = filename.split(".")
+    frac_coord = model.defect_z_pos / model.grids.z_length
+    return f"{x}_{frac_coord:.3}.{y}"
+
 def make_gauss_charge_model(args):
     """depends on the supercell size and defect position"""
     de: DefectEntry = args.defect_entry
@@ -70,26 +77,29 @@ def make_gauss_charge_model(args):
                              defect_z_pos=defect_z_pos,
                              epsilon_x=args.epsilon_dist.static[0],
                              epsilon_y=args.epsilon_dist.static[1])
-    model.to_json_file()
+    filename = _add_z_pos(model.json_filename, model)
+    model.to_json_file(filename)
 
 
 def calc_gauss_charge_potential(args):
     """depends on the supercell size and defect position"""
-    calc_pot = CalcGaussChargePotential(
+    potential = CalcGaussChargePotential(
         epsilon=args.epsilon_dist,
-        gauss_model=args.single_gauss_charge_model,
-        multiprocess=args.multiprocess)
-    calc_pot.potential.to_json_file()
+        gauss_charge_model=args.gauss_charge_model,
+        multiprocess=args.multiprocess).potential
+    filename = _add_z_pos(potential.json_filename, args.gauss_charge_model)
+    potential.to_json_file(filename)
 
 
 def isolated_gauss_energy(args):
     """depends on the supercell size, defect position"""
-    isolated = IsolatedGaussEnergy(charge_model=args.single_gauss_charge_model,
+    isolated = IsolatedGaussEnergy(gauss_charge_model=args.gauss_charge_model,
                                    epsilon_z=args.epsilon_dist.static[2],
                                    k_max=args.k_max,
                                    k_mesh_dist=args.k_mesh_dist)
     print(f"self energy: {isolated.self_energy} eV")
-    isolated.to_json_file()
+    filename = _add_z_pos(isolated.json_filename, args.gauss_charge_model)
+    isolated.to_json_file(filename)
 
 
 def make_fp_1d_potential(args):
@@ -109,12 +119,30 @@ def make_fp_1d_potential(args):
     FP1dPotential(Grid(length, grid_num), pot).to_json_file("fp_potential.json")
 
 
+
+def _get_obj(dir_: Path, filename: str, defect_entry: DefectEntry):
+    x, y = filename.split(".")
+    filename = dir_ / f"{x}_{defect_entry.defect_center[2]:.3}.{y}"
+    try:
+        return loadfn(filename)
+    except FileNotFoundError:
+        print(f"{filename} is not found.")
+        raise
+
+
 def make_slab_model(args):
-    """depends on the supercell size, defect position and charge"""
+    """depends on the supercell size, defect position and charge
+
+    This should be placed at each defect calc dir.
+    """
+    d, de = args.correction_dir, args.defect_entry
+    gauss_charge_model = _get_obj(d, "gauss_charge_model.json", de)
+    gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", de)
+
     slab_model = SlabModel(charge=args.defect_entry.charge,
                            epsilon=args.epsilon_dist,
-                           charge_model=args.single_gauss_charge_model,
-                           potential=args.single_charge_potential,
+                           gauss_charge_model=gauss_charge_model,
+                           gauss_charge_potential=gauss_charge_pot,
                            fp_potential=args.fp_potential)
     slab_model.to_json_file()
     ProfilePlotter(plt, slab_model)
@@ -122,7 +150,10 @@ def make_slab_model(args):
 
 
 def make_correction(args):
-    """depends on the supercell size, defect position and charge"""
+    """depends on the supercell size, defect position and charge
+
+    This should be placed at each defect calc dir.
+    """
     iso_e = args.isolated_gauss_energy.self_energy * args.slab_model.charge ** 2
     correction = Gauss2dCorrection(args.slab_model.charge,
                                    args.slab_model.electrostatic_energy,

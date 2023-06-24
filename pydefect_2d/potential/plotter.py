@@ -10,14 +10,14 @@ class ProfilePlotter:
                  slab_model: SlabModel):
         self.plt = plt
         self.z_grid_points = slab_model.grids.z_grid_points
-        self.charge = slab_model.charge_model.xy_integrated_charge
+        self.charge = slab_model.gauss_charge_model.xy_integrated_charge
         self.epsilon = slab_model.epsilon.static
 
         self.fp_potential = None
         if slab_model.fp_potential:
             self.fp_potential = slab_model.fp_potential
 
-        self.potential = slab_model.potential.xy_ave_potential
+        self.potential = slab_model.gauss_charge_potential.xy_ave_potential
         _, (self.ax1, self.ax2, self.ax3) = plt.subplots(3, 1, sharex="all")
 
         self._plot_potential()

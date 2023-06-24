@@ -108,14 +108,14 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
 @dataclass
 class CalcGaussChargePotential:
     epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
-    gauss_model: GaussChargeModel  # assume orthogonal system
+    gauss_charge_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
 
     def __post_init__(self):
         try:
-            assert self.epsilon.grid == self.gauss_model.grids()[2]
+            assert self.epsilon.grid == self.gauss_charge_model.grids()[2]
         except AssertionError:
-            e_z_gird, g_z_grid = self.epsilon.grid, self.gauss_model.grids()[2]
+            e_z_gird, g_z_grid = self.epsilon.grid, self.gauss_charge_model.grids()[2]
             print(f"epsilon z lattice length {e_z_gird.length}")
             print(f"epsilon num grid {e_z_gird.num_grid}")
             print(f"gauss model lattice length {g_z_grid.length}")
@@ -124,11 +124,11 @@ class CalcGaussChargePotential:
 
     @property
     def num_grids(self):
-        return [g.num_grid for g in self.gauss_model.grids()]
+        return [g.num_grid for g in self.gauss_charge_model.grids()]
 
     @property
     def lattice_constants(self):
-        return [g.length for g in self.gauss_model.grids()]
+        return [g.length for g in self.gauss_charge_model.grids()]
 
     @cached_property
     def Gs(self):
@@ -147,7 +147,7 @@ class CalcGaussChargePotential:
         gx, gy = self.Gs[0][i_gx], self.Gs[0][i_gy]
         z_grid = self.num_grids[2]
         x_rec_e, y_rec_e, z_rec_e = self.epsilon.reciprocal_static
-        rec_chg = self.gauss_model.reciprocal_charge[i_gx, i_gy, :]
+        rec_chg = self.gauss_charge_model.reciprocal_charge[i_gx, i_gy, :]
 
         factors = []
         for i_gz, gz in enumerate(self.Gs[2]):
@@ -186,7 +186,7 @@ class CalcGaussChargePotential:
     @cached_property
     def potential(self):
         real = ifftn(self.reciprocal_potential)
-        return GaussChargePotential(self.gauss_model.grids, real)
+        return GaussChargePotential(self.gauss_charge_model.grids, real)
 
 
 @dataclass
@@ -203,31 +203,31 @@ class FP1dPotential(MSONable, ToJsonFileMixIn):
 class SlabModel(MSONable, ToJsonFileMixIn):
     charge: int
     epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
-    charge_model: GaussChargeModel
-    potential: GaussChargePotential
+    gauss_charge_model: GaussChargeModel
+    gauss_charge_potential: GaussChargePotential
     fp_potential: FP1dPotential = None
 
     def __post_init__(self):
-        assert self.epsilon.grid == self.charge_model.grids()[2]
-        assert self.charge_model.grids == self.potential.grids
+        assert self.epsilon.grid == self.gauss_charge_model.grids()[2]
+        assert self.gauss_charge_model.grids == self.gauss_charge_potential.grids
 
     @property
     def grids(self) -> Grids:
-        return self.charge_model.grids
+        return self.gauss_charge_model.grids
 
     @cached_property
     def electrostatic_energy(self) -> float:
         return np.real(
-            (np.mean(self.potential.potential * self.charge_model.charges)
-             * self.charge_model.grids.volume / 2)) * self.charge ** 2
+            (np.mean(self.gauss_charge_potential.potential * self.gauss_charge_model.charges)
+             * self.gauss_charge_model.grids.volume / 2)) * self.charge ** 2
 
     @cached_property
     def xy_charge(self):
-        return self.charge_model.xy_integrated_charge * self.charge
+        return self.gauss_charge_model.xy_integrated_charge * self.charge
 
     @cached_property
     def xy_potential(self):
-        return self.potential.xy_ave_potential * self.charge
+        return self.gauss_charge_potential.xy_ave_potential * self.charge
 
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]
@@ -235,7 +235,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
                  zip(self.grids.z_grid_points, self.xy_charge, self.xy_potential)]
         result = [tabulate(list_, tablefmt="plain", headers=header)]
 
-        charge = (self.charge_model.charges.mean()
+        charge = (self.gauss_charge_model.charges.mean()
                   * self.grids.volume * self.charge)
         result.append(f"Charge sum (|e|): {charge:.3}")
         result.append(f"Electrostatic energy (eV): "
@@ -246,7 +246,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     def potential_diff(self):
         if self.fp_potential is None:
             return
-        grid_idx, z = self.charge_model.farthest_z_from_defect
+        grid_idx, z = self.gauss_charge_model.farthest_z_from_defect
         gauss_pot = self.xy_potential[grid_idx]
         fp_pot = self.fp_potential.interpol_pot_func(z)
         return fp_pot - gauss_pot
