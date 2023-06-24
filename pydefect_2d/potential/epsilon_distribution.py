@@ -19,8 +19,8 @@ from pydefect_2d.potential.grids import Grid
 @dataclass
 class EpsilonDistribution(MSONable, ToJsonFileMixIn):
     grid: Grid
-    electronic: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z]
-    ionic: List[List[float]]  # [epsilon_x, epsilon_y, epsilon_z]
+    electronic: np.ndarray  # [epsilon_x, epsilon_y, epsilon_z]
+    ionic: np.ndarray  # [epsilon_x, epsilon_y, epsilon_z]
 
     def __eq__(self, other):
         try:
@@ -32,27 +32,25 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         return True
 
     @cached_property
-    def ion_clamped(self) -> List[List[float]]:
-        return np.array(self.electronic) + 1.
+    def ion_clamped(self):
+        return self.electronic + 1.
 
     @cached_property
     def static(self):
-        return np.array(self.ion_clamped) + np.array(self.ionic)
+        return self.ion_clamped + self.ionic
 
     @cached_property
     def effective(self):
-        clamped = np.array(self.ion_clamped)
-        ionic = np.array(self.ionic)
-        return clamped + clamped**2/ionic
+        return self.ion_clamped + self.ion_clamped ** 2 / self.ionic
 
     @cached_property
     def ave_ele(self) -> np.array:
         """ Averages of e_x, e_y, e_z in the z-direction."""
-        return np.array(self.electronic).mean(axis=1)
+        return self.electronic.mean(axis=1)
 
     @cached_property
     def ave_ion(self) -> np.array:
-        return np.array(self.ionic).mean(axis=1)
+        return self.ionic.mean(axis=1)
 
     @cached_property
     def reciprocal_static(self):
@@ -108,10 +106,10 @@ def make_epsilon_gaussian_dist(length: float,
     grid = Grid(length, num_grid)
     dist = make_gaussian_distribution(grid.grid_points, position, sigma)
 
-    electronic = [rescale_distribution(dist, ave_ele)
-                  for ave_ele in ave_electronic_epsilon]
-    ionic = [rescale_distribution(dist, ave_ionic)
-             for ave_ionic in ave_ionic_epsilon]
+    electronic = np.array([rescale_distribution(dist, ave_ele)
+                           for ave_ele in ave_electronic_epsilon])
+    ionic = np.array([rescale_distribution(dist, ave_ionic)
+                      for ave_ionic in ave_ionic_epsilon])
     return EpsilonGaussianDistribution(grid, electronic, ionic, position, sigma)
 
 

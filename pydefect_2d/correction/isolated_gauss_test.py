@@ -24,7 +24,6 @@ def gauss_energy():
                                     epsilon_y=np.array([1.0] * n_grid))
 
     return IsolatedGaussEnergy(charge_model=charge_model,
-                               charge=1,
                                epsilon_z=[1.0]*n_grid,
                                k_max=2.,
                                k_mesh_dist=0.01,

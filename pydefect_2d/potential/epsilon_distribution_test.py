@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
+import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
@@ -7,13 +8,14 @@ from numpy.testing import assert_almost_equal
 from pydefect_2d.potential.epsilon_distribution import \
     make_epsilon_gaussian_dist, EpsilonGaussianDistribution
 from pydefect_2d.potential.grids import Grid
+from vise.tests.helpers.assertion import assert_dataclass_almost_equal
 
 
 @pytest.fixture
 def epsilon():
     return EpsilonGaussianDistribution(grid=Grid(20, 2),
-                                       electronic=[[1., 2.], [1., 2.], [1., 2.]],
-                                       ionic=[[2., 3.], [2., 3.], [2., 3.]],
+                                       electronic=np.array([[1., 2.], [1., 2.], [1., 2.]]),
+                                       ionic=np.array([[2., 3.], [2., 3.], [2., 3.]]),
                                        center=5.001,
                                        sigma=0.2)
 
@@ -51,12 +53,12 @@ def test_epsilon_to_plot(epsilon):
 
 
 def test_make_large_model():
-    actual = make_epsilon_gaussian_dist(6.0, 3, [2/3.]*3, [4/3]*3,
+    actual = make_epsilon_gaussian_dist(12.0, 6, [1/3.]*3, [2/3]*3,
                                         position=3., sigma=0.1)
     expected = EpsilonGaussianDistribution(
-        grid=Grid(6.0, 3, 2),
-        electronic=[[0., 1., 1., 0., 0., 0.]] * 3,
-        ionic=[[0., 2., 2., 0., 0., 0.]] * 3,
+        grid=Grid(12.0, 6),
+        electronic=np.array([[0., 1., 1., 0., 0., 0.]] * 3),
+        ionic=np.array([[0., 2., 2., 0., 0., 0.]] * 3),
         center=3.,
         sigma=0.1)
-    assert actual == expected
+    assert_dataclass_almost_equal(actual, expected)

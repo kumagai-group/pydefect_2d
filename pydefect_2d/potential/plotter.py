@@ -52,5 +52,5 @@ class ProfilePlotter:
 
     @property
     def _diff_potential(self):
-        fp_pot = self.fp_potential.f(self.z_grid_points)
+        fp_pot = self.fp_potential.interpol_pot_func(self.z_grid_points)
         return fp_pot - self.potential
