@@ -66,20 +66,20 @@ def test_calc_potential(mocker):
     def side_effect(filename):
         if filename == "epsilon_distribution.json":
             return mock_epsilon_dist
-        elif filename == "single_gauss_charge_model.json":
+        elif filename == "gauss_charge_model.json":
             return mock_gauss_model
         else:
             raise ValueError
 
     mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
 
-    parsed_args = parse_args_main_vasp(["cp",
+    parsed_args = parse_args_main_vasp(["gcp",
                                         "-e", "epsilon_distribution.json",
-                                        "-s", "single_gauss_charge_model.json",
+                                        "-g", "gauss_charge_model.json",
                                         "--no_multiprocess"])
     expected = Namespace(
         epsilon_dist=mock_epsilon_dist,
-        single_gauss_charge_model=mock_gauss_model,
+        gauss_charge_model=mock_gauss_model,
         multiprocess=False,
         func=parsed_args.func)
 

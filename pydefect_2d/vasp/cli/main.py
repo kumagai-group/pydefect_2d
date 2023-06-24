@@ -3,6 +3,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 
 from monty.serialization import loadfn
 from pydefect.analyzer.unitcell import Unitcell
@@ -102,6 +103,22 @@ def parse_args_main_vasp(args):
         help="Switch of the multiprocess.")
     parser_calc_potential.set_defaults(func=calc_gauss_charge_potential)
 
+    # -- isolated gauss energy ---------------------------------------------
+    parser_isolated_gauss_energy = subparsers.add_parser(
+        name="isolated_gauss_energy",
+        description="Calculate the isolated gauss energy.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[epsilon_dist, gauss_charge_model],
+        aliases=['ige'])
+
+    parser_isolated_gauss_energy.add_argument(
+        "--k_max", type=float, default=6.0,
+        help="Max of k integration range.")
+    parser_isolated_gauss_energy.add_argument(
+        "--k_mesh_dist", type=float, default=0.1,
+        help="Mesh distance of k integration.")
+    parser_isolated_gauss_energy.set_defaults(func=isolated_gauss_energy)
+
     # -- Make fp 1D potential. ---------------------------------------------
     parser_make_fp_1d_potential = subparsers.add_parser(
         name="make_fp_1d_potential",
@@ -126,12 +143,12 @@ def parse_args_main_vasp(args):
         name="make_slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist, gauss_charge_model],
+        parents=[epsilon_dist],
         aliases=['sm'])
 
     parser_make_slab_model.add_argument(
-        "-gcp", "--gauss_charge_potential", required=True, type=loadfn,
-        help="gauss_charge_potential.json file")
+        "-cd", "--correction_dir", required=True, type=Path,
+        help="")
     parser_make_slab_model.add_argument(
         "-fp", "--fp_potential", type=loadfn,
         help="fp_potential.json file")
@@ -139,22 +156,6 @@ def parse_args_main_vasp(args):
         "-d", "--defect_entry", required=True, type=loadfn,
         help="defect_entry.json file.")
     parser_make_slab_model.set_defaults(func=make_slab_model)
-
-    # -- isolated gauss energy ---------------------------------------------
-    parser_isolated_gauss_energy = subparsers.add_parser(
-        name="isolated_gauss_energy",
-        description="Calculate the isolated gauss energy.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist, gauss_charge_model],
-        aliases=['ige'])
-
-    parser_isolated_gauss_energy.add_argument(
-        "--k_max", type=float, default=6.0,
-        help="Max of k integration range.")
-    parser_isolated_gauss_energy.add_argument(
-        "--k_mesh_dist", type=float, default=0.1,
-        help="Mesh distance of k integration.")
-    parser_isolated_gauss_energy.set_defaults(func=isolated_gauss_energy)
 
     # -- make correction ---------------------------------------------
     parser_make_correction = subparsers.add_parser(
@@ -164,8 +165,11 @@ def parse_args_main_vasp(args):
         aliases=['c'])
 
     parser_make_correction.add_argument(
-        "-i", "--isolated_gauss_energy", type=loadfn,
-        help="isolated_gauss_energy.json file.")
+        "-d", "--defect_entry", required=True, type=loadfn,
+        help="defect_entry.json file.")
+    parser_make_correction.add_argument(
+        "-cd", "--correction_dir", required=True, type=Path,
+        help="")
     parser_make_correction.add_argument(
         "-s", "--slab_model", type=loadfn,
         help="slab_model.json file.")

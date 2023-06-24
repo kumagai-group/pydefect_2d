@@ -97,7 +97,7 @@ def isolated_gauss_energy(args):
                                    epsilon_z=args.epsilon_dist.static[2],
                                    k_max=args.k_max,
                                    k_mesh_dist=args.k_mesh_dist)
-    print(f"self energy: {isolated.self_energy} eV")
+    print(isolated)
     filename = _add_z_pos(isolated.json_filename, args.gauss_charge_model)
     isolated.to_json_file(filename)
 
@@ -117,7 +117,6 @@ def make_fp_1d_potential(args):
         raise
 
     FP1dPotential(Grid(length, grid_num), pot).to_json_file("fp_potential.json")
-
 
 
 def _get_obj(dir_: Path, filename: str, defect_entry: DefectEntry):
@@ -154,7 +153,10 @@ def make_correction(args):
 
     This should be placed at each defect calc dir.
     """
-    iso_e = args.isolated_gauss_energy.self_energy * args.slab_model.charge ** 2
+    d = args.correction_dir
+    isolated_gauss_energy = _get_obj(d, "isolated_gauss_energy.json",
+                                     args.defect_entry)
+    iso_e = isolated_gauss_energy.self_energy * args.slab_model.charge ** 2
     correction = Gauss2dCorrection(args.slab_model.charge,
                                    args.slab_model.electrostatic_energy,
                                    iso_e,
