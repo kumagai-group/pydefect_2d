@@ -11,9 +11,9 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
-    make_epsilon_distributions, make_gauss_charge_model, \
-    make_fp_1d_potential, calc_gauss_charge_potential, make_slab_model, \
-    isolated_gauss_energy, make_correction
+    make_gauss_charge_model, make_fp_1d_potential, \
+    calc_gauss_charge_potential, make_slab_model, isolated_gauss_energy, \
+    make_correction, make_epsilon_distribution
 
 
 def parse_args_main_vasp(args):
@@ -25,20 +25,21 @@ def parse_args_main_vasp(args):
 
     subparsers = parser.add_subparsers()
 
-    # -- parent parser: single_gauss_charge_model
+    # -- parent parser
     gauss_charge_model = argparse.ArgumentParser(
         description="", add_help=False)
     gauss_charge_model.add_argument(
         "-g", "--gauss_charge_model", required=True, type=loadfn,
         help="single_gauss_charge_model.json file")
 
+    # -- parent parser
     epsilon_dist = argparse.ArgumentParser(
         description="", add_help=False)
     epsilon_dist.add_argument(
         "-e", "--epsilon_dist", required=True, type=loadfn,
         help="epsilon_distribution.json file")
 
-    # -- Plot volumetric data. --------------------------------------------
+    # --------------------------------------------------------------------------
     parser_plot_volumetric_data = subparsers.add_parser(
         name="plot_volumetric_data",
         description="Plot volumetric data.",
@@ -49,7 +50,7 @@ def parse_args_main_vasp(args):
         help="filename.")
     parser_plot_volumetric_data.set_defaults(func=plot_volumetric_data)
 
-    # -- Make epsilon distributions. -------------------------------------------
+    # --------------------------------------------------------------------------
     parser_make_epsilon_dist = subparsers.add_parser(
         name="make_epsilon_distributions",
         description="Make epsilon distributions.",
@@ -63,17 +64,30 @@ def parse_args_main_vasp(args):
         "-s", "--structure", required=True, type=Structure.from_file,
         help="POSCAR file of the 2D unitcell.")
     parser_make_epsilon_dist.add_argument(
-        "-p", "--position", required=True, type=float,
-        help="Position of layer in fractional coordinates.")
-    parser_make_epsilon_dist.add_argument(
         "-n", "--num_grid", required=True, type=int,
         help="Number of all_grid_points.")
     parser_make_epsilon_dist.add_argument(
+        "-t", "--type", required=True, type=str, choices=["gauss", "step"])
+    # -- gauss
+    parser_make_epsilon_dist.add_argument(
+        "-p", "--position", type=float,
+        help="Position of layer in fractional coordinates.")
+    parser_make_epsilon_dist.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")
-    parser_make_epsilon_dist.set_defaults(func=make_epsilon_distributions)
+    # -- step
+    parser_make_epsilon_dist.add_argument(
+        "-sl", "--step_left", type=float,
+        help="")
+    parser_make_epsilon_dist.add_argument(
+        "-sr", "--step_right", type=float,
+        help="")
+    parser_make_epsilon_dist.add_argument(
+        "--error_func_width", type=float,
+        help="")
+    parser_make_epsilon_dist.set_defaults(func=make_epsilon_distribution)
 
-    # -- Make gauss charge models. ---------------------------------------------
+    # --------------------------------------------------------------------------
     parser_make_gauss_charge_model = subparsers.add_parser(
         name="make_gauss_charge_model",
         description="Make Gauss charge models.",
@@ -90,7 +104,7 @@ def parse_args_main_vasp(args):
     parser_make_gauss_charge_model.set_defaults(
         func=make_gauss_charge_model)
 
-    # -- Calc potential. ---------------------------------------------
+    # --------------------------------------------------------------------------
     parser_calc_potential = subparsers.add_parser(
         name="calc_gauss_charge_potential",
         description="calc potential.",
@@ -103,7 +117,7 @@ def parse_args_main_vasp(args):
         help="Switch of the multiprocess.")
     parser_calc_potential.set_defaults(func=calc_gauss_charge_potential)
 
-    # -- isolated gauss energy ---------------------------------------------
+    # --------------------------------------------------------------------------
     parser_isolated_gauss_energy = subparsers.add_parser(
         name="isolated_gauss_energy",
         description="Calculate the isolated gauss energy.",
@@ -119,10 +133,10 @@ def parse_args_main_vasp(args):
         help="Mesh distance of k integration.")
     parser_isolated_gauss_energy.set_defaults(func=isolated_gauss_energy)
 
-    # -- Make fp 1D potential. ---------------------------------------------
+    # --------------------------------------------------------------------------
     parser_make_fp_1d_potential = subparsers.add_parser(
         name="make_fp_1d_potential",
-        description="Make first-principles one-dimensional potential.",
+        description="Make planar averaged 1D potential.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         aliases=['fp'])
 
@@ -138,7 +152,7 @@ def parse_args_main_vasp(args):
              "0, 1, and 2 correspond to x, y, and z directions, respectively")
     parser_make_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
 
-    # -- Make slab model ---------------------------------------------
+    # --------------------------------------------------------------------------
     parser_make_slab_model = subparsers.add_parser(
         name="make_slab_model",
         description="Make slab_model.json.",
@@ -157,10 +171,10 @@ def parse_args_main_vasp(args):
         help="defect_entry.json file.")
     parser_make_slab_model.set_defaults(func=make_slab_model)
 
-    # -- make correction ---------------------------------------------
+    # --------------------------------------------------------------------------
     parser_make_correction = subparsers.add_parser(
         name="make_correction",
-        description="Make gauss 2d correction.",
+        description="Make 2d point defect correction.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         aliases=['c'])
 
@@ -175,7 +189,7 @@ def parse_args_main_vasp(args):
         help="slab_model.json file.")
     parser_make_correction.set_defaults(func=make_correction)
 
-    # ------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     return parser.parse_args(args)
 
 

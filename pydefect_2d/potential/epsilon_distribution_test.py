@@ -1,64 +1,40 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
 from pydefect_2d.potential.epsilon_distribution import \
-    make_epsilon_gaussian_dist, EpsilonGaussianDistribution
+    EpsilonGaussianDistribution, EpsilonStepLikeDistribution
 from pydefect_2d.potential.grids import Grid
-from vise.tests.helpers.assertion import assert_dataclass_almost_equal
 
 
 @pytest.fixture
-def epsilon():
+def gauss_epsilon():
     return EpsilonGaussianDistribution(grid=Grid(20, 2),
-                                       electronic=np.array([[1., 2.], [1., 2.], [1., 2.]]),
-                                       ionic=np.array([[2., 3.], [2., 3.], [2., 3.]]),
-                                       center=5.001,
+                                       ave_electronic_epsilon=[2, 2, 2],
+                                       ave_ionic_epsilon=[1, 1, 1],
+                                       center=10,
                                        sigma=0.2)
 
 
-def test_epsilon_properties(epsilon):
-    assert_almost_equal(epsilon.ion_clamped, [[2., 3.], [2., 3.], [2., 3.]])
-    assert_almost_equal(epsilon.static, [[4., 6.], [4., 6.], [4., 6.]])
-    assert_almost_equal(epsilon.effective, [[4., 6.], [4., 6.], [4., 6.]])
+def test_epsilon_properties(gauss_epsilon):
+    assert_almost_equal(gauss_epsilon.electronic[0], [0., 4.])
+    assert_almost_equal(gauss_epsilon.ionic[0], [0., 2.])
+
+    assert_almost_equal(gauss_epsilon.ion_clamped[0], [1., 5.])
+    assert_almost_equal(gauss_epsilon.static[0], [1., 7.])
+    assert_almost_equal(gauss_epsilon.effective[0], [float("inf"), 5.+5.**2/2.])
 
 
-def test_epsilon_averages(epsilon):
-    assert_almost_equal(epsilon.ave_ele, [1.5, 1.5, 1.5])
-    assert_almost_equal(epsilon.ave_ion, [2.5, 2.5, 2.5])
-
-
-def test_reciprocal_static(epsilon):
+def test_reciprocal_static(gauss_epsilon):
     """The returned complex array contains ``y(0), y(1),..., y(n-1)``, where
        ``y(j) = (x * exp(-2*pi*sqrt(-1)*j*np.arange(n)/n)).sum()``."""
-    assert_almost_equal(epsilon.reciprocal_static[0], [10.-0.j, -2.-0.j])
+    assert_almost_equal(gauss_epsilon.reciprocal_static[0], [8.-0.j, -6.-0.j])
 
 
-def test_epsilon_str(epsilon):
-    actual = epsilon.__str__()
-    expected = """center: 5.00 Å
-sigma: 0.20 Å
-  pos (Å)    ε_inf_x    ε_inf_y    ε_inf_z    ε_ion_x    ε_ion_y    ε_ion_z    ε_0_x    ε_0_y    ε_0_z
-     0.00       2.00       2.00       2.00       2.00       2.00       2.00     4.00     4.00     4.00
-    10.00       3.00       3.00       3.00       3.00       3.00       3.00     6.00     6.00     6.00"""
-    assert actual == expected
-
-
-def test_epsilon_to_plot(epsilon):
-    epsilon.to_plot(plt)
+def test_epsilon_to_plot(gauss_epsilon):
+    gauss_epsilon.to_plot(plt)
     plt.show()
 
 
-def test_make_large_model():
-    actual = make_epsilon_gaussian_dist(12.0, 6, [1/3.]*3, [2/3]*3,
-                                        position=3., sigma=0.1)
-    expected = EpsilonGaussianDistribution(
-        grid=Grid(12.0, 6),
-        electronic=np.array([[0., 1., 1., 0., 0., 0.]] * 3),
-        ionic=np.array([[0., 2., 2., 0., 0., 0.]] * 3),
-        center=3.,
-        sigma=0.1)
-    assert_dataclass_almost_equal(actual, expected)

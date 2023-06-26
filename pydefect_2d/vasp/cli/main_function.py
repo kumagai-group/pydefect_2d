@@ -12,7 +12,7 @@ from pymatgen.io.vasp import Chgcar, Locpot
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.epsilon_distribution import \
-    make_epsilon_gaussian_dist
+    EpsilonGaussianDistribution, EpsilonStepLikeDistribution
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
@@ -39,16 +39,24 @@ def plot_volumetric_data(args):
     plt.savefig(f"{args.filename}.pdf")
 
 
-def make_epsilon_distributions(args):
+def make_epsilon_distribution(args):
     """depends on the supercell size"""
     clamped = np.diag(args.unitcell.ele_dielectric_const)
     electronic = list(clamped - 1.)
     ionic = list(np.diag(args.unitcell.ion_dielectric_const))
-    position = args.structure.lattice.c * args.position
+    grid = Grid(args.structure.lattice.c, args.num_grid)
 
-    epsilon_distribution = make_epsilon_gaussian_dist(
-        args.structure.lattice.c, args.num_grid, electronic, ionic,
-        position, args.sigma)
+    if args.type == "gauss":
+        position = args.structure.lattice.c * args.position
+        epsilon_distribution = EpsilonGaussianDistribution(
+            grid, electronic, ionic, position, args.sigma)
+    elif args.type == "step":
+        epsilon_distribution = EpsilonStepLikeDistribution(
+            grid, electronic, ionic, args.step_left, args.step_right,
+            args.error_func_width)
+    else:
+        raise ValueError
+
     epsilon_distribution.to_json_file()
 
 
@@ -56,6 +64,7 @@ def _add_z_pos(filename: str, model: GaussChargeModel):
     x, y = filename.split(".")
     frac_coord = model.defect_z_pos / model.grids.z_length
     return f"{x}_{frac_coord:.3}.{y}"
+
 
 def make_gauss_charge_model(args):
     """depends on the supercell size and defect position"""

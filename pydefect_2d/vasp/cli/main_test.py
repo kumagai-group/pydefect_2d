@@ -16,15 +16,23 @@ def test_make_epsilon_distribution(mocker):
     parsed_args = parse_args_main_vasp(["ed",
                                         "-u", "unitcell.yaml",
                                         "-s", "CONTCAR",
-                                        "-p", "0.5",
                                         "-n", "100",
-                                        "--sigma", "0.1"])
+                                        "-t", "gauss",
+                                        "-p", "0.5",
+                                        "--sigma", "0.1",
+                                        "-sl", "0.2",
+                                        "-sr", "0.3",
+                                        "--error_func_width", "0.4"])
     expected = Namespace(
         unitcell=mock_unitcell.from_yaml.return_value,
         structure=mock_structure.from_file.return_value,
-        position=0.5,
         num_grid=100,
+        type="gauss",
+        position=0.5,
         sigma=0.1,
+        step_left=0.2,
+        step_right=0.3,
+        error_func_width=0.4,
         func=parsed_args.func)
 
     assert parsed_args == expected

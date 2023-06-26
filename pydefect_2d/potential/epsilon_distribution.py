@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
+from abc import abstractmethod
 from dataclasses import dataclass
 from functools import cached_property
 from typing import List
@@ -12,15 +13,20 @@ from tabulate import tabulate
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.potential.distribution import make_gaussian_distribution, \
-    rescale_distribution
+    rescale_distribution, make_step_like_distribution
 from pydefect_2d.potential.grids import Grid
 
 
 @dataclass
 class EpsilonDistribution(MSONable, ToJsonFileMixIn):
     grid: Grid
-    electronic: np.ndarray  # [epsilon_x, epsilon_y, epsilon_z]
-    ionic: np.ndarray  # [epsilon_x, epsilon_y, epsilon_z]
+    ave_electronic_epsilon: List[float]
+    ave_ionic_epsilon: List[float]
+
+    @property
+    @abstractmethod
+    def unscaled_dist(self) -> np.ndarray:
+        pass
 
     def __eq__(self, other):
         try:
@@ -30,6 +36,16 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
         except AssertionError:
             return False
         return True
+
+    @property
+    def electronic(self):
+        return np.array([rescale_distribution(self.unscaled_dist, ave_ele)
+                         for ave_ele in self.ave_electronic_epsilon])
+
+    @property
+    def ionic(self):
+        return np.array([rescale_distribution(self.unscaled_dist, ave_ionic)
+                         for ave_ionic in self.ave_ionic_epsilon])
 
     @cached_property
     def ion_clamped(self):
@@ -42,15 +58,6 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
     @cached_property
     def effective(self):
         return self.ion_clamped + self.ion_clamped ** 2 / self.ionic
-
-    @cached_property
-    def ave_ele(self) -> np.array:
-        """ Averages of e_x, e_y, e_z in the z-direction."""
-        return self.electronic.mean(axis=1)
-
-    @cached_property
-    def ave_ion(self) -> np.array:
-        return self.ionic.mean(axis=1)
 
     @cached_property
     def reciprocal_static(self):
@@ -96,20 +103,26 @@ class EpsilonGaussianDistribution(EpsilonDistribution):
                   super().__str__()]
         return "\n".join(result)
 
-
-def make_epsilon_gaussian_dist(length: float,
-                               num_grid: int,
-                               ave_electronic_epsilon: List[float],
-                               ave_ionic_epsilon: List[float],
-                               position: float,
-                               sigma: float):
-    grid = Grid(length, num_grid)
-    dist = make_gaussian_distribution(grid.grid_points, position, sigma)
-
-    electronic = np.array([rescale_distribution(dist, ave_ele)
-                           for ave_ele in ave_electronic_epsilon])
-    ionic = np.array([rescale_distribution(dist, ave_ionic)
-                      for ave_ionic in ave_ionic_epsilon])
-    return EpsilonGaussianDistribution(grid, electronic, ionic, position, sigma)
+    @property
+    def unscaled_dist(self):
+        return make_gaussian_distribution(self.grid, self.center, self.sigma)
 
 
+@dataclass
+class EpsilonStepLikeDistribution(EpsilonDistribution):
+    step_left: float  # in Å
+    step_right: float  # in Å
+    error_func_width: float  # in Å
+
+    def __str__(self):
+        result = [f"step left: {self.step_left:.2f} Å",
+                  f"step right: {self.step_right:.2f} Å",
+                  f"width of error function: {self.error_func_width:.2f} Å",
+                  super().__str__()]
+        return "\n".join(result)
+
+    @property
+    def unscaled_dist(self):
+        return make_step_like_distribution(self.grid, self.step_left,
+                                           self.step_right,
+                                           self.error_func_width)

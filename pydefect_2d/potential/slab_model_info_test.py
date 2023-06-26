@@ -17,8 +17,8 @@ grid = Grid(10., 4)
 def epsilon_dist():
     return EpsilonGaussianDistribution(
         grid=grid,
-        electronic=np.array([[0., 1., 1., 0.]] * 3),
-        ionic=np.array([[0., 0., 0., 0.]] * 3),
+        ave_electronic_epsilon=[0.5]*3,
+        ave_ionic_epsilon=[0.]*3,
         center=5.0, sigma=0.1)
 
 
