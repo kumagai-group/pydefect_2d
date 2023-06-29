@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from monty.serialization import loadfn
+from pydefect.analyzer.defect_structure_info import DefectStructureInfo
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 
@@ -68,14 +69,14 @@ def _add_z_pos(filename: str, model: GaussChargeModel):
 
 def make_gauss_charge_model(args):
     """depends on the supercell size and defect position"""
-    de: DefectEntry = args.defect_entry
+    dsi: DefectStructureInfo = args.defect_structure_info
 
-    lat = de.structure.lattice
+    lat = dsi.shifted_final_structure.lattice
     z_num_grid = args.epsilon_dist.grid.num_grid
     x_num_grid = ceil(lat.a / lat.c * z_num_grid / 2) * 2
     y_num_grid = ceil(lat.b / lat.c * z_num_grid / 2) * 2
 
-    defect_z_pos = lat.c * de.defect_center[2]
+    defect_z_pos = lat.c * dsi.center[2]
 
     grids = Grids([Grid(lat.a, x_num_grid),
                    Grid(lat.b, y_num_grid),

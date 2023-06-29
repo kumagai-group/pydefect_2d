@@ -83,7 +83,7 @@ def parse_args_main_vasp(args):
         "-sr", "--step_right", type=float,
         help="")
     parser_make_epsilon_dist.add_argument(
-        "--error_func_width", type=float,
+        "--error_func_width", type=float, default=0.3,
         help="")
     parser_make_epsilon_dist.set_defaults(func=make_epsilon_distribution)
 
@@ -96,8 +96,8 @@ def parse_args_main_vasp(args):
         aliases=['gcm'])
 
     parser_make_gauss_charge_model.add_argument(
-        "-d", "--defect_entry", required=True, type=loadfn,
-        help="defect_entry.json file.")
+        "-dsi", "--defect_structure_info", required=True, type=loadfn,
+        help="defect_structure_info.json file.")
     parser_make_gauss_charge_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")

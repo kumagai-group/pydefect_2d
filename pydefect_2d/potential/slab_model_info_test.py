@@ -2,11 +2,13 @@
 #  Copyright (c) 2023 Kumagai group.
 import numpy as np
 import pytest
+from matplotlib import pyplot as plt
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
 from pydefect_2d.potential.epsilon_distribution import \
     EpsilonGaussianDistribution
 from pydefect_2d.potential.grids import Grid, Grids
+from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel, FP1dPotential
 
@@ -56,3 +58,28 @@ def test_gauss_charge_model_charges(gauss_model: GaussChargeModel):
     assert gauss_model.charges[0][0][0] == 0.06349363593424097
     assert gauss_model.farthest_z_from_defect == (2, 5.0)
 
+
+def test_():
+    grid_here = Grid(10., 80)
+    eps = EpsilonGaussianDistribution(
+        grid=grid_here,
+        ave_electronic_epsilon=[0.]*3,
+        ave_ionic_epsilon=[0.]*3,
+        center=5.0, sigma=100000000)
+
+    gauss = GaussChargeModel(Grids([grid_here]*3),
+                             sigma=0.1,
+                             defect_z_pos=5.0,
+                             epsilon_x=np.array([1.0]*80),
+                             epsilon_y=np.array([1.0]*80))
+
+    calc_pot = CalcGaussChargePotential(
+        epsilon=eps,
+        gauss_charge_model=gauss)
+    slab_model = SlabModel(epsilon=eps,
+                           gauss_charge_model=gauss,
+                           gauss_charge_potential=calc_pot.potential,
+                           charge=1)
+    ProfilePlotter(plt, slab_model)
+    plt.show()
+    print(calc_pot.potential.xy_ave_potential)

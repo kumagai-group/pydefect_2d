@@ -115,7 +115,9 @@ class CalcGaussChargePotential:
         try:
             assert self.epsilon.grid == self.gauss_charge_model.grids()[2]
         except AssertionError:
-            e_z_gird, g_z_grid = self.epsilon.grid, self.gauss_charge_model.grids()[2]
+            e_z_gird = self.epsilon.grid
+            g_z_grid = self.gauss_charge_model.grids()[2]
+
             print(f"epsilon z lattice length {e_z_gird.length}")
             print(f"epsilon num grid {e_z_gird.num_grid}")
             print(f"gauss model lattice length {g_z_grid.length}")
@@ -201,11 +203,15 @@ class FP1dPotential(MSONable, ToJsonFileMixIn):
 
 @dataclass
 class SlabModel(MSONable, ToJsonFileMixIn):
-    charge: int
     epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
+    charge: int = None
     fp_potential: FP1dPotential = None
+
+    @property
+    def charge_(self):
+        return self.charge if self.charge is not None else 1
 
     def __post_init__(self):
         assert self.epsilon.grid == self.gauss_charge_model.grids()[2]
@@ -219,15 +225,15 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     def electrostatic_energy(self) -> float:
         return np.real(
             (np.mean(self.gauss_charge_potential.potential * self.gauss_charge_model.charges)
-             * self.gauss_charge_model.grids.volume / 2)) * self.charge ** 2
+             * self.gauss_charge_model.grids.volume / 2)) * self.charge_ ** 2
 
     @cached_property
     def xy_charge(self):
-        return self.gauss_charge_model.xy_integrated_charge * self.charge
+        return self.gauss_charge_model.xy_integrated_charge * self.charge_
 
     @cached_property
     def xy_potential(self):
-        return self.gauss_charge_potential.xy_ave_potential * self.charge
+        return self.gauss_charge_potential.xy_ave_potential * self.charge_
 
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]
@@ -236,7 +242,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
         result = [tabulate(list_, tablefmt="plain", headers=header)]
 
         charge = (self.gauss_charge_model.charges.mean()
-                  * self.grids.volume * self.charge)
+                  * self.grids.volume * self.charge_)
         result.append(f"Charge sum (|e|): {charge:.3}")
         result.append(f"Electrostatic energy (eV): "
                       f"{self.electrostatic_energy:.3}")
