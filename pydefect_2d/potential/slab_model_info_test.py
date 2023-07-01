@@ -60,26 +60,33 @@ def test_gauss_charge_model_charges(gauss_model: GaussChargeModel):
 
 
 def test_():
-    grid_here = Grid(10., 80)
+    grid_z = Grid(10., 30)
+    grid_xy = Grid(10., 30)
     eps = EpsilonGaussianDistribution(
-        grid=grid_here,
-        ave_electronic_epsilon=[0.]*3,
+        grid=grid_z,
+        ave_electronic_epsilon=[1.]*3,
         ave_ionic_epsilon=[0.]*3,
         center=5.0, sigma=100000000)
 
-    gauss = GaussChargeModel(Grids([grid_here]*3),
-                             sigma=0.1,
+    gauss = GaussChargeModel(Grids([grid_xy, grid_xy, grid_z], 120.),
+                             sigma=1.0,
                              defect_z_pos=5.0,
-                             epsilon_x=np.array([1.0]*80),
-                             epsilon_y=np.array([1.0]*80))
-
-    calc_pot = CalcGaussChargePotential(
-        epsilon=eps,
-        gauss_charge_model=gauss)
-    slab_model = SlabModel(epsilon=eps,
-                           gauss_charge_model=gauss,
-                           gauss_charge_potential=calc_pot.potential,
-                           charge=1)
-    ProfilePlotter(plt, slab_model)
-    plt.show()
-    print(calc_pot.potential.xy_ave_potential)
+                             epsilon_x=np.array([1.0]*100),
+                             epsilon_y=np.array([1.0]*100))
+    gauss.xy_integrated_charge
+    # gauss = GaussChargeModel(Grids([grid_xy, grid_xy, grid_z], 60.),
+    #                          sigma=0.5,
+    #                          defect_z_pos=5.0,
+    #                          epsilon_x=np.array([1.0]*20),
+    #                          epsilon_y=np.array([1.0]*20))
+    # gauss.xy_integrated_charge
+    #
+    # calc_pot = CalcGaussChargePotential(
+    #     epsilon=eps,
+    #     gauss_charge_model=gauss)
+    # slab_model = SlabModel(epsilon=eps,
+    #                        gauss_charge_model=gauss,
+    #                        gauss_charge_potential=calc_pot.potential,
+    #                        charge=1)
+    # ProfilePlotter(plt, slab_model)
+    # plt.show()

@@ -78,9 +78,11 @@ def make_gauss_charge_model(args):
 
     defect_z_pos = lat.c * dsi.center[2]
 
-    grids = Grids([Grid(lat.a, x_num_grid),
-                   Grid(lat.b, y_num_grid),
-                   Grid(lat.c, z_num_grid)])
+    print(lat.gamma)
+    grids = Grids(grids=[Grid(lat.a, x_num_grid),
+                         Grid(lat.b, y_num_grid),
+                         Grid(lat.c, z_num_grid)],
+                  ab_angle=lat.gamma)
 
     model = GaussChargeModel(grids,
                              sigma=args.sigma,

@@ -5,7 +5,7 @@ import multiprocessing as multi
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import product
-from math import pi, exp
+from math import pi, exp, cos
 from multiprocessing import Pool
 from typing import List, Tuple
 
@@ -25,12 +25,20 @@ from pydefect_2d.potential.grids import Grid, Grids
 @dataclass
 class GaussChargeModel(MSONable, ToJsonFileMixIn):
     # Here, assume that charge is 1|e|.
-    grids: Grids  # assume orthogonal system
+    grids: Grids
     sigma: float
     defect_z_pos: float  # in fractional coord. x=y=0
     epsilon_x: np.array
     epsilon_y: np.array
     charges: np.array = None
+
+    def __str__(self):
+        charge = self.charges.mean() * self.grids.volume
+        result = [f"gamma (angle): {self.grids.ab_angle}",
+                  f"cos_gamma: {self.grids.cos_gamma}",
+                  f"sigma (A): {self.sigma:.2}",
+                  f"Charge sum (|e|): {charge:.3}"]
+        return "\n".join(result)
 
     def __post_init__(self):
         assert len(self.epsilon_x) == self.grids.num_grid_points[2]
@@ -62,15 +70,14 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         gauss = np.zeros([nx, ny, nz])
 
         for ix, iy, iz in itertools.product(range(nx), range(ny), range(nz)):
-            x2 = np.minimum(x_pts[ix] ** 2, (lx - x_pts[ix]) ** 2)
-            y2 = np.minimum(y_pts[iy] ** 2, (ly - y_pts[iy]) ** 2)
+            x, y, xy2 = self.grids.squared_xy_grid_length(ix, iy)
             dz = abs(z_pts[iz] - self.defect_z_pos)
             z2 = np.minimum(dz ** 2, (lz - dz) ** 2)
 
-            x2 *= self.square_x_scaling[ix]
-            y2 *= self.square_y_scaling[iy]
+#            x2 *= self.square_x_scaling[iz]
+#            y2 *= self.square_y_scaling[iz]
 
-            gauss[ix, iy, iz] = exp(-(x2 + y2 + z2) / (2 * self.sigma ** 2))
+            gauss[ix, iy, iz] = exp(-(xy2 + z2) / (2 * self.sigma ** 2))
 
         return coefficient * gauss
 
@@ -82,7 +89,8 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def xy_integrated_charge(self):
-        return np.real(self.charges.mean(axis=(0, 1))) * self.grids.xy_area
+        result = np.real(self.charges.mean(axis=(0, 1))) * self.grids.xy_area
+        return result
 
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:
@@ -141,12 +149,16 @@ class CalcGaussChargePotential:
             igs[middle_x:] = igs[1:middle_x-1][::-1]  # reduced zone
             result.append(2 * pi * igs / lat)
 
-        return np.array(result)
+        cos_gamma = self.gauss_charge_model.grids.cos_gamma
+        result = np.array(result)
+        result[0] /= cos_gamma
+        result[1] /= cos_gamma
+        return result
 
     def _solve_poisson_eq(self, xy_grid_idx):
         # at a given Gx and Gy.
         i_gx, i_gy = xy_grid_idx
-        gx, gy = self.Gs[0][i_gx], self.Gs[0][i_gy]
+        gx, gy = self.Gs[0][i_gx], self.Gs[1][i_gy]
         z_grid = self.num_grids[2]
         x_rec_e, y_rec_e, z_rec_e = self.epsilon.reciprocal_static
         rec_chg = self.gauss_charge_model.reciprocal_charge[i_gx, i_gy, :]
@@ -223,9 +235,10 @@ class SlabModel(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def electrostatic_energy(self) -> float:
-        return np.real(
+        result_at_charge1 = np.real(
             (np.mean(self.gauss_charge_potential.potential * self.gauss_charge_model.charges)
-             * self.gauss_charge_model.grids.volume / 2)) * self.charge_ ** 2
+             * self.gauss_charge_model.grids.volume / 2))
+        return result_at_charge1 * self.charge_ ** 2
 
     @cached_property
     def xy_charge(self):
