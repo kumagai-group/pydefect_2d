@@ -10,7 +10,7 @@ def main():
     filename = sys.argv[1]
     obj = loadfn(filename)
     try:
-        obj.to_plot(plt)
+        obj.to_plot(plt.gca())
         pdf_name = filename.split(".")[0] + ".pdf"
         plt.savefig(pdf_name)
     except AttributeError:

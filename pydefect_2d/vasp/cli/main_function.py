@@ -14,7 +14,7 @@ from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.epsilon_distribution import \
     EpsilonGaussianDistribution, EpsilonStepLikeDistribution
-from pydefect_2d.potential.grids import Grid, Grids
+from pydefect_2d.potential.grids import Grid, Grids, XYGrids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, FP1dPotential, SlabModel
@@ -63,8 +63,7 @@ def make_epsilon_distribution(args):
 
 def _add_z_pos(filename: str, model: GaussChargeModel):
     x, y = filename.split(".")
-    frac_coord = model.defect_z_pos / model.grids.z_length
-    return f"{x}_{frac_coord:.3}.{y}"
+    return f"{x}_{model.defect_z_pos_in_frac:.3}.{y}"
 
 
 def make_gauss_charge_model(args):
@@ -76,17 +75,13 @@ def make_gauss_charge_model(args):
     x_num_grid = ceil(lat.a / lat.c * z_num_grid / 2) * 2
     y_num_grid = ceil(lat.b / lat.c * z_num_grid / 2) * 2
 
-    defect_z_pos = lat.c * dsi.center[2]
-
-    print(lat.gamma)
-    grids = Grids(grids=[Grid(lat.a, x_num_grid),
-                         Grid(lat.b, y_num_grid),
-                         Grid(lat.c, z_num_grid)],
-                  ab_angle=lat.gamma)
+    grids = Grids(xy_grids=XYGrids(lattice=lat.matrix[:2, :2],
+                                   num_grids=[x_num_grid, y_num_grid]),
+                  z_grid=Grid(lat.c, z_num_grid))
 
     model = GaussChargeModel(grids,
                              sigma=args.sigma,
-                             defect_z_pos=defect_z_pos,
+                             defect_z_pos_in_frac=dsi.center[2],
                              epsilon_x=args.epsilon_dist.static[0],
                              epsilon_y=args.epsilon_dist.static[1])
     filename = _add_z_pos(model.json_filename, model)

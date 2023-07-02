@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-import itertools
 import multiprocessing as multi
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import product
-from math import pi, exp, cos
+from math import pi
 from multiprocessing import Pool
 from typing import List, Tuple
 
 import numpy as np
 from monty.json import MSONable
+from numpy import exp
 from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fftpack import ifftn, fftn
 from scipy.interpolate import interp1d
@@ -27,22 +27,20 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
     # Here, assume that charge is 1|e|.
     grids: Grids
     sigma: float
-    defect_z_pos: float  # in fractional coord. x=y=0
+    defect_z_pos_in_frac: float  # in fractional coord. x=y=0
     epsilon_x: np.array
     epsilon_y: np.array
     charges: np.array = None
 
     def __str__(self):
         charge = self.charges.mean() * self.grids.volume
-        result = [f"gamma (angle): {self.grids.ab_angle}",
-                  f"cos_gamma: {self.grids.cos_gamma}",
-                  f"sigma (A): {self.sigma:.2}",
+        result = [f"sigma (A): {self.sigma:.2}",
                   f"Charge sum (|e|): {charge:.3}"]
         return "\n".join(result)
 
     def __post_init__(self):
-        assert len(self.epsilon_x) == self.grids.num_grid_points[2]
-        assert len(self.epsilon_y) == self.grids.num_grid_points[2]
+        assert len(self.epsilon_x) == self.grids.z_grid.num_grid
+        assert len(self.epsilon_y) == self.grids.z_grid.num_grid
 
         if self.charges is None:
             self.charges = self._make_gauss_charge_profile
@@ -63,23 +61,20 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
     def _make_gauss_charge_profile(self):
         coefficient = 1 / self.sigma ** 3 / (2 * pi) ** 1.5
 
-        x_pts, y_pts, z_pts = self.grids.all_grid_points
-        nx, ny, nz = self.grids.num_grid_points
-        lx, ly, lz = self.grids.lengths
-
+        (nx, ny), nz = self.grids.xy_grids.num_grids, self.grids.z_grid.num_grid
         gauss = np.zeros([nx, ny, nz])
 
-        for ix, iy, iz in itertools.product(range(nx), range(ny), range(nz)):
-            x, y, xy2 = self.grids.squared_xy_grid_length(ix, iy)
-            dz = abs(z_pts[iz] - self.defect_z_pos)
-            z2 = np.minimum(dz ** 2, (lz - dz) ** 2)
-
-#            x2 *= self.square_x_scaling[iz]
-#            y2 *= self.square_y_scaling[iz]
-
-            gauss[ix, iy, iz] = exp(-(xy2 + z2) / (2 * self.sigma ** 2))
+        xy2 = self.grids.xy_grids.squared_length_on_grids
+        for nz, lz in enumerate(self.grids.z_grid_points):
+            gauss[:, :, nz] = exp(-(xy2 + self._z2(lz)) / (2 * self.sigma ** 2))
 
         return coefficient * gauss
+
+    def _z2(self, lz):
+        return min(
+            [abs(lz - self.grids.z_length * (i + self.defect_z_pos_in_frac))
+             for i in range(-1, 2)]
+        ) ** 2
 
     @cached_property
     def reciprocal_charge(self):
@@ -88,16 +83,21 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         return result
 
     @cached_property
-    def xy_integrated_charge(self):
-        result = np.real(self.charges.mean(axis=(0, 1))) * self.grids.xy_area
-        return result
+    def xy_integrated_charge(self) -> np.array:
+        xy_average = np.real(self.charges.mean(axis=(0, 1)))
+        return xy_average * self.grids.xy_grids.area
 
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:
-        z = self.defect_z_pos + self.grids.z_length / 2
+        z = self.grids.z_length * (self.defect_z_pos_in_frac - 0.5)
         if z > self.grids.z_length:
             z -= self.grids.z_length
         return self.grids.nearest_z_grid_point(z)
+
+    def to_plot(self, ax, charge=1):
+        ax.set_ylabel("Charge (|e|/Å)")
+        ax.plot(self.grids.z_grid_points, self.xy_integrated_charge * charge,
+                label="charge", color="black")
 
 
 @dataclass
@@ -109,8 +109,12 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
     def xy_ave_potential(self):
         return np.real(self.potential.mean(axis=(0, 1)))
 
-    def potential_diff(self, f, z_value):
-        return
+    def to_plot(self, ax, charge=1):
+        ax.set_ylabel("Potential energy (eV)")
+        ax.plot(self.grids.z_grid_points,
+                self.potential.mean(axis=(0, 1)) * charge,
+                label="Gauss model potential", color="red")
+        ax.legend()
 
 
 @dataclass
@@ -121,60 +125,56 @@ class CalcGaussChargePotential:
 
     def __post_init__(self):
         try:
-            assert self.epsilon.grid == self.gauss_charge_model.grids()[2]
+            assert self.epsilon.grid == self.gauss_charge_model.grids.z_grid
         except AssertionError:
             e_z_gird = self.epsilon.grid
-            g_z_grid = self.gauss_charge_model.grids()[2]
+            g_z_grid = self.gauss_charge_model.grids.z_grid
 
             print(f"epsilon z lattice length {e_z_gird.length}")
             print(f"epsilon num grid {e_z_gird.num_grid}")
             print(f"gauss model lattice length {g_z_grid.length}")
             print(f"gauss model num grid {g_z_grid.num_grid}")
             raise
+        self.Ga2s = self.gauss_charge_model.grids.xy_grids.Ga2
+        self.Gb2s = self.gauss_charge_model.grids.xy_grids.Gb2
+
+    @property
+    def xy_grids(self):
+        return self.gauss_charge_model.grids.xy_grids
+
+    @property
+    def z_grid(self):
+        return self.gauss_charge_model.grids.z_grid
+
+    @property
+    def xy_num_grids(self):
+        return self.xy_grids.num_grids
 
     @property
     def num_grids(self):
-        return [g.num_grid for g in self.gauss_charge_model.grids()]
+        return self.xy_grids.num_grids + [self.z_grid.num_grid]
 
-    @property
-    def lattice_constants(self):
-        return [g.length for g in self.gauss_charge_model.grids()]
+    def _solve_poisson_eq(self, ab_grid_idx):
+        i_ga, i_gb = ab_grid_idx
 
-    @cached_property
-    def Gs(self):
-        result = []
-        for num_grids, lat in zip(self.num_grids, self.lattice_constants):
-            igs = np.array(range(num_grids))
-            middle_x = int(num_grids / 2) + 1
-            igs[middle_x:] = igs[1:middle_x-1][::-1]  # reduced zone
-            result.append(2 * pi * igs / lat)
-
-        cos_gamma = self.gauss_charge_model.grids.cos_gamma
-        result = np.array(result)
-        result[0] /= cos_gamma
-        result[1] /= cos_gamma
-        return result
-
-    def _solve_poisson_eq(self, xy_grid_idx):
-        # at a given Gx and Gy.
-        i_gx, i_gy = xy_grid_idx
-        gx, gy = self.Gs[0][i_gx], self.Gs[1][i_gy]
-        z_grid = self.num_grids[2]
+        z_num_grid = self.gauss_charge_model.grids.z_grid.num_grid
         x_rec_e, y_rec_e, z_rec_e = self.epsilon.reciprocal_static
-        rec_chg = self.gauss_charge_model.reciprocal_charge[i_gx, i_gy, :]
+        rec_chg = self.gauss_charge_model.reciprocal_charge[i_ga, i_gb, :]
 
         factors = []
-        for i_gz, gz in enumerate(self.Gs[2]):
-            inv_rho_by_mz = [x_rec_e[i_gz - i_gz_prime] * gx ** 2 +
-                             y_rec_e[i_gz - i_gz_prime] * gy ** 2 +
+        Gzs = self.gauss_charge_model.grids.z_grid.Gs
+        for i_gz, gz in enumerate(Gzs):
+            inv_rho_by_mz = [x_rec_e[i_gz - i_gz_prime] * self.Ga2s[i_ga] +
+                             y_rec_e[i_gz - i_gz_prime] * self.Gb2s[i_gb] +
                              z_rec_e[i_gz - i_gz_prime] * gz * gz_prime
-                             for i_gz_prime, gz_prime in enumerate(self.Gs[2])]
-            if i_gx == 0 and i_gy == 0 and i_gz == 0:
+                             for i_gz_prime, gz_prime in enumerate(Gzs)]
+            if i_ga == 0 and i_gb == 0 and i_gz == 0:
+                # To avoid a singular error, any non-zero value needs to be set.
                 inv_rho_by_mz[0] = 1.0
             factors.append(inv_rho_by_mz)
         factors = np.array(factors)
-        inv_pot_by_mz = np.linalg.solve(factors, rec_chg * z_grid)
-        return i_gx, i_gy, inv_pot_by_mz
+        inv_pot_by_mz = np.linalg.solve(factors, rec_chg * z_num_grid)
+        return i_ga, i_gb, inv_pot_by_mz
 
     @cached_property
     def reciprocal_potential(self):
@@ -223,11 +223,11 @@ class SlabModel(MSONable, ToJsonFileMixIn):
 
     @property
     def charge_(self):
-        return self.charge if self.charge is not None else 1
+        return self.charge
 
     def __post_init__(self):
-        assert self.epsilon.grid == self.gauss_charge_model.grids()[2]
-        assert self.gauss_charge_model.grids == self.gauss_charge_potential.grids
+        assert self.epsilon.grid == self.gauss_charge_model.grids.z_grid
+#        assert self.gauss_charge_model.grids == self.gauss_charge_potential.grids
 
     @property
     def grids(self) -> Grids:

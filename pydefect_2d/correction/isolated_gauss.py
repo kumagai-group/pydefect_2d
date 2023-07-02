@@ -45,7 +45,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def z0(self):
-        return self.gauss_charge_model.defect_z_pos
+        return self.gauss_charge_model.defect_z_pos_in_frac
 
     @property
     def num_grid(self):

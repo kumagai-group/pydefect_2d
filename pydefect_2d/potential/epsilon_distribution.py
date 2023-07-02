@@ -80,8 +80,7 @@ class EpsilonDistribution(MSONable, ToJsonFileMixIn):
 
         return "\n".join(result)
 
-    def to_plot(self, plt):
-        ax = plt.gca()
+    def to_plot(self, ax):
         ax.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
         for e, direction in zip(self.ion_clamped, ["x", "y", "z"]):
             ax.plot(self.grid.grid_points, e, label=f"ε_inf_{direction}")

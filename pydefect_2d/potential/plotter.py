@@ -9,15 +9,17 @@ class ProfilePlotter:
                  plt,
                  slab_model: SlabModel):
         self.plt = plt
+        self.slab_model = slab_model
+        self.gauss_charge_model = slab_model.gauss_charge_model
+        self.gauss_charge_potential = slab_model.gauss_charge_potential
         self.z_grid_points = slab_model.grids.z_grid_points
-        self.charge = slab_model.gauss_charge_model.xy_integrated_charge
         self.epsilon = slab_model.epsilon.static
 
         self.fp_potential = None
         if slab_model.fp_potential:
             self.fp_potential = slab_model.fp_potential
 
-        self.potential = slab_model.gauss_charge_potential.xy_ave_potential
+        self.potential = slab_model.xy_potential
         _, (self.ax1, self.ax2, self.ax3) = plt.subplots(3, 1, sharex="all")
 
         self._plot_potential()
@@ -28,9 +30,7 @@ class ProfilePlotter:
         plt.xlabel("Distance (Å)")
 
     def _plot_charge(self):
-        self.ax1.set_ylabel("Charge (|e|/Å)")
-        self.ax1.plot(self.z_grid_points, self.charge,
-                      label="charge", color="black")
+        self.gauss_charge_model.to_plot(self.ax1, charge=self.slab_model.charge)
 
     def _plot_epsilon(self):
         self.ax2.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
@@ -39,16 +39,14 @@ class ProfilePlotter:
         self.ax2.legend()
 
     def _plot_potential(self):
-        self.ax3.set_ylabel("Potential energy (eV)")
-        self.ax3.plot(self.z_grid_points, self.potential,
-                      label="Gauss model", color="red")
         if self.fp_potential:
             self.ax3.plot(self.fp_potential.grid.grid_points,
                           self.fp_potential.potential,
                           label="FP", color="blue")
             self.ax3.plot(self.z_grid_points, self._diff_potential,
                           label="diff", color="green", linestyle=":")
-        self.ax3.legend()
+
+        self.gauss_charge_potential.to_plot(self.ax3, charge=self.slab_model.charge)
 
     @property
     def _diff_potential(self):
