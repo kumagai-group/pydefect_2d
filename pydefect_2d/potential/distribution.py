@@ -65,6 +65,14 @@ def make_gaussian_distribution(grid: Grid,
     return np.array(result)
 
 
-def rescale_distribution(dist: np.ndarray, average: float) -> np.array:
-    scale = average / np.mean(dist)
-    return (np.round(dist * scale, decimals=5))
+def rescale_distribution(dist: np.ndarray,
+                         average: float,
+                         normal_to_surface: bool = False) -> np.array:
+    if normal_to_surface:
+        scale = average * np.mean(1 / dist)
+    else:
+        scale = average / np.mean(dist)
+
+    return (np.round(dist * scale, decimals=6))
+
+

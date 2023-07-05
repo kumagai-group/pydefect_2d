@@ -65,11 +65,11 @@ def test_plot():
     charge_model.to_plot(ax)
     plt.show()
 
-#
-# def test_json_file_mixin(gauss_model, potential, fp_1d_potential, tmpdir):
-#     assert_json_roundtrip(gauss_model, tmpdir)
-#     assert_json_roundtrip(potential, tmpdir)
-#     assert_json_roundtrip(fp_1d_potential, tmpdir)
+
+def test_json_file_mixin(gauss_model, potential, fp_1d_potential, tmpdir):
+    assert_json_roundtrip(gauss_model, tmpdir)
+    assert_json_roundtrip(potential, tmpdir)
+    assert_json_roundtrip(fp_1d_potential, tmpdir)
 
 
 def test_gauss_charge_model_charges(gauss_model: GaussChargeModel):

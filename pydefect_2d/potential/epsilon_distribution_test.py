@@ -1,30 +1,28 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
+import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
 from pydefect_2d.potential.epsilon_distribution import \
-    EpsilonGaussianDistribution, EpsilonStepLikeDistribution
+    EpsilonGaussianDistribution, EpsilonStepLikeDistribution, \
+    scaling_z_direction
 from pydefect_2d.potential.grids import Grid
 
 
 @pytest.fixture
 def gauss_epsilon():
     return EpsilonGaussianDistribution(grid=Grid(20, 2),
-                                       ave_electronic_epsilon=[2, 2, 2],
-                                       ave_ionic_epsilon=[1, 1, 1],
+                                       ave_electronic_epsilon=[2, 2, 0.5],
+                                       ave_ionic_epsilon=[1, 1, 0.2],
                                        center=10,
                                        sigma=0.2)
 
 
 def test_epsilon_properties(gauss_epsilon):
-    assert_almost_equal(gauss_epsilon.electronic[0], [0., 4.])
-    assert_almost_equal(gauss_epsilon.ionic[0], [0., 2.])
-
-    assert_almost_equal(gauss_epsilon.ion_clamped[0], [1., 5.])
     assert_almost_equal(gauss_epsilon.static[0], [1., 7.])
-    assert_almost_equal(gauss_epsilon.effective[0], [float("inf"), 5.+5.**2/2.])
+    assert_almost_equal(gauss_epsilon.static[2], [1., 5.66664416])
 
 
 def test_reciprocal_static(gauss_epsilon):
@@ -34,7 +32,11 @@ def test_reciprocal_static(gauss_epsilon):
 
 
 def test_epsilon_to_plot(gauss_epsilon):
-    gauss_epsilon.to_plot(plt)
+    gauss_epsilon.to_plot(plt.gca())
     plt.show()
 
 
+def test_scaling_z_direction():
+    dist = [0.0, 1.0, 1.0, 0.0]
+    actual = scaling_z_direction(np.array(dist), ave_diele=0.7)
+    assert_almost_equal(actual, np.array([0., 4.6666442, 4.6666442, 0.]))

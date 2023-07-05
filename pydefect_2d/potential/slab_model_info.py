@@ -24,7 +24,7 @@ from pydefect_2d.potential.grids import Grid, Grids
 
 @dataclass
 class GaussChargeModel(MSONable, ToJsonFileMixIn):
-    # Here, assume that charge is 1|e|.
+    """Gauss charge model with 1|e| under periodic boundary condition. """
     grids: Grids
     sigma: float
     defect_z_pos_in_frac: float  # in fractional coord. x=y=0
@@ -39,11 +39,14 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         return "\n".join(result)
 
     def __post_init__(self):
-        assert len(self.epsilon_x) == self.grids.z_grid.num_grid
-        assert len(self.epsilon_y) == self.grids.z_grid.num_grid
+        assert len(self.epsilon_x) == len(self.epsilon_y) == self.grids.z_grid.num_grid
 
         if self.charges is None:
             self.charges = self._make_gauss_charge_profile
+
+    @property
+    def defect_z_pos_in_length(self):
+        return self.defect_z_pos_in_frac * self.grids.z_length
 
     @property
     def epsilon_ave(self):
@@ -89,9 +92,8 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:
-        z = self.grids.z_length * (self.defect_z_pos_in_frac - 0.5)
-        if z > self.grids.z_length:
-            z -= self.grids.z_length
+        rel_z_in_frac = (self.defect_z_pos_in_frac + 0.5) % 1.
+        z = self.grids.z_length * rel_z_in_frac
         return self.grids.nearest_z_grid_point(z)
 
     def to_plot(self, ax, charge=1):
@@ -212,18 +214,19 @@ class FP1dPotential(MSONable, ToJsonFileMixIn):
     def interpol_pot_func(self):
         return interp1d(self.grid.grid_points, self.potential)
 
+    def to_plot(self, ax):
+        ax.set_ylabel("Potential (V)")
+        ax.plot(self.grid.grid_points, self.potential,
+                label="potential", color="blue")
+
 
 @dataclass
 class SlabModel(MSONable, ToJsonFileMixIn):
     epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
-    charge: int = None
+    charge: int
     fp_potential: FP1dPotential = None
-
-    @property
-    def charge_(self):
-        return self.charge
 
     def __post_init__(self):
         assert self.epsilon.grid == self.gauss_charge_model.grids.z_grid
@@ -238,15 +241,15 @@ class SlabModel(MSONable, ToJsonFileMixIn):
         result_at_charge1 = np.real(
             (np.mean(self.gauss_charge_potential.potential * self.gauss_charge_model.charges)
              * self.gauss_charge_model.grids.volume / 2))
-        return result_at_charge1 * self.charge_ ** 2
+        return result_at_charge1 * self.charge ** 2
 
     @cached_property
     def xy_charge(self):
-        return self.gauss_charge_model.xy_integrated_charge * self.charge_
+        return self.gauss_charge_model.xy_integrated_charge * self.charge
 
     @cached_property
     def xy_potential(self):
-        return self.gauss_charge_potential.xy_ave_potential * self.charge_
+        return self.gauss_charge_potential.xy_ave_potential * self.charge
 
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]
@@ -254,9 +257,9 @@ class SlabModel(MSONable, ToJsonFileMixIn):
                  zip(self.grids.z_grid_points, self.xy_charge, self.xy_potential)]
         result = [tabulate(list_, tablefmt="plain", headers=header)]
 
-        charge = (self.gauss_charge_model.charges.mean()
-                  * self.grids.volume * self.charge_)
-        result.append(f"Charge sum (|e|): {charge:.3}")
+        integrated_charge = (self.gauss_charge_model.charges.mean()
+                             * self.grids.volume * self.charge)
+        result.append(f"Integrated charge (|e|): {integrated_charge:.3}")
         result.append(f"Electrostatic energy (eV): "
                       f"{self.electrostatic_energy:.3}")
         return "\n".join(result)

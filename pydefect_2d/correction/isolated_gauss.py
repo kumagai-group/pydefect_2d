@@ -45,7 +45,8 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def z0(self):
-        return self.gauss_charge_model.defect_z_pos_in_frac
+        # in Å
+        return self.gauss_charge_model.defect_z_pos_in_length
 
     @property
     def num_grid(self):
@@ -78,7 +79,10 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         return self.L * (k**2+G**2) / denominator
 
     def D_GG(self, i, j, k):
-        G_i, G_j = self.Gs[i], self.Gs[j]
+        try:
+            G_i, G_j = self.Gs[i], self.Gs[j]
+        except:
+            print(i, j, len(self.Gs))
         result = self.inv_K_G(G_i, k) if i == j else 0.0
         L, rec_de_z, rec_de_xy = \
             self.L, self.rec_delta_epsilon_z, self.rec_delta_epsilon_xy

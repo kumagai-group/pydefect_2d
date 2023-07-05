@@ -25,8 +25,15 @@ def test_make_gaussian_epsilon():
 
 
 def test_rescale_distribution():
-    actual = rescale_distribution(dist=np.array([1.0, 3.0]), average=1.0)
+    actual = rescale_distribution(dist=np.array([1.0, 3.0]), average=1.0,
+                                  normal_to_surface=False)
     expected = np.array([0.5, 1.5])
     assert_array_almost_equal(actual, expected)
+
+    actual = rescale_distribution(dist=np.array([1.0, 3.0]), average=1.0,
+                                  normal_to_surface=True)
+    expected = np.array([0.666667, 2.])
+    assert_array_almost_equal(actual, expected)
+
 
 
