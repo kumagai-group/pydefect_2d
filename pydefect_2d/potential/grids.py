@@ -3,12 +3,11 @@
 import itertools
 from dataclasses import dataclass
 from functools import cached_property
-from math import sqrt
 from typing import List, Tuple
 
 import numpy as np
 from monty.json import MSONable
-from numpy import linspace, pi, cos, sin, inner
+from numpy import linspace, pi, inner
 from numpy.linalg import inv
 
 
@@ -110,11 +109,10 @@ class XYGrids(MSONable):
 
 
 def reduced_zone_idx(n_mesh):
-    middle = int(n_mesh / 2)
-    if n_mesh % 2 == 1:
-        return list(range(middle + 1)) + list(range(middle, 0, -1))
-    else:
-        return list(range(middle + 1)) + list(range(middle - 1, 0, -1))
+    result = np.array(range(n_mesh), dtype=int)
+    middle = int(n_mesh / 2 + 1) if n_mesh % 2 == 0 else int((n_mesh + 1) / 2)
+    result[middle:] -= n_mesh
+    return result.tolist()
 
 
 @dataclass

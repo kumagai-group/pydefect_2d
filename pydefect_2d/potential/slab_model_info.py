@@ -86,9 +86,12 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         return result
 
     @cached_property
+    def xy_average_charge(self) -> np.array:
+        return np.real(self.charges.mean(axis=(0, 1)))
+
+    @cached_property
     def xy_integrated_charge(self) -> np.array:
-        xy_average = np.real(self.charges.mean(axis=(0, 1)))
-        return xy_average * self.grids.xy_grids.area
+        return self.xy_average_charge * self.grids.xy_grids.area
 
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:

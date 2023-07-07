@@ -57,8 +57,8 @@ def test_in_plane_grids_squared_length_on_girds(grids):
 
 
 def test_reduced_zone_idx(grids):
-    assert reduced_zone_idx(3) == [0, 1, 1]
-    assert reduced_zone_idx(4) == [0, 1, 2, 1]
+    assert reduced_zone_idx(3) == [0, 1, -1]
+    assert reduced_zone_idx(4) == [0, 1, 2, -1]
 
 
 def test_in_plane_grids_Ga2(grids: XYGrids):
