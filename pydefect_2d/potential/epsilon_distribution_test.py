@@ -8,19 +8,18 @@ from numpy.testing import assert_almost_equal
 from pydefect_2d.potential.distribution import GaussianDist
 from pydefect_2d.potential.epsilon_distribution import \
     DielectricConstDist
-from pydefect_2d.potential.grids import Grid
 
 
 @pytest.fixture
 def gauss_epsilon():
-    return DielectricConstDist(ave_ele=[2, 2, 0.5],
-                               ave_ion=[1, 1, 0.2],
+    return DielectricConstDist(ave_ele=[3, 3, 1.5],
+                               ave_ion=[1, 1, 0.5],
                                dist=GaussianDist(20, 2, center=10, sigma=0.2))
 
 
 def test_epsilon_properties(gauss_epsilon):
-    assert_almost_equal(gauss_epsilon.static[0], [1., 7.])
-    assert_almost_equal(gauss_epsilon.static[2], [1., 5.66664416])
+    assert_almost_equal(gauss_epsilon.static[0], [1., 7.0])
+    assert_almost_equal(gauss_epsilon.static[2], [1., 2.0])
 
 
 def test_reciprocal_static(gauss_epsilon):
@@ -32,11 +31,3 @@ def test_reciprocal_static(gauss_epsilon):
 def test_epsilon_to_plot(gauss_epsilon):
     gauss_epsilon.to_plot(plt.gca())
     plt.show()
-
-
-def test_scaling_z_direction():
-    diele_const = DielectricConstDist(ave_ele=[0.0, 1.0, 1.0],
-                                      ave_ion=[0.0]*3,
-                                      )
-    actual = scaling_z_direction(np.array(dist), ave_diele=0.7)
-    assert_almost_equal(actual, np.array([0., 4.6666442, 4.6666442, 0.]))

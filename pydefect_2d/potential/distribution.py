@@ -22,8 +22,8 @@ class Dist(Grid):
         pass
 
     def diele_in_plane_scale(self, ave_diele: float) -> np.array:
-        scale = ave_diele / self.unscaled_dist.mean()
-        return self.unscaled_dist * scale
+        scale = (ave_diele - 1.) / self.unscaled_dist.mean()
+        return self.unscaled_dist * scale + 1.
 
     def diele_out_of_plane_scale(self,
                                  ave_diele: np.array,
@@ -32,7 +32,7 @@ class Dist(Grid):
                                  max_iteration: int = 100) -> np.array:
         """Calculate the scaled distribution
 
-        epsilon_z^-1 = ((1 + factor * unscaled_dist)).mean()
+        static = 1 / ((1 + factor * unscaled_dist)).mean()
 
         :param ave_diele:  # w/o vacuum permittivity
         :param reduction_ratio:
@@ -41,29 +41,35 @@ class Dist(Grid):
 
         :return:
         """
-        scale_factor = del_scale_factor = ave_diele / self.unscaled_dist.mean()
-        inv_diele = 1 / (ave_diele + 1.)
+        scale_factor = (ave_diele - 1.) / self.unscaled_dist.mean()
+        del_scale_factor = scale_factor * reduction_ratio
+
         for i in range(max_iteration):
-            unscale_mean = (1. / (1. + scale_factor * self.unscaled_dist)).mean()
-            actual_ratio = (inv_diele - unscale_mean) / inv_diele
-            if abs(actual_ratio) < convergence_ratio:
+            aaa = 1.0 / (1. + scale_factor * self.unscaled_dist)
+            unscale_mean = 1 / aaa.mean()
+            ratio = (ave_diele - unscale_mean) / ave_diele
+            if abs(ratio) < convergence_ratio:
                 break
             # need to increase unscale_mean = reduce alpha
-            actual_ratio_sign = int(actual_ratio > 0) - int(actual_ratio < 0)
-            scale_factor -= del_scale_factor * actual_ratio_sign
+            ratio_sign = int(ratio > 0) - int(ratio < 0)
+            scale_factor += del_scale_factor * ratio_sign
             del_scale_factor *= reduction_ratio
         else:
             logger.warning("No convergence is reached. The number of iteration "
                            f"is {max_iteration}, and the convergence ratio is "
-                           f"{abs(actual_ratio)} > {convergence_ratio}")
+                           f"{abs(ratio)} > {convergence_ratio}")
             raise ValueError("No convergence is reached.")
 
-        return scale_factor * self.unscaled_dist
+        return scale_factor * self.unscaled_dist + 1.0
 
 
 @dataclass
 class ManualDist(Dist):
-    unscaled_dist: np.array
+    manual_dist: np.array
+
+    @property
+    def unscaled_dist(self) -> np.array:
+        return self.manual_dist
 
 
 @dataclass

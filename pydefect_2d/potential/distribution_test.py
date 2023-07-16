@@ -8,7 +8,7 @@ from pydefect_2d.potential.distribution import \
 
 
 def test_manual_dist():
-    ManualDist(length=4.0, num_grid=4, unscaled_dist=np.array([1.0]*4))
+    ManualDist(length=4.0, num_grid=4, manual_dist=np.array([1.0]*4))
 
 
 def test_gaussian_dist():
@@ -23,16 +23,15 @@ def test_step_dist():
     assert actual.unscaled_dist[3] == 0.0023388674905235884
 
 
-def test_rescale_distribution():
-    actual = rescale_distribution(unscaled_dist=np.array([1.0, 3.0]), average=1.0,
-                                  normal_to_surface=False)
+def test_diele_in_plane_scale():
+    dist = ManualDist(length=1.0, num_grid=2, manual_dist=np.array([1.0, 3.0]))
+    actual = dist.diele_in_plane_scale(ave_diele=1.0)
     expected = np.array([0.5, 1.5])
     assert_array_almost_equal(actual, expected)
 
-    actual = rescale_distribution(unscaled_dist=np.array([1.0, 3.0]), average=1.0,
-                                  normal_to_surface=True)
-    expected = np.array([0.666667, 2.])
-    assert_array_almost_equal(actual, expected)
 
-
-
+def test_diele_out_of_plane_scale():
+    dist = ManualDist(length=1.0, num_grid=4,
+                      manual_dist=np.array([1.0, 1.0, 0.0]))
+    actual = dist.diele_out_of_plane_scale(ave_diele=2.2)
+    assert_array_almost_equal(actual, np.array([5.5, 5.5, 1.]), decimal=5)

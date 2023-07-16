@@ -21,7 +21,7 @@ class DielectricConstDist(MSONable, ToJsonFileMixIn):
     The z-direction is normal to the surfaces.
     """
 
-    ave_ele: List[float]  # not include vacuum permittivity.
+    ave_ele: List[float]  # include vacuum permittivity.
     ave_ion: List[float]
     dist: Dist
 
@@ -30,22 +30,22 @@ class DielectricConstDist(MSONable, ToJsonFileMixIn):
         return self.dist.grid_points
 
     @property
-    def ave_ele_ion_x(self) -> float:
+    def ave_static_x(self) -> float:
         return self.ave_ele[0] + self.ave_ion[0]
 
     @property
-    def ave_ele_ion_y(self) -> float:
-        return self.ave_ele[1] + self.ave_ion[2]
+    def ave_static_y(self) -> float:
+        return self.ave_ele[1] + self.ave_ion[1]
 
     @property
-    def ave_ele_ion_z(self) -> float:
+    def ave_static_z(self) -> float:
         return self.ave_ele[2] + self.ave_ion[2]
 
     @cached_property
     def static(self):
-        return [self.dist.diele_in_plane_scale(self.ave_ele_ion_x) + 1.,
-                self.dist.diele_in_plane_scale(self.ave_ele_ion_y) + 1.,
-                self.dist.diele_out_of_plane_scale(self.ave_ele_ion_z) + 1.]
+        return [self.dist.diele_in_plane_scale(self.ave_static_x),
+                self.dist.diele_in_plane_scale(self.ave_static_y),
+                self.dist.diele_out_of_plane_scale(self.ave_static_z)]
 
     @cached_property
     def reciprocal_static(self):
