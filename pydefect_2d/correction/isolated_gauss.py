@@ -33,7 +33,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def sigma(self):
-        return self.gauss_charge_model.sigma
+        return self.gauss_charge_model.base_sigma
 
     @property
     def L(self):
@@ -83,10 +83,16 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
             G_i, G_j = self.Gs[i], self.Gs[j]
         except:
             print(i, j, len(self.Gs))
+            raise
+
         result = self.inv_K_G(G_i, k) if i == j else 0.0
         L, rec_de_z, rec_de_xy = \
             self.L, self.rec_delta_epsilon_z, self.rec_delta_epsilon_xy
-        result += L * (rec_de_z[i-j] * G_i*G_j + rec_de_xy[i-j] * k**2)
+        second_term = L * (rec_de_z[i-j] * G_i*G_j + rec_de_xy[i-j] * k**2)
+        denominator = 1. - e**(-k*self.L/2) * cos(G_i*self.L/2)
+        print(f"k:{k:.2}, d:{denominator:.2}, s: {second_term:.2}")
+        second_term /= denominator
+        result += second_term
         return result
 
     def D(self, k) -> np.array:

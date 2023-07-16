@@ -5,9 +5,10 @@ import pytest
 from matplotlib import pyplot as plt
 from numpy import pi
 from scipy.constants import epsilon_0, elementary_charge, angstrom
+from scipy.fft import fft
 
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
-from pydefect_2d.potential.grids import Grids, Grid
+from pydefect_2d.potential.grids import Grids, Grid, XYGrids
 from pydefect_2d.potential.slab_model_info import GaussChargeModel
 
 sigma = 1.0
@@ -16,10 +17,12 @@ sigma = 1.0
 @pytest.fixture
 def gauss_energy():
     n_grid = 50
-    grids = Grids([Grid(length=100., num_grid=n_grid)] * 3)
+    grids = Grids(XYGrids(lattice=np.array([[100., 0], [0, 100.]]),
+                          num_grids=[n_grid, n_grid]),
+                  Grid(length=100., num_grid=n_grid))
     charge_model = GaussChargeModel(grids=grids,
                                     sigma=sigma,
-                                    defect_z_pos=0.0,
+                                    defect_z_pos_in_frac=0.0,
                                     epsilon_x=np.array([1.0] * n_grid),
                                     epsilon_y=np.array([1.0] * n_grid))
 
@@ -41,3 +44,12 @@ def test_gaussian_energy(gauss_energy: IsolatedGaussEnergy):
     # print(gauss_energy.U_k(0.2))
     # gauss_energy.to_plot(plt)
     # plt.show()
+
+
+def test_():
+    f = [0, 1, 2, 3, 2, 1]
+    f = [0, 1, 2, 3, 3, 1]
+    f = [2, 3, 2, 1, 0, 1]
+    print(fft(f))
+
+

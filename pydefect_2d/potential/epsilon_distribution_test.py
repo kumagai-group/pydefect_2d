@@ -5,19 +5,17 @@ import pytest
 from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
+from pydefect_2d.potential.distribution import GaussianDist
 from pydefect_2d.potential.epsilon_distribution import \
-    EpsilonGaussianDistribution, EpsilonStepLikeDistribution, \
-    scaling_z_direction
+    DielectricConstDist
 from pydefect_2d.potential.grids import Grid
 
 
 @pytest.fixture
 def gauss_epsilon():
-    return EpsilonGaussianDistribution(grid=Grid(20, 2),
-                                       ave_electronic_epsilon=[2, 2, 0.5],
-                                       ave_ionic_epsilon=[1, 1, 0.2],
-                                       center=10,
-                                       sigma=0.2)
+    return DielectricConstDist(ave_ele=[2, 2, 0.5],
+                               ave_ion=[1, 1, 0.2],
+                               dist=GaussianDist(20, 2, center=10, sigma=0.2))
 
 
 def test_epsilon_properties(gauss_epsilon):
@@ -37,6 +35,8 @@ def test_epsilon_to_plot(gauss_epsilon):
 
 
 def test_scaling_z_direction():
-    dist = [0.0, 1.0, 1.0, 0.0]
+    diele_const = DielectricConstDist(ave_ele=[0.0, 1.0, 1.0],
+                                      ave_ion=[0.0]*3,
+                                      )
     actual = scaling_z_direction(np.array(dist), ave_diele=0.7)
     assert_almost_equal(actual, np.array([0., 4.6666442, 4.6666442, 0.]))

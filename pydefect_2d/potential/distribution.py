@@ -1,78 +1,148 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
+from abc import abstractmethod
+from dataclasses import dataclass
 from math import erf, exp
-from typing import List
 
 import numpy as np
+from vise.util.logger import get_logger
 
 from pydefect_2d.potential.grids import Grid
 
 
-def make_step_like_distribution(grid: Grid,
-                                step_left: float,
-                                step_right: float,
-                                error_func_width) -> np.ndarray:
-    """ Make step-like distribution
+logger = get_logger(__name__)
 
-    :param grid: Cartesian coordinates in Å.
-    :param step_left: Cartesian coord in Å
-    :param step_right: Cartesian coord in Å
-    :param error_func_width: Width in Å.
 
-    """
+@dataclass
+class Dist(Grid):
 
-    def func_left(dist):
-        return - erf(dist / error_func_width) / 2 + 0.5
+    @property
+    @abstractmethod
+    def unscaled_dist(self) -> np.array:
+        pass
 
-    def func_right(dist):
-        return erf(dist / error_func_width) / 2 + 0.5
+    def diele_in_plane_scale(self, ave_diele: float) -> np.array:
+        scale = ave_diele / self.unscaled_dist.mean()
+        return self.unscaled_dist * scale
 
-    result = []
-    for g in grid.grid_points:
-        d = {"l": step_left - g,
-             "l_p1": step_left - g + grid.length,
-             "l_m1": step_left - g - grid.length,
-             "r": step_right - g,
-             "r_p1": step_right - g + grid.length,
-             "r_m1": step_right - g - grid.length}
-        dd = {k: abs(v) for k, v in d.items()}
-        shortest = min(d, key=dd.get)
+    def diele_out_of_plane_scale(self,
+                                 ave_diele: np.array,
+                                 reduction_ratio: float = 0.9,
+                                 convergence_ratio: float = 10 ** -6,
+                                 max_iteration: int = 100) -> np.array:
+        """Calculate the scaled distribution
 
-        if shortest[0] == "l":
-            result.append(func_left(d[shortest]))
+        epsilon_z^-1 = ((1 + factor * unscaled_dist)).mean()
+
+        :param ave_diele:  # w/o vacuum permittivity
+        :param reduction_ratio:
+        :param convergence_ratio:
+        :param max_iteration:
+
+        :return:
+        """
+        scale_factor = del_scale_factor = ave_diele / self.unscaled_dist.mean()
+        inv_diele = 1 / (ave_diele + 1.)
+        for i in range(max_iteration):
+            unscale_mean = (1. / (1. + scale_factor * self.unscaled_dist)).mean()
+            actual_ratio = (inv_diele - unscale_mean) / inv_diele
+            if abs(actual_ratio) < convergence_ratio:
+                break
+            # need to increase unscale_mean = reduce alpha
+            actual_ratio_sign = int(actual_ratio > 0) - int(actual_ratio < 0)
+            scale_factor -= del_scale_factor * actual_ratio_sign
+            del_scale_factor *= reduction_ratio
         else:
-            result.append(func_right(d[shortest]))
+            logger.warning("No convergence is reached. The number of iteration "
+                           f"is {max_iteration}, and the convergence ratio is "
+                           f"{abs(actual_ratio)} > {convergence_ratio}")
+            raise ValueError("No convergence is reached.")
 
-    return np.array(result)
-
-
-def make_gaussian_distribution(grid: Grid,
-                               position: float,
-                               sigma: float) -> np.array:
-    """Make gaussian dist. w/o normalization under periodic boundary condition.
-
-    All lengths are in Å.
-    """
-    def gaussian(length):
-        return exp(-length**2/(2*sigma**2))
-
-    result = []
-    for g in grid.grid_points:
-        rel = g - position
-        shortest = min([abs(rel), abs(rel - grid.length), abs(rel + grid.length)])
-        result.append(gaussian(shortest))
-
-    return np.array(result)
+        return scale_factor * self.unscaled_dist
 
 
-def rescale_distribution(dist: np.ndarray,
-                         average: float,
-                         normal_to_surface: bool = False) -> np.array:
-    if normal_to_surface:
-        scale = average * np.mean(1 / dist)
-    else:
-        scale = average / np.mean(dist)
+@dataclass
+class ManualDist(Dist):
+    unscaled_dist: np.array
 
-    return (np.round(dist * scale, decimals=6))
+
+@dataclass
+class GaussianDist(Dist):
+    center: float  # in Å
+    sigma: float  # in Å
+
+    def __str__(self):
+        result = [super().__str__(),
+                  f"center: {self.center:.1} Å",
+                  f"sigma: {self.sigma:.1} Å"]
+        return "\n".join(result)
+
+    @property
+    def unscaled_dist(self) -> np.array:
+        """Distribution w/o normalization under periodic boundary condition.
+
+        All lengths are in Å.
+        """
+        def gaussian(length):
+            return exp(-length**2/(2*self.sigma**2))
+
+        result = []
+        for g in self.grid_points:
+            rel = g - self.center
+            shortest = min([abs(rel),
+                            abs(rel - self.length),
+                            abs(rel + self.length)])
+            result.append(gaussian(shortest))
+
+        return np.array(result)
+
+
+@dataclass
+class StepDist(Dist):
+    step_left: float  # in Å
+    step_right: float  # in Å
+    error_func_width: float  # in Å
+
+    def __str__(self):
+        result = [f"step left: {self.step_left:.2f} Å",
+                  f"step right: {self.step_right:.2f} Å",
+                  f"width of error function: {self.error_func_width:.2f} Å",
+                  super().__str__()]
+        return "\n".join(result)
+
+    @property
+    def unscaled_dist(self) -> np.array:
+        """ Make step-like distribution
+
+        :param grid: Cartesian coordinates in Å.
+        :param step_left: Cartesian coord in Å
+        :param step_right: Cartesian coord in Å
+        :param error_func_width: Width in Å.
+
+        """
+
+        def func_left(dist):
+            return - erf(dist / self.error_func_width) / 2 + 0.5
+
+        def func_right(dist):
+            return erf(dist / self.error_func_width) / 2 + 0.5
+
+        result = []
+        for g in self.grid_points:
+            d = {"l": self.step_left - g,
+                 "l_p1": self.step_left - g + self.length,
+                 "l_m1": self.step_left - g - self.length,
+                 "r": self.step_right - g,
+                 "r_p1": self.step_right - g + self.length,
+                 "r_m1": self.step_right - g - self.length}
+            dd = {k: abs(v) for k, v in d.items()}
+            shortest = min(d, key=dd.get)
+
+            if shortest[0] == "l":
+                result.append(func_left(d[shortest]))
+            else:
+                result.append(func_right(d[shortest]))
+
+        return np.array(result)
 
 

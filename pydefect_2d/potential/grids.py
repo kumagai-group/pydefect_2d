@@ -16,6 +16,9 @@ class Grid(MSONable):
     length: float  # in Å
     num_grid: int
 
+    def __str__(self):
+        return f"length: {self.length}, num grid: {self.num_grid}"
+
     @cached_property
     def grid_points(self):
         return list(linspace(0, self.length, self.num_grid, endpoint=False))
@@ -26,7 +29,7 @@ class Grid(MSONable):
 
     @cached_property
     def Gs(self):
-        return 2 * pi / self.length * np.array(reduced_zone_idx(self.num_grid))
+        return 2 * pi / self.length * reduced_zone_idx(self.num_grid)
 
 
 @dataclass
@@ -55,7 +58,7 @@ class XYGrids(MSONable):
         return np.cross(self.a_lat, self.b_lat)
 
     @property
-    def area(self):
+    def xy_area(self):
         return np.linalg.norm(self.x_cross_y)
 
     @cached_property
@@ -69,7 +72,7 @@ class XYGrids(MSONable):
                 result[xi, yi] = a + b
         return np.array(result)
 
-    @cached_property
+    @property
     def squared_length_on_grids(self):
 
         result = np.zeros(self.num_grids)
@@ -86,33 +89,33 @@ class XYGrids(MSONable):
         return result
 
     @cached_property
-    def rec_lattice(self):
+    def rec_lattice(self) -> np.ndarray:
         return inv(self.lattice).T * 2 * pi
 
     @property
-    def rec_a_lat(self):
+    def rec_a_lat(self) -> np.array:
         return self.rec_lattice[0]
 
     @property
-    def rec_b_lat(self):
+    def rec_b_lat(self) -> np.array:
         return self.rec_lattice[1]
 
     @cached_property
-    def Ga2(self):
+    def Ga2(self) -> np.array:
         Ga_2 = np.inner(self.rec_a_lat, self.rec_a_lat)
-        return Ga_2 * np.array(reduced_zone_idx(self.a_num_grid)) ** 2
+        return Ga_2 * reduced_zone_idx(self.a_num_grid) ** 2
 
     @cached_property
-    def Gb2(self):
+    def Gb2(self) -> np.array:
         Gb_2 = np.inner(self.rec_b_lat, self.rec_b_lat)
-        return Gb_2 * np.array(reduced_zone_idx(self.b_num_grid)) ** 2
+        return Gb_2 * reduced_zone_idx(self.b_num_grid) ** 2
 
 
-def reduced_zone_idx(n_mesh):
+def reduced_zone_idx(n_mesh) -> np.array:
     result = np.array(range(n_mesh), dtype=int)
     middle = int(n_mesh / 2 + 1) if n_mesh % 2 == 0 else int((n_mesh + 1) / 2)
     result[middle:] -= n_mesh
-    return result.tolist()
+    return result
 
 
 @dataclass
@@ -122,7 +125,7 @@ class Grids(MSONable):
 
     @property
     def volume(self):
-        return self.xy_grids.area * self.z_grid.length
+        return self.xy_grids.xy_area * self.z_grid.length
 
     @property
     def z_length(self):

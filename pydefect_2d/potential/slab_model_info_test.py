@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
 from pydefect_2d.potential.epsilon_distribution import \
-    EpsilonGaussianDistribution
+    DielectricConstGaussianDist
 from pydefect_2d.potential.grids import Grid, Grids, XYGrids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
@@ -17,7 +17,7 @@ grid = Grid(10., 4)
 
 @pytest.fixture(scope="session")
 def epsilon_dist():
-    return EpsilonGaussianDistribution(
+    return DielectricConstGaussianDist(
         grid=grid,
         ave_electronic_epsilon=[0.5]*3,
         ave_ionic_epsilon=[0.]*3,
@@ -73,14 +73,14 @@ def test_json_file_mixin(gauss_model, potential, fp_1d_potential, tmpdir):
 
 
 def test_gauss_charge_model_charges(gauss_model: GaussChargeModel):
-    assert gauss_model.charges[0][0][0] == 0.06349363593424097
+    assert gauss_model.periodic_charges[0][0][0] == 0.06349363593424097
     assert gauss_model.farthest_z_from_defect == (2, 5.0)
 
 
 def test_():
     num_grid = 30
     grid_z = Grid(10., num_grid)
-    eps = EpsilonGaussianDistribution(
+    eps = DielectricConstGaussianDist(
         grid=grid_z,
         ave_electronic_epsilon=[0.]*3,
         ave_ionic_epsilon=[0.]*3,

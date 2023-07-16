@@ -3,8 +3,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution, \
-    EpsilonGaussianDistribution
+from pydefect_2d.potential.epsilon_distribution import DielectricConstDist, \
+    DielectricConstGaussianDist
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import GaussChargePotential, \
@@ -21,7 +21,7 @@ def test_plot_profile():
                           [0.0, 0.0, 0.0, 1.5, 3.0, 3.0, 3.0, 1.5, 0.0, 0.0],
                           [0.0, 0.0, 0.0, 2.5, 5.0, 5.0, 5.0, 2.5, 0.0, 0.0]])
 
-    epsilon = EpsilonGaussianDistribution(grid=grid_plot,
+    epsilon = DielectricConstGaussianDist(grid=grid_plot,
                                           ave_electronic_epsilon=[2.]*3,
                                           ave_ionic_epsilon=[3.]*3,
                                           center=5.0,

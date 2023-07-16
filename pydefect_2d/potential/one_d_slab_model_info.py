@@ -7,14 +7,14 @@ import numpy as np
 from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fftpack import ifft, fft
 
-from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.epsilon_distribution import DielectricConstDist
 from pydefect_2d.potential.slab_model_info import GaussChargeModel, \
     FP1dPotential
 
 
 @dataclass
 class CalcOneDimGaussChargePotential:
-    epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
+    epsilon: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
     gauss_charge_model: GaussChargeModel  # assume orthogonal system
 
     def __post_init__(self):

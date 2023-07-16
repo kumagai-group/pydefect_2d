@@ -4,7 +4,7 @@ import multiprocessing as multi
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import product
-from math import pi
+from math import pi, sqrt
 from multiprocessing import Pool
 from typing import List, Tuple
 
@@ -18,7 +18,7 @@ from tabulate import tabulate
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
-from pydefect_2d.potential.epsilon_distribution import EpsilonDistribution
+from pydefect_2d.potential.epsilon_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grid, Grids
 
 
@@ -26,23 +26,32 @@ from pydefect_2d.potential.grids import Grid, Grids
 class GaussChargeModel(MSONable, ToJsonFileMixIn):
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grids: Grids
-    sigma: float
+    base_sigma: float
     defect_z_pos_in_frac: float  # in fractional coord. x=y=0
     epsilon_x: np.array
     epsilon_y: np.array
-    charges: np.array = None
+    periodic_charges: np.array = None
+
+    def x_sigma(self):
+        return self.base_sigma
+
+    def y_sigma(self):
+        return self.base_sigma
+
+    def z_sigma(self):
+        return self.base_sigma
 
     def __str__(self):
-        charge = self.charges.mean() * self.grids.volume
-        result = [f"sigma (A): {self.sigma:.2}",
+        charge = self.periodic_charges.mean() * self.grids.volume
+        result = [f"sigma (A): {self.base_sigma:.2}",
                   f"Charge sum (|e|): {charge:.3}"]
         return "\n".join(result)
 
     def __post_init__(self):
         assert len(self.epsilon_x) == len(self.epsilon_y) == self.grids.z_grid.num_grid
 
-        if self.charges is None:
-            self.charges = self._make_gauss_charge_profile
+        if self.periodic_charges is None:
+            self.periodic_charges = self._make_periodic_gauss_charge_profile
 
     @property
     def defect_z_pos_in_length(self):
@@ -54,22 +63,23 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     @property
     def square_x_scaling(self):
-        return self.epsilon_ave / self.epsilon_x
+        return np.sqrt(self.epsilon_ave / self.epsilon_x)
 
     @property
     def square_y_scaling(self):
-        return self.epsilon_ave / self.epsilon_y
+        return np.sqrt(self.epsilon_ave / self.epsilon_y)
 
     @property
-    def _make_gauss_charge_profile(self):
-        coefficient = 1 / self.sigma ** 3 / (2 * pi) ** 1.5
+    def _make_periodic_gauss_charge_profile(self):
+        coefficient = 1 / self.base_sigma ** 3 / (2 * pi) ** 1.5
 
         (nx, ny), nz = self.grids.xy_grids.num_grids, self.grids.z_grid.num_grid
         gauss = np.zeros([nx, ny, nz])
 
-        xy2 = self.grids.xy_grids.squared_length_on_grids
+        xy2 = self.grids.xy_grids.squared_length_on_grids(self.square_x_scaling,
+                                                          self.square_y_scaling)
         for nz, lz in enumerate(self.grids.z_grid_points):
-            gauss[:, :, nz] = exp(-(xy2 + self._z2(lz)) / (2 * self.sigma ** 2))
+            gauss[:, :, nz] = exp(-(xy2 + self._z2(lz)) / (2 * self.base_sigma ** 2))
 
         return coefficient * gauss
 
@@ -81,17 +91,17 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def reciprocal_charge(self):
-        result = fftn(self.charges)
+        result = fftn(self.periodic_charges)
         result[0, 0, 0] = 0  # introduce background charge
         return result
 
     @cached_property
     def xy_average_charge(self) -> np.array:
-        return np.real(self.charges.mean(axis=(0, 1)))
+        return np.real(self.periodic_charges.mean(axis=(0, 1)))
 
     @cached_property
     def xy_integrated_charge(self) -> np.array:
-        return self.xy_average_charge * self.grids.xy_grids.area
+        return self.xy_average_charge * self.grids.xy_grids.xy_area
 
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:
@@ -124,15 +134,15 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
 
 @dataclass
 class CalcGaussChargePotential:
-    epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
+    epsilon: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
     gauss_charge_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
 
     def __post_init__(self):
         try:
-            assert self.epsilon.grid == self.gauss_charge_model.grids.z_grid
+            assert self.epsilon.dist.length == self.gauss_charge_model.grids.z_grid
         except AssertionError:
-            e_z_gird = self.epsilon.grid
+            e_z_gird = self.epsilon.z_grid
             g_z_grid = self.gauss_charge_model.grids.z_grid
 
             print(f"epsilon z lattice length {e_z_gird.length}")
@@ -225,7 +235,7 @@ class FP1dPotential(MSONable, ToJsonFileMixIn):
 
 @dataclass
 class SlabModel(MSONable, ToJsonFileMixIn):
-    epsilon: EpsilonDistribution  # [epsilon_x, epsilon_y, epsilon_z] along z
+    epsilon: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
     charge: int
@@ -242,7 +252,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     @cached_property
     def electrostatic_energy(self) -> float:
         result_at_charge1 = np.real(
-            (np.mean(self.gauss_charge_potential.potential * self.gauss_charge_model.charges)
+            (np.mean(self.gauss_charge_potential.potential * self.gauss_charge_model.periodic_charges)
              * self.gauss_charge_model.grids.volume / 2))
         return result_at_charge1 * self.charge ** 2
 
@@ -260,7 +270,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
                  zip(self.grids.z_grid_points, self.xy_charge, self.xy_potential)]
         result = [tabulate(list_, tablefmt="plain", headers=header)]
 
-        integrated_charge = (self.gauss_charge_model.charges.mean()
+        integrated_charge = (self.gauss_charge_model.periodic_charges.mean()
                              * self.grids.volume * self.charge)
         result.append(f"Integrated charge (|e|): {integrated_charge:.3}")
         result.append(f"Electrostatic energy (eV): "

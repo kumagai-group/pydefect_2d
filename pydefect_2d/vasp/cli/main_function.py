@@ -13,7 +13,7 @@ from pymatgen.io.vasp import Chgcar, Locpot
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.epsilon_distribution import \
-    EpsilonGaussianDistribution, EpsilonStepLikeDistribution
+    DielectricConstGaussianDist, DielectricConstStepDist
 from pydefect_2d.potential.grids import Grid, Grids, XYGrids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
@@ -49,10 +49,10 @@ def make_epsilon_distribution(args):
 
     if args.type == "gauss":
         position = args.structure.lattice.c * args.position
-        epsilon_distribution = EpsilonGaussianDistribution(
-            grid, electronic, ionic, position, args.sigma)
+        epsilon_distribution = DielectricConstGaussianDist(
+            grid, electronic, ionic, position, args.base_sigma)
     elif args.type == "step":
-        epsilon_distribution = EpsilonStepLikeDistribution(
+        epsilon_distribution = DielectricConstStepDist(
             grid, electronic, ionic, args.step_left, args.step_right,
             args.error_func_width)
     else:
@@ -80,7 +80,7 @@ def make_gauss_charge_model(args):
                   z_grid=Grid(lat.c, z_num_grid))
 
     model = GaussChargeModel(grids,
-                             sigma=args.sigma,
+                             sigma=args.base_sigma,
                              defect_z_pos_in_frac=dsi.center[2],
                              epsilon_x=args.epsilon_dist.static[0],
                              epsilon_y=args.epsilon_dist.static[1])

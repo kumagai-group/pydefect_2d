@@ -4,7 +4,7 @@ from math import sqrt, pi, sin
 
 import numpy as np
 import pytest
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_almost_equal
 
 from pydefect_2d.potential.grids import Grid, XYGrids, reduced_zone_idx
 
@@ -18,11 +18,6 @@ def grid():
 def in_plane_grid(grid):
     return XYGrids(lattice=np.array([[10.0, 0.0], [-5.0, 5 * sqrt(3)]]),
                    num_grids=[4, 4])
-
-
-# @pytest.fixture
-# def grids(grid):
-#     return Grids([grid]*3)
 
 
 def test_grid_properties(grid):
@@ -56,9 +51,9 @@ def test_in_plane_grids_squared_length_on_girds(grids):
     assert_almost_equal(actual, expected)
 
 
-def test_reduced_zone_idx(grids):
-    assert reduced_zone_idx(3) == [0, 1, -1]
-    assert reduced_zone_idx(4) == [0, 1, 2, -1]
+def test_reduced_zone_idx():
+    assert_array_almost_equal(reduced_zone_idx(3), [0, 1, -1])
+    assert_array_almost_equal(reduced_zone_idx(4), [0, 1, 2, -1])
 
 
 def test_in_plane_grids_Ga2(grids: XYGrids):
@@ -69,15 +64,4 @@ def test_in_plane_grids_Ga2(grids: XYGrids):
     expected = np.array([0.0, unit, unit])
     assert_almost_equal(actual, expected)
 
-
-# def test_grids_properties(grids, grid):
-#     assert grids() == [grid]*3
-#     assert grids.all_grid_points == [[0.0, 0.5, 1.0, 1.5]]*3
-#     assert grids.num_grid_points == [4, 4, 4]
-#     assert grids.lengths == [2.0, 2.0, 2.0]
-#     assert grids.area == 4.0
-#     assert grids.z_length == 2.0
-#     assert grids.z_grid_points == [0.0, 0.5, 1.0, 1.5]
-#     assert grids.volume == 8.0
-#     assert grids.nearest_z_grid_point(0.4) == (1, 0.5)
 
