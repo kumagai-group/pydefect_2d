@@ -209,14 +209,14 @@ class FP1dPotential(MSONable, ToJsonFileMixIn):
 
 @dataclass
 class SlabModel(MSONable, ToJsonFileMixIn):
-    epsilon: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
+    epsilon: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] as function of z
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
     charge: int
     fp_potential: FP1dPotential = None
 
     def __post_init__(self):
-        assert self.epsilon.grid == self.gauss_charge_model.grids.z_grid
+        assert self.epsilon.dist.length == self.gauss_charge_model.grids.z_grid.length
 #        assert self.gauss_charge_model.grids == self.gauss_charge_potential.grids
 
     @property

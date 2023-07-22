@@ -5,7 +5,7 @@ import pytest
 from matplotlib import pyplot as plt
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
-from pydefect_2d.potential.distribution import Dist, ManualDist
+from pydefect_2d.potential.distribution import Dist, ManualDist, GaussianDist
 from pydefect_2d.potential.epsilon_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.grids import Grid, Grids, XYGrids
@@ -67,30 +67,29 @@ def test_gauss_charge_model_charges(gauss_charge_model: GaussChargeModel):
     assert gauss_charge_model.periodic_charges[0][0][0] == 0.06349363593424097
     assert gauss_charge_model.farthest_z_from_defect == (2, 5.0)
 
-#
-# def test_():
-#     num_grid = 30
-#     grid_z = Grid(10., num_grid)
-#     eps = DielectricConstGaussianDist(
-#         grid=grid_z,
-#         ave_electronic_epsilon=[0.]*3,
-#         ave_ionic_epsilon=[0.]*3,
-#         center=5.0, sigma=100000000)
-#
-#     grids = Grids(XYGrids(np.array([[10., 0.], [0., 10.]]), [num_grid]*2), grid_z)
-#     gauss = GaussChargeModel(grids,
-#                              sigma=0.3,
-#                              defect_z_pos_in_frac=0.5)
-#
-#     calc_pot = CalcGaussChargePotential(
-#         epsilon=eps,
-#         gauss_charge_model=gauss)
-#     slab_model = SlabModel(epsilon=eps,
-#                            gauss_charge_model=gauss,
-#                            gauss_charge_potential=calc_pot.potential,
-#                            charge=2)
-#     print(slab_model.xy_potential)
-#     print(slab_model.gauss_charge_potential.xy_ave_potential)
-#
-#     ProfilePlotter(plt, slab_model)
-#     plt.show()
+
+def test_():
+    z_grid = dict(length=10., num_grid=30)
+    diele_const = DielectricConstDist(
+        ave_ele=[1.]*3,
+        ave_ion=[0.]*3,
+        dist=GaussianDist(center=5.0, sigma=100000000.0, **z_grid))
+
+    grids = Grids(XYGrids(np.array([[10., 0.], [0., 10.]]), [30]*2),
+                  Grid(**z_grid))
+    gauss = GaussChargeModel(grids,
+                             sigma=0.3,
+                             defect_z_pos_in_frac=0.5)
+
+    calc_pot = CalcGaussChargePotential(
+        dielectric_const=diele_const,
+        gauss_charge_model=gauss)
+    slab_model = SlabModel(epsilon=diele_const,
+                           gauss_charge_model=gauss,
+                           gauss_charge_potential=calc_pot.potential,
+                           charge=2)
+    print(slab_model.xy_potential)
+    print(slab_model.gauss_charge_potential.xy_ave_potential)
+
+    ProfilePlotter(plt, slab_model)
+    plt.show()
