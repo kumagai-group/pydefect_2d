@@ -12,14 +12,9 @@ from pydefect_2d.potential.epsilon_distribution import \
 
 @pytest.fixture
 def gauss_epsilon():
-    return DielectricConstDist(ave_ele=[3, 3, 1.5],
-                               ave_ion=[1, 1, 0.5],
+    return DielectricConstDist(ave_ele=[3, 3, 0.5],
+                               ave_ion=[1, 1, 1.0],
                                dist=GaussianDist(20, 2, center=10, sigma=0.2))
-
-
-def test_epsilon_properties(gauss_epsilon):
-    assert_almost_equal(gauss_epsilon.static[0], [1., 7.0])
-    assert_almost_equal(gauss_epsilon.static[2], [1., 2.0])
 
 
 def test_reciprocal_static(gauss_epsilon):

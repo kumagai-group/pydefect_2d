@@ -33,7 +33,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def sigma(self):
-        return self.gauss_charge_model.base_sigma
+        return self.gauss_charge_model.sigma
 
     @property
     def L(self):

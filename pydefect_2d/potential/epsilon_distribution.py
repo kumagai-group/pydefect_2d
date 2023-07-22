@@ -13,15 +13,14 @@ from pydefect_2d.potential.distribution import Dist
 
 @dataclass
 class DielectricConstDist(MSONable, ToJsonFileMixIn):
-    """Dielectric constant as a function of z direction
+    """Dielectric constant as a function of the z position
 
     ave_ele: Calculated electronic dielectric constants using a slab model.
     ave_ion: Calculated ionic dielectric constants using a slab model.
 
     The z-direction is normal to the surfaces.
     """
-
-    ave_ele: List[float]  # include vacuum permittivity.
+    ave_ele: List[float]  # [x, y, z] include vacuum permittivity.
     ave_ion: List[float]
     dist: Dist
 

@@ -18,18 +18,18 @@ class Dist(Grid):
 
     @property
     @abstractmethod
-    def unscaled_dist(self) -> np.array:
+    def unscaled_dist(self) -> np.ndarray:
         pass
 
-    def diele_in_plane_scale(self, ave_diele: float) -> np.array:
+    def diele_in_plane_scale(self, ave_diele: float) -> np.ndarray:
         scale = (ave_diele - 1.) / self.unscaled_dist.mean()
         return self.unscaled_dist * scale + 1.
 
     def diele_out_of_plane_scale(self,
-                                 ave_diele: np.array,
+                                 ave_diele: np.ndarray,
                                  reduction_ratio: float = 0.9,
                                  convergence_ratio: float = 10 ** -6,
-                                 max_iteration: int = 100) -> np.array:
+                                 max_iteration: int = 100) -> np.ndarray:
         """Calculate the scaled distribution
 
         static = 1 / ((1 + factor * unscaled_dist)).mean()
@@ -65,10 +65,10 @@ class Dist(Grid):
 
 @dataclass
 class ManualDist(Dist):
-    manual_dist: np.array
+    manual_dist: np.ndarray
 
     @property
-    def unscaled_dist(self) -> np.array:
+    def unscaled_dist(self) -> np.ndarray:
         return self.manual_dist
 
 
@@ -84,7 +84,7 @@ class GaussianDist(Dist):
         return "\n".join(result)
 
     @property
-    def unscaled_dist(self) -> np.array:
+    def unscaled_dist(self) -> np.ndarray:
         """Distribution w/o normalization under periodic boundary condition.
 
         All lengths are in Å.
@@ -117,7 +117,7 @@ class StepDist(Dist):
         return "\n".join(result)
 
     @property
-    def unscaled_dist(self) -> np.array:
+    def unscaled_dist(self) -> np.ndarray:
         """ Make step-like distribution
 
         :param grid: Cartesian coordinates in Å.

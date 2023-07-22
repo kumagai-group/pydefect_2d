@@ -50,7 +50,7 @@ def make_epsilon_distribution(args):
     if args.type == "gauss":
         position = args.structure.lattice.c * args.position
         epsilon_distribution = DielectricConstGaussianDist(
-            grid, electronic, ionic, position, args.base_sigma)
+            grid, electronic, ionic, position, args.sigma)
     elif args.type == "step":
         epsilon_distribution = DielectricConstStepDist(
             grid, electronic, ionic, args.step_left, args.step_right,
@@ -80,7 +80,7 @@ def make_gauss_charge_model(args):
                   z_grid=Grid(lat.c, z_num_grid))
 
     model = GaussChargeModel(grids,
-                             sigma=args.base_sigma,
+                             sigma=args.sigma,
                              defect_z_pos_in_frac=dsi.center[2],
                              epsilon_x=args.epsilon_dist.static[0],
                              epsilon_y=args.epsilon_dist.static[1])

@@ -4,7 +4,7 @@ import multiprocessing as multi
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import product
-from math import pi, sqrt
+from math import pi
 from multiprocessing import Pool
 from typing import List, Tuple
 
@@ -26,30 +26,17 @@ from pydefect_2d.potential.grids import Grid, Grids
 class GaussChargeModel(MSONable, ToJsonFileMixIn):
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grids: Grids
-    base_sigma: float
+    sigma: float
     defect_z_pos_in_frac: float  # in fractional coord. x=y=0
-    epsilon_x: np.array
-    epsilon_y: np.array
     periodic_charges: np.array = None
-
-    def x_sigma(self):
-        return self.base_sigma
-
-    def y_sigma(self):
-        return self.base_sigma
-
-    def z_sigma(self):
-        return self.base_sigma
 
     def __str__(self):
         charge = self.periodic_charges.mean() * self.grids.volume
-        result = [f"sigma (A): {self.base_sigma:.2}",
+        result = [f"sigma (A): {self.sigma:.2}",
                   f"Charge sum (|e|): {charge:.3}"]
         return "\n".join(result)
 
     def __post_init__(self):
-        assert len(self.epsilon_x) == len(self.epsilon_y) == self.grids.z_grid.num_grid
-
         if self.periodic_charges is None:
             self.periodic_charges = self._make_periodic_gauss_charge_profile
 
@@ -58,28 +45,15 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         return self.defect_z_pos_in_frac * self.grids.z_length
 
     @property
-    def epsilon_ave(self):
-        return np.sqrt(self.epsilon_x * self.epsilon_y)
-
-    @property
-    def square_x_scaling(self):
-        return np.sqrt(self.epsilon_ave / self.epsilon_x)
-
-    @property
-    def square_y_scaling(self):
-        return np.sqrt(self.epsilon_ave / self.epsilon_y)
-
-    @property
     def _make_periodic_gauss_charge_profile(self):
-        coefficient = 1 / self.base_sigma ** 3 / (2 * pi) ** 1.5
+        coefficient = 1 / self.sigma ** 3 / (2 * pi) ** 1.5
 
         (nx, ny), nz = self.grids.xy_grids.num_grids, self.grids.z_grid.num_grid
         gauss = np.zeros([nx, ny, nz])
 
-        xy2 = self.grids.xy_grids.squared_length_on_grids(self.square_x_scaling,
-                                                          self.square_y_scaling)
+        xy2 = self.grids.xy_grids.squared_length_on_grids
         for nz, lz in enumerate(self.grids.z_grid_points):
-            gauss[:, :, nz] = exp(-(xy2 + self._z2(lz)) / (2 * self.base_sigma ** 2))
+            gauss[:, :, nz] = exp(-(xy2 + self._z2(lz)) / (2 * self.sigma ** 2))
 
         return coefficient * gauss
 
@@ -134,19 +108,19 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
 
 @dataclass
 class CalcGaussChargePotential:
-    epsilon: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
+    dielectric_const: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
     gauss_charge_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
 
     def __post_init__(self):
         try:
-            assert self.epsilon.dist.length == self.gauss_charge_model.grids.z_grid
+            assert self.dielectric_const.dist.length == self.gauss_charge_model.grids.z_grid.length
         except AssertionError:
-            e_z_gird = self.epsilon.z_grid
+            e_z_dist = self.dielectric_const.dist
             g_z_grid = self.gauss_charge_model.grids.z_grid
 
-            print(f"epsilon z lattice length {e_z_gird.length}")
-            print(f"epsilon num grid {e_z_gird.num_grid}")
+            print(f"epsilon z lattice length {e_z_dist.length}")
+            print(f"epsilon num grid {e_z_dist.num_grid}")
             print(f"gauss model lattice length {g_z_grid.length}")
             print(f"gauss model num grid {g_z_grid.num_grid}")
             raise
@@ -173,7 +147,7 @@ class CalcGaussChargePotential:
         i_ga, i_gb = ab_grid_idx
 
         z_num_grid = self.gauss_charge_model.grids.z_grid.num_grid
-        x_rec_e, y_rec_e, z_rec_e = self.epsilon.reciprocal_static
+        x_rec_e, y_rec_e, z_rec_e = self.dielectric_const.reciprocal_static
         rec_chg = self.gauss_charge_model.reciprocal_charge[i_ga, i_gb, :]
 
         factors = []
