@@ -18,7 +18,7 @@ from tabulate import tabulate
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
-from pydefect_2d.potential.epsilon_distribution import DielectricConstDist
+from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grid, Grids
 
 

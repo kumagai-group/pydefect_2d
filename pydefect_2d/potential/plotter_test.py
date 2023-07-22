@@ -3,7 +3,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from pydefect_2d.potential.epsilon_distribution import DielectricConstDist, \
+from pydefect_2d.potential.dielectric_distribution import DielectricConstDist, \
     DielectricConstGaussianDist
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter

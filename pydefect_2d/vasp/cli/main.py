@@ -13,7 +13,7 @@ from pymatgen.io.vasp import Locpot
 from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
     make_gauss_charge_model, make_fp_1d_potential, \
     calc_gauss_charge_potential, make_slab_model, isolated_gauss_energy, \
-    make_correction, make_epsilon_distribution
+    make_correction, make_dielectric_distribution
 
 
 def parse_args_main_vasp(args):
@@ -33,11 +33,11 @@ def parse_args_main_vasp(args):
         help="single_gauss_charge_model.json file")
 
     # -- parent parser
-    epsilon_dist = argparse.ArgumentParser(
+    dielectric_dist = argparse.ArgumentParser(
         description="", add_help=False)
-    epsilon_dist.add_argument(
-        "-e", "--epsilon_dist", required=True, type=loadfn,
-        help="epsilon_distribution.json file")
+    dielectric_dist.add_argument(
+        "-e", "--dielectric_dist", required=True, type=loadfn,
+        help="dielectric_distribution.json file")
 
     # --------------------------------------------------------------------------
     parser_plot_volumetric_data = subparsers.add_parser(
@@ -51,48 +51,48 @@ def parse_args_main_vasp(args):
     parser_plot_volumetric_data.set_defaults(func=plot_volumetric_data)
 
     # --------------------------------------------------------------------------
-    parser_make_epsilon_dist = subparsers.add_parser(
-        name="make_epsilon_distributions",
+    parser_make_dielectric_dist = subparsers.add_parser(
+        name="make_dielectric_distributions",
         description="Make epsilon distributions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         aliases=['ed'])
 
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "-u", "--unitcell", required=True, type=Unitcell.from_yaml,
         help="unitcell.yaml file.")
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "-s", "--structure", required=True, type=Structure.from_file,
         help="POSCAR file of the 2D unitcell.")
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "-n", "--num_grid", required=True, type=int,
         help="Number of all_grid_points.")
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "-t", "--type", required=True, type=str, choices=["gauss", "step"])
     # -- gauss
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "-p", "--position", type=float,
         help="Position of layer in fractional coordinates.")
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing.")
     # -- step
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "-sl", "--step_left", type=float,
         help="")
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "-sr", "--step_right", type=float,
         help="")
-    parser_make_epsilon_dist.add_argument(
+    parser_make_dielectric_dist.add_argument(
         "--error_func_width", type=float, default=0.3,
         help="")
-    parser_make_epsilon_dist.set_defaults(func=make_epsilon_distribution)
+    parser_make_dielectric_dist.set_defaults(func=make_dielectric_distribution)
 
     # --------------------------------------------------------------------------
     parser_make_gauss_charge_model = subparsers.add_parser(
         name="make_gauss_charge_model",
         description="Make Gauss charge models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist],
+        parents=[dielectric_dist],
         aliases=['gcm'])
 
     parser_make_gauss_charge_model.add_argument(
@@ -109,7 +109,7 @@ def parse_args_main_vasp(args):
         name="calc_gauss_charge_potential",
         description="calc potential.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist, gauss_charge_model],
+        parents=[dielectric_dist, gauss_charge_model],
         aliases=['gcp'])
 
     parser_calc_potential.add_argument(
@@ -122,7 +122,7 @@ def parse_args_main_vasp(args):
         name="isolated_gauss_energy",
         description="Calculate the isolated gauss energy.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist, gauss_charge_model],
+        parents=[dielectric_dist, gauss_charge_model],
         aliases=['ige'])
 
     parser_isolated_gauss_energy.add_argument(
@@ -157,7 +157,7 @@ def parse_args_main_vasp(args):
         name="make_slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[epsilon_dist],
+        parents=[dielectric_dist],
         aliases=['sm'])
 
     parser_make_slab_model.add_argument(

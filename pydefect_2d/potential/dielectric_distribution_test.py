@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
 from pydefect_2d.potential.distribution import GaussianDist
-from pydefect_2d.potential.epsilon_distribution import \
+from pydefect_2d.potential.dielectric_distribution import \
     DielectricConstDist
 
 

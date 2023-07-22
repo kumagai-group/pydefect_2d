@@ -3,6 +3,7 @@
 import itertools
 from dataclasses import dataclass
 from functools import cached_property
+from math import ceil
 from typing import List, Tuple
 
 import numpy as np
@@ -34,7 +35,7 @@ class Grid(MSONable):
 
 @dataclass
 class XYGrids(MSONable):
-    lattice: np.array
+    lattice: np.ndarray
     num_grids: List[int]
 
     @property
@@ -122,6 +123,17 @@ def reduced_zone_idx(n_mesh) -> np.array:
 class Grids(MSONable):
     xy_grids: XYGrids
     z_grid: Grid
+
+    @classmethod
+    def from_z_num_grid(cls, xy_lat_matrix: np.ndarray, z_grid: Grid):
+        a_lat, b_lat = xy_lat_matrix[0][0], xy_lat_matrix[1][1]
+        z_num_grid = z_grid.num_grid
+        x_num_grid = ceil(a_lat / z_grid.length * z_num_grid / 2) * 2
+        y_num_grid = ceil(b_lat / z_grid.length * z_num_grid / 2) * 2
+
+        return Grids(xy_grids=XYGrids(lattice=xy_lat_matrix,
+                                      num_grids=[x_num_grid, y_num_grid]),
+                     z_grid=z_grid)
 
     @property
     def volume(self):

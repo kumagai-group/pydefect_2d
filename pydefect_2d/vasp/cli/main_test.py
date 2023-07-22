@@ -2,14 +2,14 @@
 #  Copyright (c) 2023 Kumagai group.
 from argparse import Namespace
 
-from pydefect.input_maker.defect_entry import DefectEntry
+from pydefect.analyzer.defect_structure_info import DefectStructureInfo
 
-from pydefect_2d.potential.epsilon_distribution import DielectricConstDist
+from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.slab_model_info import GaussChargeModel
 from pydefect_2d.vasp.cli.main import parse_args_main_vasp
 
 
-def test_make_epsilon_distribution(mocker):
+def test_make_dielectric_distribution(mocker):
     mock_unitcell = mocker.patch("pydefect_2d.vasp.cli.main.Unitcell")
     mock_structure = mocker.patch("pydefect_2d.vasp.cli.main.Structure")
 
@@ -41,26 +41,26 @@ def test_make_epsilon_distribution(mocker):
 
 
 def test_make_gauss_charge_models(mocker):
-    mock_defect_entry = mocker.Mock(spec=DefectEntry, autospec=True)
-    mock_epsilon_dist = mocker.Mock(spec=DielectricConstDist, autospec=True)
+    mock_defect_structure = mocker.Mock(spec=DefectStructureInfo, autospec=True)
+    mock_dielectric_dist = mocker.Mock(spec=DielectricConstDist, autospec=True)
 
     def side_effect(filename):
-        if filename == "defect_entry.json":
-            return mock_defect_entry
-        elif filename == "epsilon_distribution.json":
-            return mock_epsilon_dist
+        if filename == "defect_structure_info.json":
+            return mock_defect_structure
+        elif filename == "dielectric_distribution.json":
+            return mock_dielectric_dist
         else:
             raise ValueError
 
     mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
 
     parsed_args = parse_args_main_vasp(["gcm",
-                                        "-d", "defect_entry.json",
-                                        "-e", "epsilon_distribution.json",
+                                        "-dsi", "defect_structure_info.json",
+                                        "-e", "dielectric_distribution.json",
                                         "--sigma", "0.1"])
     expected = Namespace(
-        defect_entry=mock_defect_entry,
-        epsilon_dist=mock_epsilon_dist,
+        defect_structure_info=mock_defect_structure,
+        dielectric_dist=mock_dielectric_dist,
         sigma=0.1,
         func=parsed_args.func)
 
@@ -68,12 +68,12 @@ def test_make_gauss_charge_models(mocker):
 
 
 def test_calc_potential(mocker):
-    mock_epsilon_dist = mocker.Mock(spec=DielectricConstDist, autospec=True)
+    mock_dielectric_dist = mocker.Mock(spec=DielectricConstDist, autospec=True)
     mock_gauss_model = mocker.Mock(spec=GaussChargeModel, autospec=True)
 
     def side_effect(filename):
-        if filename == "epsilon_distribution.json":
-            return mock_epsilon_dist
+        if filename == "dielectric_distribution.json":
+            return mock_dielectric_dist
         elif filename == "gauss_charge_model.json":
             return mock_gauss_model
         else:
@@ -82,11 +82,11 @@ def test_calc_potential(mocker):
     mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
 
     parsed_args = parse_args_main_vasp(["gcp",
-                                        "-e", "epsilon_distribution.json",
+                                        "-e", "dielectric_distribution.json",
                                         "-g", "gauss_charge_model.json",
                                         "--no_multiprocess"])
     expected = Namespace(
-        epsilon_dist=mock_epsilon_dist,
+        dielectric_dist=mock_dielectric_dist,
         gauss_charge_model=mock_gauss_model,
         multiprocess=False,
         func=parsed_args.func)

@@ -26,7 +26,7 @@ class Dist(Grid):
         return self.unscaled_dist * scale + 1.
 
     def diele_out_of_plane_scale(self,
-                                 ave_diele: np.ndarray,
+                                 ave_diele: float,
                                  reduction_ratio: float = 0.9,
                                  convergence_ratio: float = 10 ** -6,
                                  max_iteration: int = 100) -> np.ndarray:
@@ -77,6 +77,10 @@ class GaussianDist(Dist):
     center: float  # in Å
     sigma: float  # in Å
 
+    @classmethod
+    def from_grid(cls, grid: Grid, center, sigma):
+        return cls(grid.length, grid.num_grid, center, sigma)
+
     def __str__(self):
         result = [super().__str__(),
                   f"center: {self.center:.1} Å",
@@ -108,6 +112,11 @@ class StepDist(Dist):
     step_left: float  # in Å
     step_right: float  # in Å
     error_func_width: float  # in Å
+
+    @classmethod
+    def from_grid(cls, grid: Grid, step_left, step_right, error_func_width):
+        return cls(grid.length, grid.num_grid, step_left, step_right,
+                   error_func_width)
 
     def __str__(self):
         result = [f"step left: {self.step_left:.2f} Å",
