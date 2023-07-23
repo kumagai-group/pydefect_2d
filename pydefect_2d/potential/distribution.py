@@ -45,8 +45,8 @@ class Dist(Grid):
         del_scale_factor = scale_factor * reduction_ratio
 
         for i in range(max_iteration):
-            aaa = 1.0 / (1. + scale_factor * self.unscaled_dist)
-            unscale_mean = 1 / aaa.mean()
+            denominator = 1.0 / (1. + scale_factor * self.unscaled_dist)
+            unscale_mean = 1 / denominator.mean()
             ratio = (ave_diele - unscale_mean) / ave_diele
             if abs(ratio) < convergence_ratio:
                 break
@@ -66,6 +66,13 @@ class Dist(Grid):
 @dataclass
 class ManualDist(Dist):
     manual_dist: np.ndarray
+
+    def __post_init__(self):
+        assert self.num_grid == len(self.manual_dist)
+
+    @classmethod
+    def from_grid(cls, grid: Grid, manual_dist):
+        return cls(grid.length, grid.num_grid, manual_dist)
 
     @property
     def unscaled_dist(self) -> np.ndarray:

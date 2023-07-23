@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-from math import ceil
 from pathlib import Path
 
 import numpy as np
@@ -9,16 +8,19 @@ from monty.serialization import loadfn
 from pydefect.analyzer.defect_structure_info import DefectStructureInfo
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
+from vise.util.logger import get_logger
 
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
-from pydefect_2d.potential.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.dielectric_distribution import \
     DielectricConstDist
+from pydefect_2d.potential.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, FP1dPotential, SlabModel
+
+logger = get_logger(__name__)
 
 
 def plot_volumetric_data(args):
@@ -65,15 +67,28 @@ def _add_z_pos(filename: str, model: GaussChargeModel):
     return f"{x}_{model.defect_z_pos_in_frac:.3}.{y}"
 
 
+make_gauss_charge_model_msg = \
+    """defect_structure_info.json or a set of (supercell_info.json, defect_pos) 
+need to be specified."""
+
+
 def make_gauss_charge_model(args):
     """depends on the supercell size and defect position"""
-    dsi: DefectStructureInfo = args.defect_structure_info
-    lat = dsi.shifted_final_structure.lattice
-    grids = Grids.from_z_num_grid(lat.matrix[:2, :2], args.epsilon_dist.grid)
+    try:
+        if args.defect_structure_info:
+            dsi: DefectStructureInfo = args.defect_structure_info
+            lat = dsi.shifted_final_structure.lattice
+            defect_z_pos = dsi.center[2]
+        else:
+            lat = args.supercell_info.structure.lattice
+            defect_z_pos = float(args.defect_z_pos)
+    except (AssertionError, TypeError):
+        logger.info(make_gauss_charge_model_msg)
+        raise
 
-    model = GaussChargeModel(grids,
-                             sigma=args.sigma,
-                             defect_z_pos_in_frac=dsi.center[2])
+    grids = Grids.from_z_num_grid(lat.matrix[:2, :2], args.dielectric_dist.dist)
+
+    model = GaussChargeModel(grids, args.sigma, defect_z_pos)
     filename = _add_z_pos(model.json_filename, model)
     model.to_json_file(filename)
 
@@ -81,17 +96,26 @@ def make_gauss_charge_model(args):
 def calc_gauss_charge_potential(args):
     """depends on the supercell size and defect position"""
     potential = CalcGaussChargePotential(
-        dielectric_const=args.epsilon_dist,
+        dielectric_const=args.dielectric_dist,
         gauss_charge_model=args.gauss_charge_model,
         multiprocess=args.multiprocess).potential
     filename = _add_z_pos(potential.json_filename, args.gauss_charge_model)
     potential.to_json_file(filename)
 
 
-def isolated_gauss_energy(args):
+def make_isolated_gauss_energy(args):
     """depends on the supercell size, defect position"""
+    static = args.dielectric_dist.static
+    try:
+        assert static[0] == static[1]
+    except AssertionError:
+        logger.info("Only the case where static dielectric constant is "
+                    "isotropic in xy-plane.")
+        raise
+
     isolated = IsolatedGaussEnergy(gauss_charge_model=args.gauss_charge_model,
-                                   epsilon_z=args.epsilon_dist.static[2],
+                                   diele_dist_xy=static[0],
+                                   diele_dist_z=static[2],
                                    k_max=args.k_max,
                                    k_mesh_dist=args.k_mesh_dist)
     print(isolated)
@@ -135,10 +159,10 @@ def make_slab_model(args):
     gauss_charge_model = _get_obj(d, "gauss_charge_model.json", de)
     gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", de)
 
-    slab_model = SlabModel(charge=args.defect_entry.charge,
-                           epsilon=args.epsilon_dist,
+    slab_model = SlabModel(diele_dist=args.diele_dist,
                            gauss_charge_model=gauss_charge_model,
                            gauss_charge_potential=gauss_charge_pot,
+                           charge_state=args.defect_entry.charge_state,
                            fp_potential=args.fp_potential)
     slab_model.to_json_file()
     ProfilePlotter(plt, slab_model)
@@ -150,13 +174,14 @@ def make_correction(args):
 
     This should be placed at each defect calc dir.
     """
-    d = args.correction_dir
-    isolated_gauss_energy = _get_obj(d, "isolated_gauss_energy.json",
+    isolated_gauss_energy = _get_obj(args.correction_dir,
+                                     "make_isolated_gauss_energy.json",
                                      args.defect_entry)
-    iso_e = isolated_gauss_energy.self_energy * args.slab_model.charge ** 2
-    correction = Gauss2dCorrection(args.slab_model.charge,
+    squared_charge_state = args.slab_model.charge_state ** 2
+    isolated_energy = isolated_gauss_energy.self_energy * squared_charge_state
+    correction = Gauss2dCorrection(args.slab_model.charge_state,
                                    args.slab_model.electrostatic_energy,
-                                   iso_e,
+                                   isolated_energy,
                                    args.slab_model.potential_diff)
     print(correction)
     correction.to_json_file()

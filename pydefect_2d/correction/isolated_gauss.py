@@ -22,7 +22,8 @@ from pydefect_2d.potential.slab_model_info import GaussChargeModel
 @dataclass
 class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
     gauss_charge_model: GaussChargeModel
-    epsilon_z: List[float]
+    diele_dist_xy: List[float]
+    diele_dist_z: List[float]
     k_max: float
     k_mesh_dist: float
     multiprocess: bool = True
@@ -40,17 +41,13 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         return self.gauss_charge_model.grids.z_length
 
     @property
-    def epsilon_xy(self):
-        return self.gauss_charge_model.epsilon_ave
-
-    @property
     def z0(self):
         # in Å
         return self.gauss_charge_model.defect_z_pos_in_length
 
     @property
     def num_grid(self):
-        return len(self.epsilon_z)
+        return len(self.diele_dist_z)
 
     @property
     def ks(self):
@@ -68,11 +65,11 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
     @cached_property
     def rec_delta_epsilon_z(self) -> List[float]:
         # Need to be compatible with Gs
-        return fft(np.array(self.epsilon_z) - 1.0) / self.num_grid
+        return fft(np.array(self.diele_dist_z) - 1.0) / self.num_grid
 
     @cached_property
     def rec_delta_epsilon_xy(self) -> List[float]:
-        return fft(np.array(self.epsilon_xy) - 1.0) / self.num_grid
+        return fft(np.array(self.diele_dist_xy) - 1.0) / self.num_grid
 
     def inv_K_G(self, G, k):
         denominator = 1. - e**(-k*self.L/2) * cos(G*self.L/2)
@@ -90,7 +87,6 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
             self.L, self.rec_delta_epsilon_z, self.rec_delta_epsilon_xy
         second_term = L * (rec_de_z[i-j] * G_i*G_j + rec_de_xy[i-j] * k**2)
         denominator = 1. - e**(-k*self.L/2) * cos(G_i*self.L/2)
-        print(f"k:{k:.2}, d:{denominator:.2}, s: {second_term:.2}")
         second_term /= denominator
         result += second_term
         return result

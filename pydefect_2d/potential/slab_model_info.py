@@ -53,11 +53,12 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
         xy2 = self.grids.xy_grids.squared_length_on_grids
         for nz, lz in enumerate(self.grids.z_grid_points):
-            gauss[:, :, nz] = exp(-(xy2 + self._z2(lz)) / (2 * self.sigma ** 2))
+            xyz2 = xy2 + self._min_z2(lz)
+            gauss[:, :, nz] = exp(- xyz2 / (2 * self.sigma ** 2))
 
         return coefficient * gauss
 
-    def _z2(self, lz):
+    def _min_z2(self, lz):
         return min(
             [abs(lz - self.grids.z_length * (i + self.defect_z_pos_in_frac))
              for i in range(-1, 2)]
@@ -108,13 +109,14 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
 
 @dataclass
 class CalcGaussChargePotential:
-    dielectric_const: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
+    dielectric_const: DielectricConstDist  # [ε_x, ε_y, ε_z] as a function of z
     gauss_charge_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
 
     def __post_init__(self):
         try:
-            assert self.dielectric_const.dist.length == self.gauss_charge_model.grids.z_grid.length
+            assert (self.dielectric_const.dist.length
+                    == self.gauss_charge_model.grids.z_grid.length)
         except AssertionError:
             e_z_dist = self.dielectric_const.dist
             g_z_grid = self.gauss_charge_model.grids.z_grid
@@ -209,15 +211,15 @@ class FP1dPotential(MSONable, ToJsonFileMixIn):
 
 @dataclass
 class SlabModel(MSONable, ToJsonFileMixIn):
-    epsilon: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] as function of z
+    diele_dist: DielectricConstDist  # [ε_x, ε_y, ε_z] as a function of z
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
-    charge: int
+    charge_state: int
     fp_potential: FP1dPotential = None
 
     def __post_init__(self):
-        assert self.epsilon.dist.length == self.gauss_charge_model.grids.z_grid.length
-#        assert self.gauss_charge_model.grids == self.gauss_charge_potential.grids
+        assert (self.diele_dist.dist.length
+                == self.gauss_charge_model.grids.z_grid.length)
 
     @property
     def grids(self) -> Grids:
@@ -225,27 +227,29 @@ class SlabModel(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def electrostatic_energy(self) -> float:
-        result_at_charge1 = np.real(
-            (np.mean(self.gauss_charge_potential.potential * self.gauss_charge_model.periodic_charges)
-             * self.gauss_charge_model.grids.volume / 2))
-        return result_at_charge1 * self.charge ** 2
+        pot = self.gauss_charge_potential.potential
+        chgs = self.gauss_charge_model.periodic_charges
+        vol = self.gauss_charge_model.grids.volume
+        return np.real((np.mean(pot * chgs) * vol / 2)) * self.charge_state ** 2
 
     @cached_property
-    def xy_charge(self):
-        return self.gauss_charge_model.xy_integrated_charge * self.charge
+    def xy_integrated_charge(self):
+        return self.gauss_charge_model.xy_integrated_charge * self.charge_state
 
     @cached_property
-    def xy_potential(self):
-        return self.gauss_charge_potential.xy_ave_potential * self.charge
+    def xy_ave_pot(self):
+        return self.gauss_charge_potential.xy_ave_potential * self.charge_state
 
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]
-        list_ = [[pos, charge, pot] for pos, charge, pot in
-                 zip(self.grids.z_grid_points, self.xy_charge, self.xy_potential)]
+        list_ = [[z, charge, pot] for z, charge, pot in
+                 zip(self.grids.z_grid_points,
+                     self.xy_integrated_charge,
+                     self.xy_ave_pot)]
         result = [tabulate(list_, tablefmt="plain", headers=header)]
 
         integrated_charge = (self.gauss_charge_model.periodic_charges.mean()
-                             * self.grids.volume * self.charge)
+                             * self.grids.volume * self.charge_state)
         result.append(f"Integrated charge (|e|): {integrated_charge:.3}")
         result.append(f"Electrostatic energy (eV): "
                       f"{self.electrostatic_energy:.3}")
@@ -256,7 +260,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
         if self.fp_potential is None:
             return
         grid_idx, z = self.gauss_charge_model.farthest_z_from_defect
-        gauss_pot = self.xy_potential[grid_idx]
+        gauss_pot = self.xy_ave_pot[grid_idx]
         fp_pot = self.fp_potential.interpol_pot_func(z)
         return fp_pot - gauss_pot
 

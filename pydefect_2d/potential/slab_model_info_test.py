@@ -88,7 +88,7 @@ def test_():
                            gauss_charge_model=gauss,
                            gauss_charge_potential=calc_pot.potential,
                            charge=2)
-    print(slab_model.xy_potential)
+    print(slab_model.xy_ave_pot)
     print(slab_model.gauss_charge_potential.xy_ave_potential)
 
     ProfilePlotter(plt, slab_model)

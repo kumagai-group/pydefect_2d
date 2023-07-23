@@ -56,7 +56,7 @@ def test_make_gauss_charge_models(mocker):
 
     parsed_args = parse_args_main_vasp(["gcm",
                                         "-dsi", "defect_structure_info.json",
-                                        "-e", "dielectric_distribution.json",
+                                        "-d", "dielectric_distribution.json",
                                         "--sigma", "0.1"])
     expected = Namespace(
         defect_structure_info=mock_defect_structure,
@@ -82,7 +82,7 @@ def test_calc_potential(mocker):
     mocker.patch("pydefect_2d.vasp.cli.main.loadfn", side_effect=side_effect)
 
     parsed_args = parse_args_main_vasp(["gcp",
-                                        "-e", "dielectric_distribution.json",
+                                        "-d", "dielectric_distribution.json",
                                         "-g", "gauss_charge_model.json",
                                         "--no_multiprocess"])
     expected = Namespace(

@@ -22,12 +22,11 @@ def gauss_energy():
                   Grid(length=100., num_grid=n_grid))
     charge_model = GaussChargeModel(grids=grids,
                                     sigma=sigma,
-                                    defect_z_pos_in_frac=0.0,
-                                    epsilon_x=np.array([1.0] * n_grid),
-                                    epsilon_y=np.array([1.0] * n_grid))
+                                    defect_z_pos_in_frac=0.0)
 
     return IsolatedGaussEnergy(gauss_charge_model=charge_model,
-                               epsilon_z=[1.0]*n_grid,
+                               diele_dist_xy=[1.0]*n_grid,
+                               diele_dist_z=[1.0]*n_grid,
                                k_max=2.,
                                k_mesh_dist=0.01,
                                multiprocess=True)
