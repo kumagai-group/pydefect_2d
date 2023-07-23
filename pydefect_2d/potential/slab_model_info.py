@@ -14,6 +14,7 @@ from numpy import exp
 from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fftpack import ifftn, fftn
 from scipy.interpolate import interp1d
+from scipy.linalg import solve
 from tabulate import tabulate
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
@@ -164,12 +165,13 @@ class CalcGaussChargePotential:
                 inv_rho_by_mz[0] = 1.0
             factors.append(inv_rho_by_mz)
         factors = np.array(factors)
-        inv_pot_by_mz = np.linalg.solve(factors, rec_chg * z_num_grid)
+
+        inv_pot_by_mz = solve(factors, rec_chg * z_num_grid, assume_a="her")
         return i_ga, i_gb, inv_pot_by_mz
 
     @cached_property
     def reciprocal_potential(self):
-        x_grids, y_grids = self.num_grids[:2]
+        x_grids, y_grids = self.xy_num_grids
 
         result = np.zeros(self.num_grids, dtype=np.complex_)
         grids = [[i_gx, i_gy] for i_gx, i_gy

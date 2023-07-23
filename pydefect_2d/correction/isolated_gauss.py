@@ -13,6 +13,7 @@ from numpy import cos, exp, linspace
 from scipy import integrate, e
 from scipy.constants import pi, epsilon_0, elementary_charge, angstrom
 from scipy.fft import fft
+from scipy.linalg import pinvh
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
@@ -99,7 +100,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         return result
 
     def inv_D(self, k) -> np.array:
-        return np.linalg.inv(self.D(k))
+        return pinvh(self.D(k))
 
     def U_k(self, k):
         result = 0.

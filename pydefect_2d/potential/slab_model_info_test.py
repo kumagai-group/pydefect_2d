@@ -84,10 +84,10 @@ def test_():
     calc_pot = CalcGaussChargePotential(
         dielectric_const=diele_const,
         gauss_charge_model=gauss)
-    slab_model = SlabModel(epsilon=diele_const,
+    slab_model = SlabModel(diele_dist=diele_const,
                            gauss_charge_model=gauss,
                            gauss_charge_potential=calc_pot.potential,
-                           charge=2)
+                           charge_state=2)
     print(slab_model.xy_ave_pot)
     print(slab_model.gauss_charge_potential.xy_ave_potential)
 
