@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from math import erf, exp
 
 import numpy as np
+from scipy.optimize import minimize
 from vise.util.logger import get_logger
 
 from pydefect_2d.potential.grids import Grid
@@ -25,41 +26,23 @@ class Dist(Grid):
         scale = (ave_diele - 1.) / self.unscaled_dist.mean()
         return self.unscaled_dist * scale + 1.
 
-    def diele_out_of_plane_scale(self,
-                                 ave_diele: float,
-                                 reduction_ratio: float = 0.9,
-                                 convergence_ratio: float = 10 ** -6,
-                                 max_iteration: int = 100) -> np.ndarray:
+    def diele_out_of_plane_scale(self, ave_diele: float) -> np.ndarray:
         """Calculate the scaled distribution
 
         static = 1 / ((1 + factor * unscaled_dist)).mean()
 
         :param ave_diele:  # w/o vacuum permittivity
-        :param reduction_ratio:
-        :param convergence_ratio:
-        :param max_iteration:
 
         :return:
         """
-        scale_factor = (ave_diele - 1.) / self.unscaled_dist.mean()
-        del_scale_factor = scale_factor * reduction_ratio
 
-        for i in range(max_iteration):
-            denominator = 1.0 / (1. + scale_factor * self.unscaled_dist)
-            unscale_mean = 1 / denominator.mean()
-            ratio = (ave_diele - unscale_mean) / ave_diele
-            if abs(ratio) < convergence_ratio:
-                break
-            # need to increase unscale_mean = reduce alpha
-            ratio_sign = int(ratio > 0) - int(ratio < 0)
-            scale_factor += del_scale_factor * ratio_sign
-            del_scale_factor *= reduction_ratio
-        else:
-            logger.warning("No convergence is reached. The number of iteration "
-                           f"is {max_iteration}, and the convergence ratio is "
-                           f"{abs(ratio)} > {convergence_ratio}")
-            raise ValueError("No convergence is reached.")
+        def f(factor):
+            denominator = 1.0 / (1. + factor * self.unscaled_dist)
+            return abs(1 / denominator.mean() - ave_diele)
 
+        initial_guess = (ave_diele - 1.) / self.unscaled_dist.mean()
+        min_res = minimize(f, initial_guess, method='BFGS')
+        scale_factor = min_res.x[0]
         return scale_factor * self.unscaled_dist + 1.0
 
 

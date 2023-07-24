@@ -31,7 +31,7 @@ def test_diele_in_plane_scale():
 
 
 def test_diele_out_of_plane_scale():
-    dist = ManualDist(length=1.0, num_grid=4,
+    dist = ManualDist(length=1.0, num_grid=3,
                       manual_dist=np.array([1.0, 1.0, 0.0]))
     actual = dist.diele_out_of_plane_scale(ave_diele=2.2)
     assert_array_almost_equal(actual, np.array([5.5, 5.5, 1.]), decimal=5)

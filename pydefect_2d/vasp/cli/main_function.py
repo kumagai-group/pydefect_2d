@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from monty.serialization import loadfn
+from numpy.testing import assert_almost_equal
 from pydefect.analyzer.defect_structure_info import DefectStructureInfo
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
@@ -53,8 +54,9 @@ def make_dielectric_distribution(args):
         position = args.structure.lattice.c * args.position
         dist = GaussianDist.from_grid(grid, position, args.sigma)
     elif args.type == "step":
-        dist = StepDist.from_grid(grid, args.step_left, args.step_right,
-                                  args.error_func_width)
+        left = args.structure.lattice.c * args.step_left
+        right = args.structure.lattice.c * args.step_right
+        dist = StepDist.from_grid(grid, left, right, args.error_func_width)
     else:
         raise ValueError
 
@@ -107,7 +109,7 @@ def make_isolated_gauss_energy(args):
     """depends on the supercell size, defect position"""
     static = args.dielectric_dist.static
     try:
-        assert static[0] == static[1]
+        assert_almost_equal(static[0], static[1])
     except AssertionError:
         logger.info("Only the case where static dielectric constant is "
                     "isotropic in xy-plane.")
@@ -159,10 +161,10 @@ def make_slab_model(args):
     gauss_charge_model = _get_obj(d, "gauss_charge_model.json", de)
     gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", de)
 
-    slab_model = SlabModel(diele_dist=args.diele_dist,
+    slab_model = SlabModel(diele_dist=args.dielectric_dist,
                            gauss_charge_model=gauss_charge_model,
                            gauss_charge_potential=gauss_charge_pot,
-                           charge_state=args.defect_entry.charge_state,
+                           charge_state=args.defect_entry.charge,
                            fp_potential=args.fp_potential)
     slab_model.to_json_file()
     ProfilePlotter(plt, slab_model)
@@ -175,7 +177,7 @@ def make_correction(args):
     This should be placed at each defect calc dir.
     """
     isolated_gauss_energy = _get_obj(args.correction_dir,
-                                     "make_isolated_gauss_energy.json",
+                                     "isolated_gauss_energy.json",
                                      args.defect_entry)
     squared_charge_state = args.slab_model.charge_state ** 2
     isolated_energy = isolated_gauss_energy.self_energy * squared_charge_state

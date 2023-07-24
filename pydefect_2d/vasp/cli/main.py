@@ -74,17 +74,17 @@ def parse_args_main_vasp(args):
         help="Position of layer in fractional coordinates.")
     parser_make_dielectric_dist.add_argument(
         "--sigma", default=0.5, type=float,
-        help="Sigma of the gaussian smearing.")
+        help="Sigma of the gaussian smearing in Å.")
     # -- step
     parser_make_dielectric_dist.add_argument(
         "-sl", "--step_left", type=float,
-        help="")
+        help="Position of left side of step function in frac. coord.")
     parser_make_dielectric_dist.add_argument(
         "-sr", "--step_right", type=float,
-        help="")
+        help="Position of right side of step function in frac. coord.")
     parser_make_dielectric_dist.add_argument(
         "--error_func_width", type=float, default=0.3,
-        help="")
+        help="Width of error function in Å")
     parser_make_dielectric_dist.set_defaults(func=make_dielectric_distribution)
 
     # --------------------------------------------------------------------------
