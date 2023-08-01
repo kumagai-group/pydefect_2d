@@ -14,7 +14,6 @@ def test_manual_dist():
 def test_gaussian_dist():
     actual = GaussianDist(length=10.0, num_grid=10, center=2.0, sigma=1.0)
     assert actual.unscaled_dist[1] == 0.6065306597126334
-    print(actual)
 
 
 def test_step_dist():
@@ -35,3 +34,4 @@ def test_diele_out_of_plane_scale():
                       manual_dist=np.array([1.0, 1.0, 0.0]))
     actual = dist.diele_out_of_plane_scale(ave_diele=2.2)
     assert_array_almost_equal(actual, np.array([5.5, 5.5, 1.]), decimal=5)
+

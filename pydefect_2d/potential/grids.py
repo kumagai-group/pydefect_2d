@@ -8,7 +8,7 @@ from typing import List, Tuple
 
 import numpy as np
 from monty.json import MSONable
-from numpy import linspace, pi, inner
+from numpy import linspace, pi, inner, argmin
 from numpy.linalg import inv
 
 
@@ -21,8 +21,12 @@ class Grid(MSONable):
         return f"length: {self.length}, num grid: {self.num_grid}"
 
     @cached_property
-    def grid_points(self):
-        return list(linspace(0, self.length, self.num_grid, endpoint=False))
+    def grid_points(self) -> np.ndarray:
+        return linspace(0, self.length, self.num_grid, endpoint=False)
+
+    @cached_property
+    def grid_points_w_end(self) -> np.ndarray:
+        return linspace(0, self.length, self.num_grid, endpoint=True)
 
     @property
     def mesh_dist(self):
@@ -31,6 +35,9 @@ class Grid(MSONable):
     @cached_property
     def Gs(self):
         return 2 * pi / self.length * reduced_zone_idx(self.num_grid)
+
+    def neighboring_grid_idx(self, pos):
+        return argmin(abs(self.grid_points - pos))
 
 
 @dataclass

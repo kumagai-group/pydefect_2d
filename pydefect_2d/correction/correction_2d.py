@@ -36,6 +36,7 @@ class Gauss2dCorrection(Correction):
                  [f"total correction:", f"{self.correction_energy:.4}"]]
         return tabulate(table, tablefmt="plain", stralign="right")
 
+    @property
     def correction_dict(self):
         return {"gauss charge term": self.gauss_charge_term,
                 "alignment term": self.alignment_correction}

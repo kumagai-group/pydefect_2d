@@ -45,6 +45,10 @@ class Dist(Grid):
         scale_factor = min_res.x[0]
         return scale_factor * self.unscaled_dist + 1.0
 
+    @property
+    def grid(self):
+        return Grid(self.length, self.num_grid)
+
 
 @dataclass
 class ManualDist(Dist):
@@ -99,6 +103,12 @@ class GaussianDist(Dist):
 
 @dataclass
 class StepDist(Dist):
+    """ Make step-like distribution
+
+    step_left: Cartesian coord in Å
+    step_right: Cartesian coord in Å
+    error_func_width: Width in Å.
+    """
     step_left: float  # in Å
     step_right: float  # in Å
     error_func_width: float  # in Å
@@ -117,14 +127,6 @@ class StepDist(Dist):
 
     @property
     def unscaled_dist(self) -> np.ndarray:
-        """ Make step-like distribution
-
-        :param grid: Cartesian coordinates in Å.
-        :param step_left: Cartesian coord in Å
-        :param step_right: Cartesian coord in Å
-        :param error_func_width: Width in Å.
-
-        """
 
         def func_left(dist):
             return - erf(dist / self.error_func_width) / 2 + 0.5

@@ -21,7 +21,11 @@ def in_plane_grid(grid):
 
 
 def test_grid_properties(grid):
-    assert grid.grid_points == [0.0, 0.5, 1.0, 1.5]
+    assert_array_almost_equal(grid.grid_points, np.array([0.0, 0.5, 1.0, 1.5]))
+
+
+def test_grid_neighboring_grid_idx(grid):
+    assert grid.neighboring_grid_idx(0.3) == 1
 
 
 def test_in_plane_grids_rec_lattice(in_plane_grid):

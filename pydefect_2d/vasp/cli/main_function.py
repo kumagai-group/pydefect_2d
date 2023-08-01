@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -13,13 +14,16 @@ from vise.util.logger import get_logger
 
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
+from pydefect_2d.potential.calc_one_d_potential import Calc1DPotential, \
+    OneDGaussChargeModel
 from pydefect_2d.potential.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.grids import Grid, Grids
+from pydefect_2d.potential.one_d_potential import OneDimPotential, ExtremaDist
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
-    GaussChargeModel, FP1dPotential, SlabModel
+    GaussChargeModel, SlabModel
 
 logger = get_logger(__name__)
 
@@ -64,7 +68,8 @@ def make_dielectric_distribution(args):
     diele.to_json_file()
 
 
-def _add_z_pos(filename: str, model: GaussChargeModel):
+def _add_z_pos(filename: str,
+               model: Union[GaussChargeModel, OneDGaussChargeModel]):
     x, y = filename.split(".")
     return f"{x}_{model.defect_z_pos_in_frac:.3}.{y}"
 
@@ -72,6 +77,22 @@ def _add_z_pos(filename: str, model: GaussChargeModel):
 make_gauss_charge_model_msg = \
     """defect_structure_info.json or a set of (supercell_info.json, defect_pos) 
 need to be specified."""
+
+
+def make_1d_gauss_models(args):
+    extrema, gaussian_pos = [], []
+    gauss_pos = np.linspace(args.left, args.right, args.num_mesh, endpoint=True)
+    for pos in gauss_pos:
+        charge_model = OneDGaussChargeModel(args.dielectric_dist.dist.grid,
+                                            args.sigma, pos)
+        calc_1d_pot = Calc1DPotential(args.dielectric_dist, charge_model)
+        pot = calc_1d_pot.potential
+        filename = _add_z_pos(pot.json_filename, charge_model)
+        pot.to_json_file(filename)
+        extrema.append(pot.vac_extremum_pot_pt)
+        gaussian_pos.append(pos)
+    extrema_dist = ExtremaDist(extrema, gaussian_pos)
+    extrema_dist.to_json_file()
 
 
 def make_gauss_charge_model(args):
@@ -128,6 +149,8 @@ def make_isolated_gauss_energy(args):
 def make_fp_1d_potential(args):
     length = args.defect_locpot.structure.lattice.lengths[args.axis]
     grid_num = args.defect_locpot.dim[args.axis]
+    grid = Grid(length, grid_num)
+    charge = args.defect_entry.charge
 
     defect_pot = args.defect_locpot.get_average_along_axis(ind=args.axis)
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=args.axis)
@@ -139,7 +162,7 @@ def make_fp_1d_potential(args):
         print("The size of two LOCPOT files seems different.")
         raise
 
-    FP1dPotential(Grid(length, grid_num), pot).to_json_file("fp_potential.json")
+    OneDimPotential(charge, grid, pot).to_json_file("fp_potential.json")
 
 
 def _get_obj(dir_: Path, filename: str, defect_entry: DefectEntry):

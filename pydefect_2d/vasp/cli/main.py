@@ -13,7 +13,8 @@ from pymatgen.io.vasp import Locpot
 from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
     make_gauss_charge_model, make_fp_1d_potential, \
     calc_gauss_charge_potential, make_slab_model, make_isolated_gauss_energy, \
-    make_correction, make_dielectric_distribution, make_gauss_charge_model_msg
+    make_correction, make_dielectric_distribution, make_gauss_charge_model_msg, \
+    make_1d_gauss_models
 
 
 def parse_args_main_vasp(args):
@@ -38,6 +39,13 @@ def parse_args_main_vasp(args):
     dielectric_dist.add_argument(
         "-d", "--dielectric_dist", required=True, type=loadfn,
         help="dielectric_distribution.json file")
+
+    # -- parent parser
+    defect_entry = argparse.ArgumentParser(
+        description="", add_help=False)
+    defect_entry.add_argument(
+        "-de", "--defect_entry", required=True, type=loadfn,
+        help="defect_entry.json file.")
 
     # --------------------------------------------------------------------------
     parser_plot_volumetric_data = subparsers.add_parser(
@@ -86,6 +94,28 @@ def parse_args_main_vasp(args):
         "--error_func_width", type=float, default=0.3,
         help="Width of error function in Å")
     parser_make_dielectric_dist.set_defaults(func=make_dielectric_distribution)
+
+    # --------------------------------------------------------------------------
+    parser_make_1d_gauss_model = subparsers.add_parser(
+        name="make_1d_gauss_models",
+        description=f"Make 1D Gauss models. {make_gauss_charge_model_msg}",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[dielectric_dist],
+        aliases=['ogm'])
+
+    parser_make_1d_gauss_model.add_argument(
+        "-l", "--left", type=float,
+        help="Position of left side of gauss charge in frac. coord.")
+    parser_make_1d_gauss_model.add_argument(
+        "-r", "--right", type=float,
+        help="Position of right side of gauss charge in frac. coord.")
+    parser_make_1d_gauss_model.add_argument(
+        "-n", "--num_mesh", type=int, default=10,
+        help="Number of .")
+    parser_make_1d_gauss_model.add_argument(
+        "--sigma", default=0.5, type=float,
+        help="Sigma of the gaussian smearing in Å.")
+    parser_make_1d_gauss_model.set_defaults(func=make_1d_gauss_models)
 
     # --------------------------------------------------------------------------
     parser_make_gauss_charge_model = subparsers.add_parser(
@@ -144,6 +174,7 @@ def parse_args_main_vasp(args):
         name="make_fp_1d_potential",
         description="Make planar averaged 1D potential.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[defect_entry],
         aliases=['fp'])
 
     parser_make_fp_1d_potential.add_argument(
@@ -163,7 +194,7 @@ def parse_args_main_vasp(args):
         name="make_slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist],
+        parents=[dielectric_dist, defect_entry],
         aliases=['sm'])
 
     parser_make_slab_model.add_argument(
@@ -172,9 +203,6 @@ def parse_args_main_vasp(args):
     parser_make_slab_model.add_argument(
         "-fp", "--fp_potential", type=loadfn,
         help="fp_potential.json file")
-    parser_make_slab_model.add_argument(
-        "-de", "--defect_entry", required=True, type=loadfn,
-        help="defect_entry.json file.")
     parser_make_slab_model.set_defaults(func=make_slab_model)
 
     # --------------------------------------------------------------------------

@@ -11,8 +11,8 @@ from pydefect_2d.potential.dielectric_distribution import \
 from pydefect_2d.potential.grids import Grid, Grids, XYGrids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
-    GaussChargeModel, SlabModel, FP1dPotential
-
+    GaussChargeModel, SlabModel
+from pydefect_2d.potential.one_d_potential import OneDimPotential
 
 grid = Grid(10., 4)
 
@@ -43,7 +43,7 @@ def potential(epsilon_dist, gauss_charge_model):
 
 @pytest.fixture(scope="session")
 def fp_1d_potential():
-    return FP1dPotential(grid=grid, potential=[0.1, 0.2, 0.3, 0.4])
+    return OneDimPotential(charge_state=1, grid=grid, potential=[0.1, 0.2, 0.3, 0.4])
 
 
 @pytest.fixture(scope="session")

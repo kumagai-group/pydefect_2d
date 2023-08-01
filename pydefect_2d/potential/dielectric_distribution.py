@@ -50,6 +50,10 @@ class DielectricConstDist(MSONable, ToJsonFileMixIn):
     def reciprocal_static(self):
         return [fft(e) for e in self.static]
 
+    @cached_property
+    def reciprocal_static_z(self):
+        return fft(self.static[2])
+
     def __str__(self):
         result = []
         header = ["pos (Å)"]

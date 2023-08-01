@@ -6,21 +6,21 @@ from functools import cached_property
 from itertools import product
 from math import pi
 from multiprocessing import Pool
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 from monty.json import MSONable
 from numpy import exp
 from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fftpack import ifftn, fftn
-from scipy.interpolate import interp1d
 from scipy.linalg import solve
 from tabulate import tabulate
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
-from pydefect_2d.potential.grids import Grid, Grids
+from pydefect_2d.potential.grids import Grids
+from pydefect_2d.potential.one_d_potential import OneDimPotential
 
 
 @dataclass
@@ -94,7 +94,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 @dataclass
 class GaussChargePotential(MSONable, ToJsonFileMixIn):
     grids: Grids  # assume orthogonal system
-    potential: np.array  # potential for positive charge
+    potential: np.ndarray  # potential for positive charge
 
     @cached_property
     def xy_ave_potential(self):
@@ -197,27 +197,12 @@ class CalcGaussChargePotential:
 
 
 @dataclass
-class FP1dPotential(MSONable, ToJsonFileMixIn):
-    grid: Grid
-    potential: List[float]
-
-    @cached_property
-    def interpol_pot_func(self):
-        return interp1d(self.grid.grid_points, self.potential)
-
-    def to_plot(self, ax):
-        ax.set_ylabel("Potential (V)")
-        ax.plot(self.grid.grid_points, self.potential,
-                label="potential", color="blue")
-
-
-@dataclass
 class SlabModel(MSONable, ToJsonFileMixIn):
     diele_dist: DielectricConstDist  # [ε_x, ε_y, ε_z] as a function of z
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
     charge_state: int
-    fp_potential: FP1dPotential = None
+    fp_potential: OneDimPotential = None
 
     def __post_init__(self):
         assert (self.diele_dist.dist.length
