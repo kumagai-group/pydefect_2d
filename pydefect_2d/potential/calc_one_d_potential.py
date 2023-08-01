@@ -19,6 +19,7 @@ class OneDGaussChargeModel:
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grid: Grid
     sigma: float
+    surface: float  # in Å^2
     defect_z_pos_in_frac: float  # in fractional coord. x=y=0
     periodic_charges: np.array = None
 
@@ -28,8 +29,7 @@ class OneDGaussChargeModel:
 
     @property
     def _make_periodic_gauss_charge_profile(self):
-        coefficient = 1 / self.sigma ** 3 / (2 * pi) ** 1.5
-        print(self.grid)
+        coefficient = 1 / self.sigma / (2 * pi) ** 0.5 / self.surface
         gauss = np.zeros(self.grid.num_grid)
         for nz, lz in enumerate(self.grid.grid_points):
             gauss[nz] = exp(-self._min_z2(lz) / (2 * self.sigma ** 2))
@@ -54,7 +54,9 @@ class Calc1DPotential:
 
     @property
     def _rec_charge(self):
-        return fft(self.one_d_gauss_charge_model.periodic_charges)
+        result = fft(self.one_d_gauss_charge_model.periodic_charges)
+        result[0] = 0.0
+        return result
 
     def _solve_poisson_eq(self):
         z_num_grid = self.one_d_gauss_charge_model.grid.num_grid
@@ -77,8 +79,8 @@ class Calc1DPotential:
 
     @cached_property
     def reciprocal_potential(self):
-        return (self._solve_poisson_eq() / epsilon_0 * elementary_charge
-                / angstrom)
+        inv_pot = self._solve_poisson_eq()
+        return inv_pot / epsilon_0 * elementary_charge / angstrom
 
     @cached_property
     def potential(self):
