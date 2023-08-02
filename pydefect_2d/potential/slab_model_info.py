@@ -20,7 +20,7 @@ from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grids
-from pydefect_2d.potential.one_d_potential import OneDimPotential
+from pydefect_2d.potential.one_d_potential import OneDPotential
 
 
 @dataclass
@@ -28,7 +28,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grids: Grids
     sigma: float
-    defect_z_pos_in_frac: float  # in fractional coord. x=y=0
+    gauss_pos_in_frac: float  # in fractional coord. x=y=0
     periodic_charges: np.array = None
 
     def __str__(self):
@@ -43,7 +43,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     @property
     def defect_z_pos_in_length(self):
-        return self.defect_z_pos_in_frac * self.grids.z_length
+        return self.gauss_pos_in_frac * self.grids.z_length
 
     @property
     def _make_periodic_gauss_charge_profile(self):
@@ -61,7 +61,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     def _min_z2(self, lz):
         return min(
-            [abs(lz - self.grids.z_length * (i + self.defect_z_pos_in_frac))
+            [abs(lz - self.grids.z_length * (i + self.gauss_pos_in_frac))
              for i in range(-1, 2)]
         ) ** 2
 
@@ -81,7 +81,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:
-        rel_z_in_frac = (self.defect_z_pos_in_frac + 0.5) % 1.
+        rel_z_in_frac = (self.gauss_pos_in_frac + 0.5) % 1.
         z = self.grids.z_length * rel_z_in_frac
         return self.grids.nearest_z_grid_point(z)
 
@@ -202,7 +202,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
     charge_state: int
-    fp_potential: OneDimPotential = None
+    fp_potential: OneDPotential = None
 
     def __post_init__(self):
         assert (self.diele_dist.dist.length

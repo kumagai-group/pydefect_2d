@@ -8,7 +8,7 @@ from typing import List, Tuple
 
 import numpy as np
 from monty.json import MSONable
-from numpy import linspace, pi, inner, argmin
+from numpy import linspace, pi, inner, argmin, argmax
 from numpy.linalg import inv
 
 
@@ -26,7 +26,7 @@ class Grid(MSONable):
 
     @cached_property
     def grid_points_w_end(self) -> np.ndarray:
-        return linspace(0, self.length, self.num_grid, endpoint=True)
+        return linspace(0, self.length, self.num_grid + 1, endpoint=True)
 
     @property
     def mesh_dist(self):
@@ -36,8 +36,23 @@ class Grid(MSONable):
     def Gs(self):
         return 2 * pi / self.length * reduced_zone_idx(self.num_grid)
 
-    def neighboring_grid_idx(self, pos):
-        return argmin(abs(self.grid_points - pos))
+    def nearest_grid_point(self, z) -> Tuple[int, float]:
+        """
+         :returns
+            Tuple of nearest index and its z value.
+        """
+        aaa = []
+        for i, pt in enumerate(self.grid_points):
+            min_d = min([abs(pt - z + self.length * i) for i in [-1, 0, 1]])
+            aaa.append((i, min_d))
+
+        return min(aaa, key=lambda x: x[1])
+
+    def farthest_grid_point(self, pos, in_frac_coords=False):
+        p = (pos if in_frac_coords else pos / self.length) % 1.0
+        rel_z_in_frac = (p + 0.5) % 1.
+        z = self.length * rel_z_in_frac
+        return self.nearest_grid_point(z)[0]
 
 
 @dataclass

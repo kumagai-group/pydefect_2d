@@ -11,7 +11,7 @@ def main():
     obj = loadfn(filename)
     try:
         obj.to_plot(plt.gca())
-        pdf_name = filename.split(".")[0] + ".pdf"
+        pdf_name = filename.replace(".json", ".pdf")
         plt.savefig(pdf_name)
     except AttributeError:
         print(f"to_plot method is not implemented in {obj.__class__}")

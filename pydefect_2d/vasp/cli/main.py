@@ -14,7 +14,7 @@ from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
     make_gauss_charge_model, make_fp_1d_potential, \
     calc_gauss_charge_potential, make_slab_model, make_isolated_gauss_energy, \
     make_correction, make_dielectric_distribution, make_gauss_charge_model_msg, \
-    make_1d_gauss_models
+    make_1d_gauss_models, set_gauss_pos
 
 
 def parse_args_main_vasp(args):
@@ -96,26 +96,57 @@ def parse_args_main_vasp(args):
     parser_make_dielectric_dist.set_defaults(func=make_dielectric_distribution)
 
     # --------------------------------------------------------------------------
+    parser_make_fp_1d_potential = subparsers.add_parser(
+        name="make_fp_1d_potential",
+        description="Make planar averaged 1D potential.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[defect_entry],
+        aliases=['fp'])
+
+    parser_make_fp_1d_potential.add_argument(
+        "-dl", "--defect_locpot", required=True, type=Locpot.from_file,
+        help="LOCPOT file from a defect calculation.")
+    parser_make_fp_1d_potential.add_argument(
+        "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
+        help="LOCPOT file from a perfect supercell calculation.")
+    parser_make_fp_1d_potential.add_argument(
+        "-a", "--axis", type=int, choices=[0, 1, 2], default=2,
+        help="Set axis along the normal direction to slab model. "
+             "0, 1, and 2 correspond to x, y, and z directions, respectively")
+    parser_make_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
+
+    # --------------------------------------------------------------------------
     parser_make_1d_gauss_model = subparsers.add_parser(
         name="make_1d_gauss_models",
-        description=f"Make 1D Gauss models. {make_gauss_charge_model_msg}",
+        description=f"Make 1D Gauss models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[dielectric_dist],
         aliases=['ogm'])
 
     parser_make_1d_gauss_model.add_argument(
-        "-l", "--left", type=float,
-        help="Position of left side of gauss charge in frac. coord.")
-    parser_make_1d_gauss_model.add_argument(
-        "-r", "--right", type=float,
-        help="Position of right side of gauss charge in frac. coord.")
+        "-r", "--range", type=float, nargs=2,
+        help="Position of left side of gauss charge in fractional coord.")
     parser_make_1d_gauss_model.add_argument(
         "-n", "--num_mesh", type=int, default=10,
-        help="Number of .")
+        help="Number of mesh.")
     parser_make_1d_gauss_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing in Å.")
     parser_make_1d_gauss_model.set_defaults(func=make_1d_gauss_models)
+
+    # --------------------------------------------------------------------------
+    parser_set_gauss_charge_pos = subparsers.add_parser(
+        name="set_gauss_charge_pos",
+        description=f"Set Gauss charge position.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        aliases=['sgcp'])
+
+    parser_set_gauss_charge_pos.add_argument(
+        "-fp", "--fp_potential", type=loadfn,
+        help="OneDPotential object obtained from first principles calculations")
+    parser_set_gauss_charge_pos.add_argument(
+        "-e", "--extrema_dist", type=loadfn)
+    parser_set_gauss_charge_pos.set_defaults(func=set_gauss_pos)
 
     # --------------------------------------------------------------------------
     parser_make_gauss_charge_model = subparsers.add_parser(
@@ -170,31 +201,11 @@ def parse_args_main_vasp(args):
     parser_isolated_gauss_energy.set_defaults(func=make_isolated_gauss_energy)
 
     # --------------------------------------------------------------------------
-    parser_make_fp_1d_potential = subparsers.add_parser(
-        name="make_fp_1d_potential",
-        description="Make planar averaged 1D potential.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[defect_entry],
-        aliases=['fp'])
-
-    parser_make_fp_1d_potential.add_argument(
-        "-dl", "--defect_locpot", required=True, type=Locpot.from_file,
-        help="LOCPOT file from a defect calculation.")
-    parser_make_fp_1d_potential.add_argument(
-        "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
-        help="LOCPOT file from a perfect supercell calculation.")
-    parser_make_fp_1d_potential.add_argument(
-        "-a", "--axis", type=int, choices=[0, 1, 2], default=2,
-        help="Set axis along the normal direction to slab model. "
-             "0, 1, and 2 correspond to x, y, and z directions, respectively")
-    parser_make_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
-
-    # --------------------------------------------------------------------------
     parser_make_slab_model = subparsers.add_parser(
         name="make_slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, defect_entry],
+        parents=[dielectric_dist],
         aliases=['sm'])
 
     parser_make_slab_model.add_argument(

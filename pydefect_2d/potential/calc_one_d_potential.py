@@ -11,7 +11,7 @@ from scipy.linalg import solve
 
 from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grid
-from pydefect_2d.potential.one_d_potential import OneDimPotential
+from pydefect_2d.potential.one_d_potential import OneDPotential
 
 
 @dataclass
@@ -19,8 +19,8 @@ class OneDGaussChargeModel:
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grid: Grid
     sigma: float
-    surface: float  # in Å^2
-    defect_z_pos_in_frac: float  # in fractional coord. x=y=0
+    gauss_pos_in_frac: float  # in fractional coord. x=y=0
+    surface: float = None  # in Å^2
     periodic_charges: np.array = None
 
     def __post_init__(self):
@@ -28,8 +28,12 @@ class OneDGaussChargeModel:
             self.periodic_charges = self._make_periodic_gauss_charge_profile
 
     @property
+    def _surface(self):
+        return self.surface or 1.0
+
+    @property
     def _make_periodic_gauss_charge_profile(self):
-        coefficient = 1 / self.sigma / (2 * pi) ** 0.5 / self.surface
+        coefficient = 1 / self.sigma / (2 * pi) ** 0.5 / self._surface
         gauss = np.zeros(self.grid.num_grid)
         for nz, lz in enumerate(self.grid.grid_points):
             gauss[nz] = exp(-self._min_z2(lz) / (2 * self.sigma ** 2))
@@ -38,7 +42,7 @@ class OneDGaussChargeModel:
 
     def _min_z2(self, lz):
         return min(
-            [abs(lz - self.grid.length * (i + self.defect_z_pos_in_frac))
+            [abs(lz - self.grid.length * (i + self.gauss_pos_in_frac))
              for i in range(-1, 2)]
         ) ** 2
 
@@ -85,4 +89,4 @@ class Calc1DPotential:
     @cached_property
     def potential(self):
         real = np.real(ifft(self.reciprocal_potential))
-        return OneDimPotential(self.one_d_gauss_charge_model.grid, real)
+        return OneDPotential(self.one_d_gauss_charge_model.grid, real)

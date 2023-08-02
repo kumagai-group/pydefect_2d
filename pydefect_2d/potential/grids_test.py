@@ -25,7 +25,11 @@ def test_grid_properties(grid):
 
 
 def test_grid_neighboring_grid_idx(grid):
-    assert grid.neighboring_grid_idx(0.3) == 1
+    assert grid.farthest_grid_point(0.3) == 3
+    assert grid.farthest_grid_point(2.3) == 3
+    assert grid.farthest_grid_point(0.3751, in_frac_coords=True) == 0
+    assert grid.farthest_grid_point(0.3749, in_frac_coords=True) == 3
+    assert grid.farthest_grid_point(0.8751, in_frac_coords=True) == 2
 
 
 def test_in_plane_grids_rec_lattice(in_plane_grid):

@@ -18,7 +18,7 @@ def test_calc_1d_potential():
     charge_model = OneDGaussChargeModel(grid=grid,
                                         surface=100.,
                                         sigma=0.1,
-                                        defect_z_pos_in_frac=0.5)
+                                        gauss_pos_in_frac=0.5)
     diele_dist = DielectricConstDist([1.]*3, [0.]*3, dist)
 
     calc_1_potential = Calc1DPotential(diele_dist, charge_model)

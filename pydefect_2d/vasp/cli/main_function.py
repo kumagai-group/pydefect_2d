@@ -20,7 +20,7 @@ from pydefect_2d.potential.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.potential.one_d_potential import OneDimPotential, ExtremaDist
+from pydefect_2d.potential.one_d_potential import OneDPotential, ExtremaDist
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
@@ -71,7 +71,7 @@ def make_dielectric_distribution(args):
 def _add_z_pos(filename: str,
                model: Union[GaussChargeModel, OneDGaussChargeModel]):
     x, y = filename.split(".")
-    return f"{x}_{model.defect_z_pos_in_frac:.3}.{y}"
+    return f"{x}_{model.gauss_pos_in_frac:.3f}.{y}"
 
 
 make_gauss_charge_model_msg = \
@@ -81,18 +81,43 @@ need to be specified."""
 
 def make_1d_gauss_models(args):
     extrema, gaussian_pos = [], []
-    gauss_pos = np.linspace(args.left, args.right, args.num_mesh, endpoint=True)
+    prev_extremum = None
+    left, right = args.range
+    assert left < right
+    assert right - left < 0.5
+    gauss_pos = np.linspace(left, right, args.num_mesh, endpoint=True)
+
     for pos in gauss_pos:
-        charge_model = OneDGaussChargeModel(args.dielectric_dist.dist.grid,
-                                            args.sigma, pos)
+        charge_model = OneDGaussChargeModel(grid=args.dielectric_dist.dist.grid,
+                                            sigma=args.sigma,
+                                            gauss_pos_in_frac=pos)
         calc_1d_pot = Calc1DPotential(args.dielectric_dist, charge_model)
+
         pot = calc_1d_pot.potential
         filename = _add_z_pos(pot.json_filename, charge_model)
         pot.to_json_file(filename)
-        extrema.append(pot.vac_extremum_pot_pt)
+
         gaussian_pos.append(pos)
+
+        extremum = pot.vac_extremum_pot_pt
+        if prev_extremum:
+            if abs(prev_extremum - extremum) > 0.5:
+                extremum += np.sign(prev_extremum - extremum)
+        prev_extremum = extremum
+        extrema.append(extremum)
+
     extrema_dist = ExtremaDist(extrema, gaussian_pos)
     extrema_dist.to_json_file()
+    extrema_dist.to_plot(plt.gca())
+    plt.savefig("extrema_dist.pdf")
+
+
+def set_gauss_pos(args):
+    p = args.fp_potential
+    extrema_dist: ExtremaDist = args.extrema_dist
+    p.gauss_pos = extrema_dist.gauss_pos_from_extremum(p.vac_extremum_pot_pt)
+    print(p)
+    p.to_json_file("fp_potential.json")
 
 
 def make_gauss_charge_model(args):
@@ -109,7 +134,8 @@ def make_gauss_charge_model(args):
         logger.info(make_gauss_charge_model_msg)
         raise
 
-    grids = Grids.from_z_num_grid(lat.matrix[:2, :2], args.dielectric_dist.dist)
+    grids = Grids.from_z_num_grid(lat.matrix[:2, :2],
+                                  args.dielectric_dist.dist.grid)
 
     model = GaussChargeModel(grids, args.sigma, defect_z_pos)
     filename = _add_z_pos(model.json_filename, model)
@@ -162,12 +188,12 @@ def make_fp_1d_potential(args):
         print("The size of two LOCPOT files seems different.")
         raise
 
-    OneDimPotential(charge, grid, pot).to_json_file("fp_potential.json")
+    OneDPotential(grid, pot, charge).to_json_file("fp_potential.json")
 
 
-def _get_obj(dir_: Path, filename: str, defect_entry: DefectEntry):
+def _get_obj(dir_: Path, filename: str, fp_potential: OneDPotential):
     x, y = filename.split(".")
-    filename = dir_ / f"{x}_{defect_entry.defect_center[2]:.3}.{y}"
+    filename = dir_ / f"{x}_{fp_potential.gauss_pos:.3}.{y}"
     try:
         return loadfn(filename)
     except FileNotFoundError:
@@ -180,15 +206,15 @@ def make_slab_model(args):
 
     This should be placed at each defect calc dir.
     """
-    d, de = args.correction_dir, args.defect_entry
-    gauss_charge_model = _get_obj(d, "gauss_charge_model.json", de)
-    gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", de)
+    d, fp = args.correction_dir, args.fp_potential
+    gauss_charge_model = _get_obj(d, "gauss_charge_model.json", fp)
+    gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", fp)
 
     slab_model = SlabModel(diele_dist=args.dielectric_dist,
                            gauss_charge_model=gauss_charge_model,
                            gauss_charge_potential=gauss_charge_pot,
-                           charge_state=args.defect_entry.charge,
-                           fp_potential=args.fp_potential)
+                           charge_state=fp.charge_state,
+                           fp_potential=fp)
     slab_model.to_json_file()
     ProfilePlotter(plt, slab_model)
     plt.savefig("potential_profile.pdf")
