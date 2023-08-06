@@ -11,7 +11,8 @@ from scipy.linalg import solve
 
 from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grid
-from pydefect_2d.potential.one_d_potential import OneDPotential
+from pydefect_2d.potential.one_d_potential import OneDPotential, \
+    Gauss1DPotential
 
 
 @dataclass
@@ -89,4 +90,6 @@ class Calc1DPotential:
     @cached_property
     def potential(self):
         real = np.real(ifft(self.reciprocal_potential))
-        return OneDPotential(self.one_d_gauss_charge_model.grid, real)
+        return Gauss1DPotential(self.one_d_gauss_charge_model.grid,
+                                real,
+                                self.one_d_gauss_charge_model.gauss_pos_in_frac)

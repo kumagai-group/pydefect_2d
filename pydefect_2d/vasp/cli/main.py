@@ -132,6 +132,12 @@ def parse_args_main_vasp(args):
     parser_make_1d_gauss_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing in Å.")
+    parser_make_1d_gauss_model.add_argument(
+        "-si", "--supercell_info", type=loadfn,
+        help="supercell_info.json file.")
+    parser_make_1d_gauss_model.add_argument(
+        "-fp", "--fp_potential", type=loadfn,
+        help="OneDPotential object obtained from first principles calculations")
     parser_make_1d_gauss_model.set_defaults(func=make_1d_gauss_models)
 
     # --------------------------------------------------------------------------
@@ -145,7 +151,11 @@ def parse_args_main_vasp(args):
         "-fp", "--fp_potential", type=loadfn,
         help="OneDPotential object obtained from first principles calculations")
     parser_set_gauss_charge_pos.add_argument(
-        "-e", "--extrema_dist", type=loadfn)
+        "-g", "--gauss_1d_pots", type=loadfn, nargs="+",
+        help="")
+    parser_set_gauss_charge_pos.add_argument(
+        "-de", "--defect_entry", required=True, type=loadfn,
+        help="defect_entry.json file.")
     parser_set_gauss_charge_pos.set_defaults(func=set_gauss_pos)
 
     # --------------------------------------------------------------------------
@@ -224,8 +234,8 @@ def parse_args_main_vasp(args):
         aliases=['c'])
 
     parser_make_correction.add_argument(
-        "-de", "--defect_entry", required=True, type=loadfn,
-        help="defect_entry.json file.")
+        "-fp", "--fp_potential", type=loadfn,
+        help="fp_potential.json file")
     parser_make_correction.add_argument(
         "-cd", "--correction_dir", required=True, type=Path,
         help="")

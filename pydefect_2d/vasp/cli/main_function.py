@@ -9,6 +9,7 @@ from monty.serialization import loadfn
 from numpy.testing import assert_almost_equal
 from pydefect.analyzer.defect_structure_info import DefectStructureInfo
 from pydefect.input_maker.defect_entry import DefectEntry
+from pymatgen.core import Structure
 from pymatgen.io.vasp import Chgcar, Locpot
 from vise.util.logger import get_logger
 
@@ -20,7 +21,8 @@ from pydefect_2d.potential.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.potential.one_d_potential import OneDPotential, ExtremaDist
+from pydefect_2d.potential.one_d_potential import OneDPotential, OneDPotDiff, \
+    PotDiffGradDist, Fp1DPotential
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
@@ -80,44 +82,53 @@ need to be specified."""
 
 
 def make_1d_gauss_models(args):
-    extrema, gaussian_pos = [], []
-    prev_extremum = None
     left, right = args.range
     assert left < right
     assert right - left < 0.5
     gauss_pos = np.linspace(left, right, args.num_mesh, endpoint=True)
 
+    supercell: Structure = args.supercell_info.structure
+    a, b = supercell.lattice.matrix[:2, :2]
+    xy_area = np.linalg.norm(np.cross(a, b))
+
+    grid = args.fp_potential.grid
+    diele = args.dielectric_dist
+    diele.dist.num_grid = grid.num_grid
+
     for pos in gauss_pos:
-        charge_model = OneDGaussChargeModel(grid=args.dielectric_dist.dist.grid,
+        charge_model = OneDGaussChargeModel(grid=grid,
                                             sigma=args.sigma,
+                                            surface=xy_area,
                                             gauss_pos_in_frac=pos)
-        calc_1d_pot = Calc1DPotential(args.dielectric_dist, charge_model)
+        calc_1d_pot = Calc1DPotential(diele, charge_model)
 
         pot = calc_1d_pot.potential
         filename = _add_z_pos(pot.json_filename, charge_model)
         pot.to_json_file(filename)
 
-        gaussian_pos.append(pos)
+        pot.to_plot(plt.gca())
+    plt.savefig("1d_pot.pdf")
 
-        extremum = pot.vac_extremum_pot_pt
-        if prev_extremum:
-            if abs(prev_extremum - extremum) > 0.5:
-                extremum += np.sign(prev_extremum - extremum)
-        prev_extremum = extremum
-        extrema.append(extremum)
-
-    extrema_dist = ExtremaDist(extrema, gaussian_pos)
-    extrema_dist.to_json_file()
-    extrema_dist.to_plot(plt.gca())
-    plt.savefig("extrema_dist.pdf")
+#        SlabModel(args.dielectric_dist, charge_model, pot, charge_state=1)
 
 
 def set_gauss_pos(args):
-    p = args.fp_potential
-    extrema_dist: ExtremaDist = args.extrema_dist
-    p.gauss_pos = extrema_dist.gauss_pos_from_extremum(p.vac_extremum_pot_pt)
-    print(p)
-    p.to_json_file("fp_potential.json")
+    grads, gaussian_pos = [], []
+
+    for gauss_1d_pot in args.gauss_1d_pots:
+        gauss_1d_pot.charge_state = args.defect_entry.charge
+        diff = OneDPotDiff(fp_pot=args.fp_potential, gauss_pot=gauss_1d_pot)
+        grads.append(diff.pot_diff_grad)
+        gaussian_pos.append(gauss_1d_pot.gauss_pos)
+
+    pot_grads = PotDiffGradDist(grads, gaussian_pos)
+    pot_grads.to_json_file()
+    pot_grads.to_plot(plt.gca())
+    plt.show()
+
+    args.fp_potential.gauss_pos = pot_grads.gauss_pos_from_min_grad()
+    print(args.fp_potential.gauss_pos)
+    args.fp_potential.to_json_file()
 
 
 def make_gauss_charge_model(args):
@@ -188,12 +199,12 @@ def make_fp_1d_potential(args):
         print("The size of two LOCPOT files seems different.")
         raise
 
-    OneDPotential(grid, pot, charge).to_json_file("fp_potential.json")
+    Fp1DPotential(grid, pot, charge).to_json_file()
 
 
-def _get_obj(dir_: Path, filename: str, fp_potential: OneDPotential):
+def _get_obj(dir_: Path, filename: str, fp_potential: Fp1DPotential):
     x, y = filename.split(".")
-    filename = dir_ / f"{x}_{fp_potential.gauss_pos:.3}.{y}"
+    filename = dir_ / f"{x}_{fp_potential.gauss_pos:.3f}.{y}"
     try:
         return loadfn(filename)
     except FileNotFoundError:
@@ -227,7 +238,7 @@ def make_correction(args):
     """
     isolated_gauss_energy = _get_obj(args.correction_dir,
                                      "isolated_gauss_energy.json",
-                                     args.defect_entry)
+                                     args.fp_potential)
     squared_charge_state = args.slab_model.charge_state ** 2
     isolated_energy = isolated_gauss_energy.self_energy * squared_charge_state
     correction = Gauss2dCorrection(args.slab_model.charge_state,
