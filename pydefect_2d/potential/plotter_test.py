@@ -20,7 +20,7 @@ def test_plot_profile():
                                      ave_ion=[1., 1., 1.0], dist=dist)
 
     charges = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-    grids = Grids.from_z_num_grid(np.array([[10., 0.], [0., 10.]]), grid)
+    grids = Grids.from_z_grid(np.array([[10., 0.], [0., 10.]]), grid)
     charge = GaussChargeModel(grids=grids,
                               sigma=1.0,
                               defect_z_pos_in_frac=0.0,

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 import multiprocessing as multi
+from abc import ABC
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import combinations_with_replacement
@@ -9,7 +10,7 @@ from typing import List
 
 import numpy as np
 from monty.json import MSONable
-from numpy import cos, exp, linspace
+from numpy import cos, exp, log10
 from scipy import integrate, e
 from scipy.constants import pi, epsilon_0, elementary_charge, angstrom
 from scipy.fft import fft
@@ -17,21 +18,29 @@ from scipy.linalg import pinvh
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
+from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.slab_model_info import GaussChargeModel
 
 
 @dataclass
 class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
     gauss_charge_model: GaussChargeModel
-    diele_dist_xy: List[float]
-    diele_dist_z: List[float]
+    diele_const_dist: DielectricConstDist
     k_max: float
-    k_mesh_dist: float
+    num_k_mesh: int
+    effective: bool = False
     multiprocess: bool = True
     _U_ks: np.ndarray = None
 
     def __post_init__(self):
         self.U_ks
+
+    @property
+    def diele_const(self) -> np.ndarray:
+        if self.effective:
+            return self.diele_const_dist.effective
+        else:
+            return self.diele_const_dist.static
 
     @property
     def sigma(self):
@@ -43,34 +52,32 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def z0(self):
-        # in Å
-        return self.gauss_charge_model.defect_z_pos_in_length
+        return self.gauss_charge_model.gauss_pos_in_cart
 
     @property
     def num_grid(self):
-        return len(self.diele_dist_z)
+        return self.diele_const_dist.dist.num_grid
 
     @property
     def ks(self):
-        mesh_num = int(self.k_max / self.k_mesh_dist) + 1
-        result = linspace(0, self.k_max, mesh_num, endpoint=True)
-        return result[1:]
+        return np.logspace(log10(0.001), log10(self.k_max),
+                           num=self.num_k_mesh - 1, endpoint=True)
 
     @cached_property
     def Gs(self):
         # reduced zone.
         half = int(self.num_grid / 2)
-        return ([2*pi*n/self.L for n in range(half)]
-                + [-2*pi*n/self.L for n in range(half, 0, -1)])
+        return ([-2*pi*n/self.L for n in range(half, 0, -1)]
+                + [2*pi*n/self.L for n in range(half)])
 
     @cached_property
     def rec_delta_epsilon_z(self) -> List[float]:
         # Need to be compatible with Gs
-        return fft(np.array(self.diele_dist_z) - 1.0) / self.num_grid
+        return fft(np.array(self.diele_const[2]) - 1.0) / self.num_grid
 
     @cached_property
     def rec_delta_epsilon_xy(self) -> List[float]:
-        return fft(np.array(self.diele_dist_xy) - 1.0) / self.num_grid
+        return fft(np.array(self.diele_const[0]) - 1.0) / self.num_grid
 
     def inv_K_G(self, G, k):
         denominator = 1. - e**(-k*self.L/2) * cos(G*self.L/2)
@@ -86,20 +93,18 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         result = self.inv_K_G(G_i, k) if i == j else 0.0
         L, rec_de_z, rec_de_xy = \
             self.L, self.rec_delta_epsilon_z, self.rec_delta_epsilon_xy
-        second_term = L * (rec_de_z[i-j] * G_i*G_j + rec_de_xy[i-j] * k**2)
-        denominator = 1. - e**(-k*self.L/2) * cos(G_i*self.L/2)
-        second_term /= denominator
-        result += second_term
+        result += L * (rec_de_z[i-j] * G_i*G_j + rec_de_xy[i-j] * k**2)
         return result
 
-    def D(self, k) -> np.array:
-        result = np.zeros(shape=[self.num_grid, self.num_grid],dtype=complex)
+    def D(self, k) -> np.ndarray:
+        result = np.zeros(shape=[self.num_grid, self.num_grid], dtype=complex)
         result[:] = np.nan
         for i, j in combinations_with_replacement(range(self.num_grid), 2):
             result[i, j] = result[j, i] = self.D_GG(i, j, k)
         return result
 
-    def inv_D(self, k) -> np.array:
+    def inv_D(self, k) -> np.ndarray:
+        """pseudo-inverse of a Hermitian matrix."""
         return pinvh(self.D(k))
 
     def U_k(self, k):
@@ -107,16 +112,10 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         inv_D = self.inv_D(k)
         for i, G_i in enumerate(self.Gs):
             for j, G_j in enumerate(self.Gs):
-                exp_inner = 0.+1.j*(G_i-G_j)*self.z0 \
-                            - (G_i**2+G_j**2)*self.sigma**2/2
-                result += exp(exp_inner) * inv_D[i, j]
+                exp_inner = ((0.+1.j) * (G_i - G_j) * self.z0
+                             - (G_i ** 2 + G_j ** 2) * self.sigma ** 2 / 2)
+                result += exp(exp_inner) * inv_D[j, i]
         return result
-
-        # return sum([exp(-(G_i*self.sigma)**2) / (k**2+G_i**2) * (1. - e**(-k*self.L/2) * cos(G_i*self.L/2))
-        #             for G_i in self.Gs]) / self.L
-        # return sum([exp(-(G_i*self.sigma)**2) / (k**2+G_i**2)
-        #               for G_i in self.Gs]) / self.L
-        # return exp(self.sigma**2 * k**2) / k * erfc(self.sigma * k) / 2
 
     @cached_property
     def U_ks(self):
@@ -140,8 +139,11 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def self_energy(self):
-        x, y = np.insert(self.ks, 0, 0.0), np.insert(self.Us, 0, 0.0)
-        return integrate.trapz(y, x)
+        linear_model = np.polyfit(self.ks[:2], self.Us[:2], 1)
+        linear_model_fn = np.poly1d(linear_model)
+        x0, y0, = 0.0, linear_model_fn(0.0)
+        x, y = np.insert(self.ks, 0, x0), np.insert(self.Us, 0, y0)
+        return integrate.simps(y, x)
 
     def to_plot(self, plt):
         fig, axs = plt.subplots(3, 1, tight_layout=True, sharex=True)
@@ -149,7 +151,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         for ax, vals in zip(axs, [self.k_exps, self.U_ks, self.Us]):
             ax.set_yscale('log')
             x = np.insert(self.ks, 0, 0.0)
-            y = np.insert(vals, 0, 0.0)
+            y = np.insert(vals, 0, vals[0])
             ax.plot(x, y)
 
     def __str__(self):

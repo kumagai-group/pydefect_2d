@@ -26,7 +26,11 @@ class DielectricConstDist(MSONable, ToJsonFileMixIn):
 
     @property
     def grid_points(self):
-        return self.dist.grid_points
+        return self.dist.grid_points()
+
+    @property
+    def ave_static(self) -> List[float]:
+        return [self.ave_static_x, self.ave_static_y, self.ave_static_z]
 
     @property
     def ave_static_x(self) -> float:
@@ -47,12 +51,40 @@ class DielectricConstDist(MSONable, ToJsonFileMixIn):
                 self.dist.diele_out_of_plane_scale(self.ave_static_z)]
 
     @cached_property
+    def electronic(self):
+        return [self.dist.diele_in_plane_scale(self.ave_ele[0]),
+                self.dist.diele_in_plane_scale(self.ave_ele[1]),
+                self.dist.diele_out_of_plane_scale(self.ave_ele[2])]
+
+    @cached_property
+    def effective(self):
+        result = []
+        for s, e in zip(self.static, self.electronic):
+            inner = []
+            for ss, ee in zip(s, e):
+                aa = 1/ee - 1/ss
+                if abs(aa) < 1e-7:
+                    inner.append(10**7)
+                else:
+                    inner.append(1/aa)
+            result.append(inner)
+        return result
+
+    @cached_property
     def reciprocal_static(self):
         return [fft(e) for e in self.static]
 
     @cached_property
+    def reciprocal_effective(self):
+        return [fft(e) for e in self.effective]
+
+    @cached_property
     def reciprocal_static_z(self):
         return fft(self.static[2])
+
+    @cached_property
+    def reciprocal_effective_z(self):
+        return fft(self.effective[2])
 
     def __str__(self):
         result = []

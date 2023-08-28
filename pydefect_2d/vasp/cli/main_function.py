@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
+import glob
+import shutil
 from pathlib import Path
 from typing import Union
 
 import numpy as np
 from matplotlib import pyplot as plt
 from monty.serialization import loadfn
-from numpy.testing import assert_almost_equal
 from pydefect.analyzer.defect_structure_info import DefectStructureInfo
-from pydefect.input_maker.defect_entry import DefectEntry
+from pydefect.corrections.site_potential_plotter import SitePotentialMplPlotter
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Chgcar, Locpot
 from vise.util.logger import get_logger
@@ -21,8 +22,9 @@ from pydefect_2d.potential.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.potential.one_d_potential import OneDPotential, OneDPotDiff, \
-    PotDiffGradDist, Fp1DPotential
+from pydefect_2d.potential.make_site_potential import make_potential_sites
+from pydefect_2d.potential.one_d_potential import OneDPotDiff, \
+    PotDiffGradients, Fp1DPotential
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
@@ -41,11 +43,11 @@ def plot_volumetric_data(args):
         raise ValueError
 
     ax = plt.gca()
-    z_grid = vol_data.get_axis_grid(2)
-    values = vol_data.get_average_along_axis(ind=2)
-    if is_sum:
-        surface_area = np.prod(vol_data.structure.lattice.lengths[:2])
-        values *= surface_area
+    z_grid = vol_data.get_axis_grid(args.direction)
+    values = vol_data.get_average_along_axis(ind=args.direction)
+#    if is_sum:
+#        surface_area = np.prod(vol_data.structure.lattice.lengths[:2])
+#        values *= surface_area
     ax.plot(z_grid, values, color="red")
     plt.savefig(f"{args.filename}.pdf")
 
@@ -89,18 +91,20 @@ def make_1d_gauss_models(args):
 
     supercell: Structure = args.supercell_info.structure
     a, b = supercell.lattice.matrix[:2, :2]
+    c = supercell.lattice.c
     xy_area = np.linalg.norm(np.cross(a, b))
 
-    grid = args.fp_potential.grid
     diele = args.dielectric_dist
-    diele.dist.num_grid = grid.num_grid
+    diele.dist.num_grid = args.num_grid
+    grid = Grid(c, args.num_grid)
 
     for pos in gauss_pos:
         charge_model = OneDGaussChargeModel(grid=grid,
                                             sigma=args.sigma,
                                             surface=xy_area,
                                             gauss_pos_in_frac=pos)
-        calc_1d_pot = Calc1DPotential(diele, charge_model)
+        calc_1d_pot = Calc1DPotential(diele, charge_model,
+                                      effective=args.effective)
 
         pot = calc_1d_pot.potential
         filename = _add_z_pos(pot.json_filename, charge_model)
@@ -118,16 +122,16 @@ def set_gauss_pos(args):
     for gauss_1d_pot in args.gauss_1d_pots:
         gauss_1d_pot.charge_state = args.defect_entry.charge
         diff = OneDPotDiff(fp_pot=args.fp_potential, gauss_pot=gauss_1d_pot)
-        grads.append(diff.pot_diff_grad)
-        gaussian_pos.append(gauss_1d_pot.gauss_pos)
+        grads.append(diff.potential_diff_gradient)
+        gaussian_pos.append(gauss_1d_pot.gauss_positions)
 
-    pot_grads = PotDiffGradDist(grads, gaussian_pos)
+    pot_grads = PotDiffGradients(grads, gaussian_pos)
     pot_grads.to_json_file()
     pot_grads.to_plot(plt.gca())
     plt.show()
 
-    args.fp_potential.gauss_pos = pot_grads.gauss_pos_from_min_grad()
-    print(args.fp_potential.gauss_pos)
+    args.fp_potential.gauss_positions = pot_grads.gauss_pos_w_min_grad()
+    print(args.fp_potential.gauss_positions)
     args.fp_potential.to_json_file()
 
 
@@ -145,12 +149,13 @@ def make_gauss_charge_model(args):
         logger.info(make_gauss_charge_model_msg)
         raise
 
-    grids = Grids.from_z_num_grid(lat.matrix[:2, :2],
-                                  args.dielectric_dist.dist.grid)
+    grids = Grids.from_z_grid(lat.matrix[:2, :2],
+                              args.dielectric_dist.dist.grid)
 
     model = GaussChargeModel(grids, args.sigma, defect_z_pos)
     filename = _add_z_pos(model.json_filename, model)
     model.to_json_file(filename)
+    return model
 
 
 def calc_gauss_charge_potential(args):
@@ -158,36 +163,42 @@ def calc_gauss_charge_potential(args):
     potential = CalcGaussChargePotential(
         dielectric_const=args.dielectric_dist,
         gauss_charge_model=args.gauss_charge_model,
-        multiprocess=args.multiprocess).potential
+        multiprocess=args.multiprocess,
+        effective=args.effective).potential
     filename = _add_z_pos(potential.json_filename, args.gauss_charge_model)
     potential.to_json_file(filename)
+    return potential
 
 
 def make_isolated_gauss_energy(args):
     """depends on the supercell size, defect position"""
-    static = args.dielectric_dist.static
-    try:
-        assert_almost_equal(static[0], static[1])
-    except AssertionError:
-        logger.info("Only the case where static dielectric constant is "
-                    "isotropic in xy-plane.")
-        raise
+    # static = args.dielectric_dist.static
+    # try:
+    #     assert_almost_equal(diele[0], diele[1])
+    # except AssertionError:
+    #     logger.info("Only the case where static dielectric constant is "
+    #                 "isotropic in xy-plane.")
+    #     raise
 
     isolated = IsolatedGaussEnergy(gauss_charge_model=args.gauss_charge_model,
-                                   diele_dist_xy=static[0],
-                                   diele_dist_z=static[2],
+                                   diele_const_dist=args.dielectric_dist,
                                    k_max=args.k_max,
-                                   k_mesh_dist=args.k_mesh_dist)
+                                   num_k_mesh=args.num_k_mesh,
+                                   effective=False)
     print(isolated)
     filename = _add_z_pos(isolated.json_filename, args.gauss_charge_model)
     isolated.to_json_file(filename)
+    return isolated
 
 
 def make_fp_1d_potential(args):
     length = args.defect_locpot.structure.lattice.lengths[args.axis]
     grid_num = args.defect_locpot.dim[args.axis]
     grid = Grid(length, grid_num)
-    charge = args.defect_entry.charge
+    if args.defect_entry:
+        charge = args.defect_entry.charge
+    else:
+        charge = args.charge
 
     defect_pot = args.defect_locpot.get_average_along_axis(ind=args.axis)
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=args.axis)
@@ -204,7 +215,10 @@ def make_fp_1d_potential(args):
 
 def _get_obj(dir_: Path, filename: str, fp_potential: Fp1DPotential):
     x, y = filename.split(".")
-    filename = dir_ / f"{x}_{fp_potential.gauss_pos:.3f}.{y}"
+    if fp_potential:
+        filename = dir_ / f"{x}_{fp_potential.gauss_pos:.3f}.{y}"
+    else:
+        filename = dir_ / f"{x}.{y}"
     try:
         return loadfn(filename)
     except FileNotFoundError:
@@ -221,10 +235,11 @@ def make_slab_model(args):
     gauss_charge_model = _get_obj(d, "gauss_charge_model.json", fp)
     gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", fp)
 
+    charge = fp.charge_state if fp else 1
     slab_model = SlabModel(diele_dist=args.dielectric_dist,
                            gauss_charge_model=gauss_charge_model,
                            gauss_charge_potential=gauss_charge_pot,
-                           charge_state=fp.charge_state,
+                           charge_state=charge,
                            fp_potential=fp)
     slab_model.to_json_file()
     ProfilePlotter(plt, slab_model)
@@ -236,14 +251,67 @@ def make_correction(args):
 
     This should be placed at each defect calc dir.
     """
+    fp_potential = loadfn(args.dir / "fp1_d_potential.json")
+    calc_results = loadfn(args.dir / "calc_results.json")
+    slab_model = loadfn(args.dir / "slab_model.json")
+
     isolated_gauss_energy = _get_obj(args.correction_dir,
                                      "isolated_gauss_energy.json",
-                                     args.fp_potential)
-    squared_charge_state = args.slab_model.charge_state ** 2
+                                     fp_potential)
+    squared_charge_state = slab_model.charge_state ** 2
     isolated_energy = isolated_gauss_energy.self_energy * squared_charge_state
-    correction = Gauss2dCorrection(args.slab_model.charge_state,
-                                   args.slab_model.electrostatic_energy,
-                                   isolated_energy,
-                                   args.slab_model.potential_diff)
-    print(correction)
-    correction.to_json_file()
+    # correction = Gauss2dCorrection(slab_model.charge_state,
+    #                                slab_model.electrostatic_energy,
+    #                                isolated_energy,
+    #                                slab_model.potential_diff)
+    # print(correction)
+    # correction.to_json_file()
+
+    sites = make_potential_sites(calc_results,
+                                 args.perfect_calc_results,
+                                 slab_model)
+    plotter = SitePotentialMplPlotter(
+        title="atomic site potential", sites=sites)
+    plotter.construct_plot()
+    plotter.plt.savefig(fname="atomic_site_potential.pdf")
+    plotter.plt.clf()
+
+
+def make_corr(args):
+    d, fp = args.correction_dir, args.fp_potential
+    args.dielectric_dist = loadfn(d / "dielectric_const_dist.json")
+    args.defect_structure_info = None
+    args.defect_z_pos = args.fp_potential.gauss_positions
+
+    try:
+        gauss_charge_model = _get_obj(d, "gauss_charge_model.json", fp)
+    except FileNotFoundError:
+        gauss_charge_model = make_gauss_charge_model(args)
+        for f in glob.glob("gauss_charge_model*.json"):
+            shutil.move(f, d)
+
+    args.gauss_charge_model = gauss_charge_model
+
+    try:
+        gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", fp)
+    except FileNotFoundError:
+        gauss_charge_pot = calc_gauss_charge_potential(args)
+        for f in glob.glob("gauss_charge_potential*.json"):
+            shutil.move(f, d)
+
+    try:
+        isolated_gauss_energy = _get_obj(d, "isolated_gauss_energy.json", fp)
+    except FileNotFoundError:
+        isolated_gauss_energy = make_isolated_gauss_energy(args)
+        for f in glob.glob("isolated_gauss_energy*.json"):
+            shutil.move(f, d)
+
+    try:
+        slab_model = _get_obj(d, "slab_model.json", fp)
+    except FileNotFoundError:
+        slab_model = make_slab_model(args)
+        for f in glob.glob("slab_model.json"):
+            shutil.move(f, d)
+
+    args.slab_model = slab_model
+    make_correction(args)

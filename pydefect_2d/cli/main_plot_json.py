@@ -7,14 +7,16 @@ from monty.serialization import loadfn
 
 
 def main():
-    filename = sys.argv[1]
-    obj = loadfn(filename)
-    try:
-        obj.to_plot(plt.gca())
-        pdf_name = filename.replace(".json", ".pdf")
-        plt.savefig(pdf_name)
-    except AttributeError:
-        print(f"to_plot method is not implemented in {obj.__class__}")
+    filenames = sys.argv[1:]
+    for filename in filenames:
+        obj = loadfn(filename)
+        try:
+            obj.to_plot(plt.gca())
+            pdf_name = filename.replace(".json", ".pdf")
+            plt.savefig(pdf_name)
+            plt.clf()
+        except AttributeError:
+            print(f"to_plot method is not implemented in {obj.__class__}")
 
 
 if __name__ == "__main__":

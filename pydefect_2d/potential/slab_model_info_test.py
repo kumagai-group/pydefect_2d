@@ -32,7 +32,7 @@ def gauss_charge_model():
                                      num_grids=[4, 4]),
                     z_grid=grid),
         sigma=1.0,
-        defect_z_pos_in_frac=0.0
+        gauss_pos_in_frac=0.0
     )
 
 

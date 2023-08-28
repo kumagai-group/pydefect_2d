@@ -91,7 +91,7 @@ class GaussianDist(Dist):
             return exp(-length**2/(2*self.sigma**2))
 
         result = []
-        for g in self.grid_points:
+        for g in self.grid_points():
             rel = g - self.center
             shortest = min([abs(rel),
                             abs(rel - self.length),
@@ -135,7 +135,7 @@ class StepDist(Dist):
             return erf(dist / self.error_func_width) / 2 + 0.5
 
         result = []
-        for g in self.grid_points:
+        for g in self.grid_points():
             d = {"l": self.step_left - g,
                  "l_p1": self.step_left - g + self.length,
                  "l_m1": self.step_left - g - self.length,

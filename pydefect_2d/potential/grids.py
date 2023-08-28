@@ -8,8 +8,27 @@ from typing import List, Tuple
 
 import numpy as np
 from monty.json import MSONable
-from numpy import linspace, pi, inner, argmin, argmax
-from numpy.linalg import inv
+from numpy import linspace, pi
+from numpy.linalg import inv, norm
+
+
+def reduced_zone_indices(num_grid) -> np.array:
+    """
+    :param num_grid:
+    :return:
+        reduced zone indices
+
+    Example:
+       num_grid = 4 -> [0, 1, 2, -1]
+       num_grid = 5 -> [0, 1, 2, -2, -1]
+    """
+    result = np.array(range(num_grid), dtype=int)
+    if num_grid % 2 == 0:
+        mid_point = int(num_grid / 2 + 1)
+    else:
+        mid_point = int((num_grid + 1) / 2)
+    result[mid_point:] -= num_grid
+    return result
 
 
 @dataclass
@@ -20,39 +39,29 @@ class Grid(MSONable):
     def __str__(self):
         return f"length: {self.length}, num grid: {self.num_grid}"
 
-    @cached_property
-    def grid_points(self) -> np.ndarray:
-        return linspace(0, self.length, self.num_grid, endpoint=False)
+    def grid_points(self, end_point=False) -> np.ndarray:
+        num_grid = self.num_grid + 1 if end_point else self.num_grid
+        return linspace(0, self.length, num_grid, endpoint=end_point)
 
     @cached_property
-    def grid_points_w_end(self) -> np.ndarray:
-        return linspace(0, self.length, self.num_grid + 1, endpoint=True)
+    def Gs(self) -> np.ndarray:
+        return 2 * pi / self.length * reduced_zone_indices(self.num_grid)
 
     @property
-    def mesh_dist(self):
+    def mesh_dist(self) -> float:
         return self.length / self.num_grid
-
-    @cached_property
-    def Gs(self):
-        return 2 * pi / self.length * reduced_zone_idx(self.num_grid)
 
     def nearest_grid_point(self, z) -> Tuple[int, float]:
         """
          :returns
             Tuple of nearest index and its z value.
         """
-        aaa = []
-        for i, pt in enumerate(self.grid_points):
-            min_d = min([abs(pt - z + self.length * i) for i in [-1, 0, 1]])
-            aaa.append((i, min_d))
+        idx = round(z / self.length * self.num_grid) % self.num_grid
+        pt = self.mesh_dist * idx
+        return idx, pt
 
-        return min(aaa, key=lambda x: x[1])
-
-    def farthest_grid_point(self, pos, in_frac_coords=False):
-        p = (pos if in_frac_coords else pos / self.length) % 1.0
-        rel_z_in_frac = (p + 0.5) % 1.
-        z = self.length * rel_z_in_frac
-        return self.nearest_grid_point(z)[0]
+    def farthest_grid_point(self, z) -> Tuple[int, float]:
+        return self.nearest_grid_point(z - self.length / 2)
 
 
 @dataclass
@@ -61,11 +70,11 @@ class XYGrids(MSONable):
     num_grids: List[int]
 
     @property
-    def a_lat(self):
+    def a_lat(self) -> np.ndarray:
         return self.lattice[0]
 
     @property
-    def b_lat(self):
+    def b_lat(self) -> np.ndarray:
         return self.lattice[1]
 
     @property
@@ -75,6 +84,30 @@ class XYGrids(MSONable):
     @property
     def b_num_grid(self):
         return self.num_grids[1]
+
+    @cached_property
+    def rec_lattice(self) -> np.ndarray:
+        return inv(self.lattice).T * 2 * pi
+
+    @property
+    def rec_a_lat(self) -> np.array:
+        return self.rec_lattice[0]
+
+    @property
+    def rec_b_lat(self) -> np.array:
+        return self.rec_lattice[1]
+
+    @cached_property
+    def Ga2(self) -> np.array:
+        """1D np array of square of reciprocal vector along a-axis"""
+        min_Ga_2 = np.inner(self.rec_a_lat, self.rec_a_lat)
+        return min_Ga_2 * reduced_zone_indices(self.a_num_grid) ** 2
+
+    @cached_property
+    def Gb2(self) -> np.array:
+        """1D np array of square of reciprocal vector along b-axis"""
+        min_Gb_2 = np.inner(self.rec_b_lat, self.rec_b_lat)
+        return min_Gb_2 * reduced_zone_indices(self.b_num_grid) ** 2
 
     @property
     def x_cross_y(self):
@@ -95,50 +128,53 @@ class XYGrids(MSONable):
                 result[xi, yi] = a + b
         return np.array(result)
 
-    @property
-    def squared_length_on_grids(self):
+    def squared_length_on_grid(self, i, j, x=0.0, y=0.0):
+        """
+        :param i: The a index of the grid.
+        :param j: The b index of the grid.
+        :param x: X coordinate of  the origin in cartesian coord
+        :param y: Y coordinate of  the origin in cartesian coord
+        :return: Squared distance from the given origin to a specific grid point
+        """
+        results = []
+        for rx, ry in itertools.product([1, 0, -1], [1, 0, -1]):
+            rel_coords = (self.grid_points[i, j]
+                          + self.a_lat * rx
+                          + self.b_lat * ry
+                          - np.array([x, y]))
+            results.append(np.inner(rel_coords, rel_coords))
+        return min(results)
 
+    def squared_length_on_grids(self, x=0.0, y=0.0):
+        """All the squared distances from the given origin to all grid points
+        """
         result = np.zeros(self.num_grids)
-
         for xi in range(self.a_num_grid):
             for yi in range(self.b_num_grid):
-                candidates = []
-                for rx, ry in itertools.product([0, -1], [0, -1]):
-                    coord = (self.grid_points[xi, yi]
-                             + self.a_lat * rx + self.b_lat * ry)
-                    candidates.append(inner(coord, coord))
-                result[xi, yi] = min(candidates)
-
+                result[xi, yi] = self.squared_length_on_grid(xi, yi, x, y)
         return result
 
-    @cached_property
-    def rec_lattice(self) -> np.ndarray:
-        return inv(self.lattice).T * 2 * pi
+    def cart_to_frac(self, x: float, y: float) -> Tuple[float, float]:
+        """Transform the given cartesian coordinates to fractional one."""
+        [[X1, Y1], [X2, Y2]] = self.lattice
+        a = (x * Y2 - y * X2) / (X1 * Y2 - X2 * Y1)
+        b = (x * Y1 - y * X1) / (X2 * Y1 - X1 * Y2)
+        return a, b
 
-    @property
-    def rec_a_lat(self) -> np.array:
-        return self.rec_lattice[0]
-
-    @property
-    def rec_b_lat(self) -> np.array:
-        return self.rec_lattice[1]
-
-    @cached_property
-    def Ga2(self) -> np.array:
-        Ga_2 = np.inner(self.rec_a_lat, self.rec_a_lat)
-        return Ga_2 * reduced_zone_idx(self.a_num_grid) ** 2
-
-    @cached_property
-    def Gb2(self) -> np.array:
-        Gb_2 = np.inner(self.rec_b_lat, self.rec_b_lat)
-        return Gb_2 * reduced_zone_idx(self.b_num_grid) ** 2
-
-
-def reduced_zone_idx(n_mesh) -> np.array:
-    result = np.array(range(n_mesh), dtype=int)
-    middle = int(n_mesh / 2 + 1) if n_mesh % 2 == 0 else int((n_mesh + 1) / 2)
-    result[middle:] -= n_mesh
-    return result
+    def nearest_grid_point(
+            self, x: float, y: float) -> Tuple[Tuple[int, int],
+                                               Tuple[float, float],
+                                               float]:
+        """
+         :returns
+            ((indices), (cartesian coords), square length to the input point)
+        """
+        a, b = self.cart_to_frac(x, y)
+        i = round(a * self.a_num_grid) % self.a_num_grid
+        j = round(b * self.b_num_grid) % self.b_num_grid
+        grid_point = self.grid_points[i, j]
+        l2 = self.squared_length_on_grid(i, j, x, y)
+        return ((i, j), tuple(grid_point), l2)
 
 
 @dataclass
@@ -147,31 +183,20 @@ class Grids(MSONable):
     z_grid: Grid
 
     @classmethod
-    def from_z_num_grid(cls, xy_lat_matrix: np.ndarray, z_grid: Grid):
-        a_lat, b_lat = xy_lat_matrix[0][0], xy_lat_matrix[1][1]
+    def from_z_grid(cls, xy_lat_matrix: np.ndarray, z_grid: Grid):
+        a_lat, b_lat = norm(xy_lat_matrix[0]), norm(xy_lat_matrix[1])
         z_num_grid = z_grid.num_grid
-        x_num_grid = ceil(a_lat / z_grid.length * z_num_grid / 2) * 2
-        y_num_grid = ceil(b_lat / z_grid.length * z_num_grid / 2) * 2
+
+        def ceil_to_even_number(lat):
+            return ceil(lat / z_grid.length * z_num_grid / 2) * 2
+
+        a_num_grid = ceil_to_even_number(a_lat)
+        b_num_grid = ceil_to_even_number(b_lat)
 
         return Grids(xy_grids=XYGrids(lattice=xy_lat_matrix,
-                                      num_grids=[x_num_grid, y_num_grid]),
+                                      num_grids=[a_num_grid, b_num_grid]),
                      z_grid=z_grid)
 
     @property
     def volume(self):
         return self.xy_grids.xy_area * self.z_grid.length
-
-    @property
-    def z_length(self):
-        return self.z_grid.length
-
-    @property
-    def z_grid_points(self):
-        return self.z_grid.grid_points
-
-    def nearest_z_grid_point(self, z) -> Tuple[int, float]:
-        """
-         :returns
-            Tuple of nearest index and its z value.
-        """
-        return min(enumerate(self.z_grid_points), key=lambda x: abs(x[1]-z))

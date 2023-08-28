@@ -42,8 +42,8 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
             self.periodic_charges = self._make_periodic_gauss_charge_profile
 
     @property
-    def defect_z_pos_in_length(self):
-        return self.gauss_pos_in_frac * self.grids.z_length
+    def gauss_pos_in_cart(self):
+        return self.gauss_pos_in_frac * self.grids.z_grid.length
 
     @property
     def _make_periodic_gauss_charge_profile(self):
@@ -100,6 +100,11 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
     def xy_ave_potential(self):
         return np.real(self.potential.mean(axis=(0, 1)))
 
+    def get_potential(self, coord):
+        x, y, z = coord
+        ids = self.grids.nearest_xyz_grid_pt_indices(x, y, z)
+        return self.potential[ids[0], ids[1], ids[2]]
+
     def to_plot(self, ax, charge=1):
         ax.set_ylabel("Potential energy (eV)")
         ax.plot(self.grids.z_grid_points,
@@ -113,6 +118,7 @@ class CalcGaussChargePotential:
     dielectric_const: DielectricConstDist  # [ε_x, ε_y, ε_z] as a function of z
     gauss_charge_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
+    effective: bool = False
 
     def __post_init__(self):
         try:
@@ -150,7 +156,11 @@ class CalcGaussChargePotential:
         i_ga, i_gb = ab_grid_idx
 
         z_num_grid = self.gauss_charge_model.grids.z_grid.num_grid
-        x_rec_e, y_rec_e, z_rec_e = self.dielectric_const.reciprocal_static
+        if self.effective:
+            x_rec_e, y_rec_e, z_rec_e = self.dielectric_const.reciprocal_effective
+        else:
+            x_rec_e, y_rec_e, z_rec_e = self.dielectric_const.reciprocal_static
+
         rec_chg = self.gauss_charge_model.reciprocal_charge[i_ga, i_gb, :]
 
         factors = []
@@ -209,7 +219,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
                 == self.gauss_charge_model.grids.z_grid.length)
 
     @property
-    def grids(self) -> Grids:
+    def xy_grids(self) -> Grids:
         return self.gauss_charge_model.grids
 
     @cached_property
@@ -248,6 +258,6 @@ class SlabModel(MSONable, ToJsonFileMixIn):
             return
         grid_idx, z = self.gauss_charge_model.farthest_z_from_defect
         gauss_pot = self.xy_ave_pot[grid_idx]
-        fp_pot = self.fp_potential.interpol_pot_func(z)
+        fp_pot = self.fp_potential.potential_func(z)
         return fp_pot - gauss_pot
 

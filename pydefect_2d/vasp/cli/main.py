@@ -7,6 +7,7 @@ from pathlib import Path
 
 from monty.serialization import loadfn
 from pydefect.analyzer.unitcell import Unitcell
+from pydefect.cli.main import add_sub_parser
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
@@ -14,7 +15,7 @@ from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
     make_gauss_charge_model, make_fp_1d_potential, \
     calc_gauss_charge_potential, make_slab_model, make_isolated_gauss_energy, \
     make_correction, make_dielectric_distribution, make_gauss_charge_model_msg, \
-    make_1d_gauss_models, set_gauss_pos
+    make_1d_gauss_models, set_gauss_pos, make_corr
 
 
 def parse_args_main_vasp(args):
@@ -25,6 +26,8 @@ def parse_args_main_vasp(args):
     files for pydefect_2d.""")
 
     subparsers = parser.add_subparsers()
+
+    pcr_parser = add_sub_parser(argparse, name="perfect_calc_results")
 
     # -- parent parser
     gauss_charge_model = argparse.ArgumentParser(
@@ -44,9 +47,24 @@ def parse_args_main_vasp(args):
     defect_entry = argparse.ArgumentParser(
         description="", add_help=False)
     defect_entry.add_argument(
-        "-de", "--defect_entry", required=True, type=loadfn,
+        "-de", "--defect_entry", type=loadfn,
         help="defect_entry.json file.")
 
+    # -- parent parser
+    effective = argparse.ArgumentParser(
+        description="", add_help=False)
+    effective.add_argument(
+        "--effective", action="store_true",
+        help="")
+
+    iso_param = argparse.ArgumentParser(
+        description="", add_help=False)
+    iso_param.add_argument(
+        "--k_max", type=float, default=6.0,
+        help="Max of k integration range.")
+    iso_param.add_argument(
+        "--num_k_mesh", type=int, default=100,
+        help="Number of mesh.")
     # --------------------------------------------------------------------------
     parser_plot_volumetric_data = subparsers.add_parser(
         name="plot_volumetric_data",
@@ -56,6 +74,9 @@ def parse_args_main_vasp(args):
     parser_plot_volumetric_data.add_argument(
         "-f", "--filename", required=True, type=str,
         help="filename.")
+    parser_plot_volumetric_data.add_argument(
+        "-d", "--direction", type=int, default=2,
+        help=".")
     parser_plot_volumetric_data.set_defaults(func=plot_volumetric_data)
 
     # --------------------------------------------------------------------------
@@ -110,6 +131,9 @@ def parse_args_main_vasp(args):
         "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
         help="LOCPOT file from a perfect supercell calculation.")
     parser_make_fp_1d_potential.add_argument(
+        "-c", "--charge", type=float, default=None,
+        help="charge.")
+    parser_make_fp_1d_potential.add_argument(
         "-a", "--axis", type=int, choices=[0, 1, 2], default=2,
         help="Set axis along the normal direction to slab model. "
              "0, 1, and 2 correspond to x, y, and z directions, respectively")
@@ -120,24 +144,24 @@ def parse_args_main_vasp(args):
         name="make_1d_gauss_models",
         description=f"Make 1D Gauss models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist],
+        parents=[dielectric_dist, effective],
         aliases=['ogm'])
 
     parser_make_1d_gauss_model.add_argument(
         "-r", "--range", type=float, nargs=2,
         help="Position of left side of gauss charge in fractional coord.")
     parser_make_1d_gauss_model.add_argument(
-        "-n", "--num_mesh", type=int, default=10,
-        help="Number of mesh.")
+        "-si", "--supercell_info", type=loadfn,
+        help="supercell_info.json file.")
+    parser_make_1d_gauss_model.add_argument(
+        "-ng", "--num_grid", type=int,
+        help="Number of FFT xy_grids.")
     parser_make_1d_gauss_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing in Å.")
     parser_make_1d_gauss_model.add_argument(
-        "-si", "--supercell_info", type=loadfn,
-        help="supercell_info.json file.")
-    parser_make_1d_gauss_model.add_argument(
-        "-fp", "--fp_potential", type=loadfn,
-        help="OneDPotential object obtained from first principles calculations")
+        "-n", "--num_mesh", type=int, default=10,
+        help="Number of mesh for gauss charge positions.")
     parser_make_1d_gauss_model.set_defaults(func=make_1d_gauss_models)
 
     # --------------------------------------------------------------------------
@@ -186,7 +210,7 @@ def parse_args_main_vasp(args):
         name="calc_gauss_charge_potential",
         description="calc potential.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_model],
+        parents=[dielectric_dist, gauss_charge_model, effective],
         aliases=['gcp'])
 
     parser_calc_potential.add_argument(
@@ -199,15 +223,9 @@ def parse_args_main_vasp(args):
         name="make_isolated_gauss_energy",
         description="Calculate the isolated gauss energy.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_model],
+        parents=[dielectric_dist, gauss_charge_model, effective],
         aliases=['ige'])
 
-    parser_isolated_gauss_energy.add_argument(
-        "--k_max", type=float, default=6.0,
-        help="Max of k integration range.")
-    parser_isolated_gauss_energy.add_argument(
-        "--k_mesh_dist", type=float, default=0.1,
-        help="Mesh distance of k integration.")
     parser_isolated_gauss_energy.set_defaults(func=make_isolated_gauss_energy)
 
     # --------------------------------------------------------------------------
@@ -230,19 +248,48 @@ def parse_args_main_vasp(args):
     parser_make_correction = subparsers.add_parser(
         name="make_correction",
         description="Make 2d point defect correction.",
+        parents=[pcr_parser],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         aliases=['c'])
 
     parser_make_correction.add_argument(
-        "-fp", "--fp_potential", type=loadfn,
-        help="fp_potential.json file")
+        "-d", "--dir", required=True, type=Path,
+        help="")
     parser_make_correction.add_argument(
         "-cd", "--correction_dir", required=True, type=Path,
         help="")
-    parser_make_correction.add_argument(
-        "-s", "--slab_model", type=loadfn,
-        help="slab_model.json file.")
+    # parser_make_correction.add_argument(
+    #     "-fp", "--fp_potential", type=loadfn,
+    #     help="fp_potential.json file")
+    # parser_make_correction.add_argument(
+    #     "-s", "--slab_model", type=loadfn,
+    #     help="slab_model.json file.")
     parser_make_correction.set_defaults(func=make_correction)
+
+    # --------------------------------------------------------------------------
+    parser_make_corr = subparsers.add_parser(
+        name="make_corr",
+        description="Make 2d point defect correction.",
+        parents=[effective, iso_param],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        aliases=['mc'])
+
+    parser_make_corr.add_argument(
+        "-cd", "--correction_dir", required=True, type=Path,
+        help="")
+    parser_make_corr.add_argument(
+        "-fp", "--fp_potential", type=loadfn,
+        help="fp_potential.json file")
+    parser_make_corr.add_argument(
+        "-si", "--supercell_info", type=loadfn,
+        help="supercell_info.json file.")
+    parser_make_corr.add_argument(
+        "--no_multiprocess", dest="multiprocess", action="store_false",
+        help="Switch of the multiprocess.")
+    parser_make_corr.add_argument(
+        "--sigma", default=0.5, type=float,
+        help="Sigma of the gaussian smearing in Å.")
+    parser_make_corr.set_defaults(func=make_corr)
 
     # --------------------------------------------------------------------------
     return parser.parse_args(args)
