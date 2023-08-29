@@ -4,8 +4,8 @@ import pytest
 from matplotlib import pyplot as plt
 from numpy.testing import assert_almost_equal
 
-from pydefect_2d.potential.distribution import ManualDist
-from pydefect_2d.potential.dielectric_distribution import \
+from pydefect_2d.dielectric.distribution import ManualDist
+from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.grids import Grid
 

@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 
 from pydefect_2d.potential.calc_one_d_potential import OneDGaussChargeModel, \
     Calc1DPotential
-from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
-from pydefect_2d.potential.distribution import ManualDist
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
+from pydefect_2d.dielectric.distribution import ManualDist
 from pydefect_2d.potential.grids import Grid
 
 

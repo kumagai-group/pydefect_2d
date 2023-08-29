@@ -14,15 +14,14 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Chgcar, Locpot
 from vise.util.logger import get_logger
 
-from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.calc_one_d_potential import Calc1DPotential, \
     OneDGaussChargeModel
-from pydefect_2d.potential.dielectric_distribution import \
+from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
-from pydefect_2d.potential.distribution import GaussianDist, StepDist
+from pydefect_2d.dielectric.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.potential.make_site_potential import make_potential_sites
+from pydefect_2d.correction.make_site_potential import make_potential_sites
 from pydefect_2d.potential.one_d_potential import OneDPotDiff, \
     PotDiffGradients, Fp1DPotential
 from pydefect_2d.potential.plotter import ProfilePlotter

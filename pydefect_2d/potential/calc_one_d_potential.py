@@ -9,7 +9,7 @@ from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fftpack import fft, ifft
 from scipy.linalg import solve
 
-from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grid
 from pydefect_2d.potential.one_d_potential import Gauss1DPotential
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 import multiprocessing as multi
-from abc import ABC
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import combinations_with_replacement
@@ -18,7 +17,7 @@ from scipy.linalg import pinvh
 from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
-from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.slab_model_info import GaussChargeModel
 
 

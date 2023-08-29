@@ -11,7 +11,7 @@ from numpy import argmin
 from numpy.testing import assert_almost_equal
 from vise.util.logger import get_logger
 
-from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 
 
 logger = get_logger(__name__)

@@ -2,9 +2,9 @@
 #  Copyright (c) 2023 Kumagai group.
 import pytest
 
-from pydefect_2d.potential.dielectric_distribution import DielectricConstDist
-from pydefect_2d.potential.distribution import StepDist
-from pydefect_2d.potential.make_extended_diele_dist import extend_diele_dist, \
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
+from pydefect_2d.dielectric.distribution import StepDist
+from pydefect_2d.dielectric.make_extended_diele_dist import extend_diele_dist, \
     new_perp_diele
 
 

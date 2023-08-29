@@ -5,8 +5,8 @@ import pytest
 from matplotlib import pyplot as plt
 from vise.tests.helpers.assertion import assert_json_roundtrip
 
-from pydefect_2d.potential.distribution import Dist, ManualDist, GaussianDist
-from pydefect_2d.potential.dielectric_distribution import \
+from pydefect_2d.dielectric.distribution import ManualDist, GaussianDist
+from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.grids import Grid, Grids, XYGrids
 from pydefect_2d.potential.plotter import ProfilePlotter

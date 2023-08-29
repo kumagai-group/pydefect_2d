@@ -3,7 +3,7 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from pydefect_2d.potential.distribution import \
+from pydefect_2d.dielectric.distribution import \
     GaussianDist, ManualDist, StepDist
 
 

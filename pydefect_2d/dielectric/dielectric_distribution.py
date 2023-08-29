@@ -8,7 +8,7 @@ from scipy.fftpack import fft
 from tabulate import tabulate
 from vise.util.mix_in import ToJsonFileMixIn
 
-from pydefect_2d.potential.distribution import Dist
+from pydefect_2d.dielectric.distribution import Dist
 
 
 @dataclass
