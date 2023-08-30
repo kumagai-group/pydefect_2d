@@ -6,7 +6,7 @@ from pydefect.analyzer.defect_structure_info import DefectStructureInfo
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.slab_model_info import GaussChargeModel
-from pydefect_2d.vasp.cli.main import parse_args_main_vasp
+from pydefect_2d.cli.main import parse_args_main_vasp
 
 
 def test_make_dielectric_distribution(mocker):

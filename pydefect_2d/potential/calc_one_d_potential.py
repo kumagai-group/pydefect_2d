@@ -46,7 +46,6 @@ class OneDGaussChargeModel:
 class Calc1DPotential:
     diele_dist: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
     one_d_gauss_charge_model: OneDGaussChargeModel  # assume orthogonal system
-    effective: bool = False
 
     @property
     def _reciprocal_charge(self):
@@ -56,8 +55,6 @@ class Calc1DPotential:
 
     @property
     def z_rec_e(self):
-        if self.effective:
-            return self.diele_dist.reciprocal_effective_z
         return self.diele_dist.reciprocal_static_z
 
     def _solve_poisson_eq(self):

@@ -11,7 +11,7 @@ from pydefect.cli.main import add_sub_parser
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
-from pydefect_2d.vasp.cli.main_function import plot_volumetric_data, \
+from pydefect_2d.cli.main_util_function import plot_volumetric_data, \
     make_gauss_charge_model, make_fp_1d_potential, \
     calc_gauss_charge_potential, make_slab_model, make_isolated_gauss_energy, \
     make_correction, make_dielectric_distribution, make_gauss_charge_model_msg, \
@@ -49,13 +49,6 @@ def parse_args_main_vasp(args):
     defect_entry.add_argument(
         "-de", "--defect_entry", type=loadfn,
         help="defect_entry.json file.")
-
-    # -- parent parser
-    effective = argparse.ArgumentParser(
-        description="", add_help=False)
-    effective.add_argument(
-        "--effective", action="store_true",
-        help="")
 
     iso_param = argparse.ArgumentParser(
         description="", add_help=False)
@@ -144,7 +137,7 @@ def parse_args_main_vasp(args):
         name="make_1d_gauss_models",
         description=f"Make 1D Gauss models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, effective],
+        parents=[dielectric_dist],
         aliases=['ogm'])
 
     parser_make_1d_gauss_model.add_argument(
@@ -210,7 +203,7 @@ def parse_args_main_vasp(args):
         name="calc_gauss_charge_potential",
         description="calc potential.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_model, effective],
+        parents=[dielectric_dist, gauss_charge_model],
         aliases=['gcp'])
 
     parser_calc_potential.add_argument(
@@ -223,7 +216,7 @@ def parse_args_main_vasp(args):
         name="make_isolated_gauss_energy",
         description="Calculate the isolated gauss energy.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_model, effective],
+        parents=[dielectric_dist, gauss_charge_model],
         aliases=['ige'])
 
     parser_isolated_gauss_energy.set_defaults(func=make_isolated_gauss_energy)
@@ -270,7 +263,7 @@ def parse_args_main_vasp(args):
     parser_make_corr = subparsers.add_parser(
         name="make_corr",
         description="Make 2d point defect correction.",
-        parents=[effective, iso_param],
+        parents=[iso_param],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         aliases=['mc'])
 

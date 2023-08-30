@@ -17,10 +17,10 @@ def test_gaussian_dist():
 
 
 def test_step_dist():
-    actual = StepDist(length=10.0, num_grid=10, step_left=3.2, step_right=5.5,
+    actual = StepDist(length=10.0, num_grid=10, center=4.35, width=2.3,
                       error_func_width=0.1)
-    assert actual.unscaled_dist[3] == 0.0023388674905235884
-
+    assert round(actual.unscaled_dist[3], 5) == 0.00234
+    print(actual)
 
 def test_diele_in_plane_scale():
     dist = ManualDist(length=1.0, num_grid=2, manual_dist=np.array([1.0, 3.0]))

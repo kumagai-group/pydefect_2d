@@ -52,20 +52,25 @@ class OneDPotDiff(MSONable, ToJsonFileMixIn):
     fp_pot: Fp1DPotential
     gauss_pot: Gauss1DPotential
 
-    def __post_init__(self):
-        assert self.fp_pot.grid == self.gauss_pot.grid
+    # def __post_init__(self):
+    #     assert self.fp_pot.grid == self.gauss_pot.grid
 
     @property
-    def grid(self):
-        return self.fp_pot.grid
+    def fp_grid_points(self):
+        return self.fp_pot.grid.grid_points(end_point=False)
 
     @property
     def potential_diff_gradient(self):
         pos = self.gauss_pot.gauss_pos * self.fp_pot.grid.length
-        idx, _ = self.grid.farthest_grid_point(pos)
-        diff1 = self.gauss_pot.potential[idx-1] - self.fp_pot.potential[idx-1]
-        diff2 = self.gauss_pot.potential[idx+1] - self.fp_pot.potential[idx+1]
-        return (diff2 - diff1) / (self.grid.mesh_dist * 2)
+        idx, z = self.fp_pot.grid.farthest_grid_point(pos)
+
+        z_m1 = self.fp_grid_points[idx - 1]
+        z_p1 = self.fp_grid_points[idx + 1]
+        diff1 = (self.gauss_pot.potential_func(z_m1)
+                 - self.fp_pot.potential[idx-1])
+        diff2 = (self.gauss_pot.potential_func(z_p1)
+                 - self.fp_pot.potential[idx+1])
+        return (diff2 - diff1) / (self.fp_pot.grid.mesh_dist * 2)
 
 
 @dataclass

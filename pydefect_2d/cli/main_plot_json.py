@@ -11,12 +11,16 @@ def main():
     for filename in filenames:
         obj = loadfn(filename)
         try:
-            obj.to_plot(plt.gca())
-            pdf_name = filename.replace(".json", ".pdf")
-            plt.savefig(pdf_name)
-            plt.clf()
+            plot(filename, obj)
         except AttributeError:
             print(f"to_plot method is not implemented in {obj.__class__}")
+
+
+def plot(filename, obj):
+    obj.to_plot(plt.gca())
+    pdf_name = filename.replace(".json", ".pdf")
+    plt.savefig(pdf_name)
+    plt.clf()
 
 
 if __name__ == "__main__":

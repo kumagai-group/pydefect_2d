@@ -105,24 +105,32 @@ class GaussianDist(Dist):
 class StepDist(Dist):
     """ Make step-like distribution
 
-    step_left: Cartesian coord in Å
-    step_right: Cartesian coord in Å
     error_func_width: Width in Å.
     """
-    step_left: float  # in Å
-    step_right: float  # in Å
+    center: float  # in Å
+    width: float  # in Å
     error_func_width: float  # in Å
 
+    @property
+    def step_left(self):
+        return self.center - self.width / 2
+
+    @property
+    def step_right(self):
+        return self.center + self.width / 2
+
     @classmethod
-    def from_grid(cls, grid: Grid, step_left, step_right, error_func_width):
-        return cls(grid.length, grid.num_grid, step_left, step_right,
-                   error_func_width)
+    def from_grid(cls, grid: Grid, center: float, width: float,
+                  error_func_width: float):
+        return cls(grid.length, grid.num_grid, center, width, error_func_width)
 
     def __str__(self):
-        result = [f"step left: {self.step_left:.2f} Å",
-                  f"step right: {self.step_right:.2f} Å",
-                  f"width of error function: {self.error_func_width:.2f} Å",
-                  super().__str__()]
+        result = [
+            f""
+            f"step left: {self.step_left:.2f} Å",
+            f"step right: {self.step_right:.2f} Å",
+            f"width of error function: {self.error_func_width:.2f} Å",
+            super().__str__()]
         return "\n".join(result)
 
     @property

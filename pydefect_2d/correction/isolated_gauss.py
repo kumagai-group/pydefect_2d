@@ -27,7 +27,6 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
     diele_const_dist: DielectricConstDist
     k_max: float
     num_k_mesh: int
-    effective: bool = False
     multiprocess: bool = True
     _U_ks: np.ndarray = None
 
@@ -36,10 +35,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def diele_const(self) -> np.ndarray:
-        if self.effective:
-            return self.diele_const_dist.effective
-        else:
-            return self.diele_const_dist.static
+        return self.diele_const_dist.static
 
     @property
     def sigma(self):

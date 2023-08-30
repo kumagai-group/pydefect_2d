@@ -118,7 +118,6 @@ class CalcGaussChargePotential:
     dielectric_const: DielectricConstDist  # [ε_x, ε_y, ε_z] as a function of z
     gauss_charge_model: GaussChargeModel  # assume orthogonal system
     multiprocess: bool = True
-    effective: bool = False
 
     def __post_init__(self):
         try:
@@ -156,10 +155,7 @@ class CalcGaussChargePotential:
         i_ga, i_gb = ab_grid_idx
 
         z_num_grid = self.gauss_charge_model.grids.z_grid.num_grid
-        if self.effective:
-            x_rec_e, y_rec_e, z_rec_e = self.dielectric_const.reciprocal_effective
-        else:
-            x_rec_e, y_rec_e, z_rec_e = self.dielectric_const.reciprocal_static
+        x_rec_e, y_rec_e, z_rec_e = self.dielectric_const.reciprocal_static
 
         rec_chg = self.gauss_charge_model.reciprocal_charge[i_ga, i_gb, :]
 

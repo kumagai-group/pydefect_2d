@@ -2,6 +2,7 @@
 #  Copyright (c) 2023 Kumagai group.
 import glob
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import Union
 
@@ -9,11 +10,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 from monty.serialization import loadfn
 from pydefect.analyzer.defect_structure_info import DefectStructureInfo
+from pydefect.cli.main_tools import parse_dirs
 from pydefect.corrections.site_potential_plotter import SitePotentialMplPlotter
+from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Chgcar, Locpot
 from vise.util.logger import get_logger
 
+from pydefect_2d.cli.main_plot_json import plot
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.potential.calc_one_d_potential import Calc1DPotential, \
     OneDGaussChargeModel
@@ -31,44 +35,30 @@ from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
 logger = get_logger(__name__)
 
 
-def plot_volumetric_data(args):
-    if "CHG" in args.filename:
-        vol_data = Chgcar.from_file(args.filename)
-        is_sum = True
-    elif "LOCPOT" in args.filename:
-        vol_data = Locpot.from_file(args.filename)
-        is_sum = False
+def make_diele_dist(type_: str, args):
+    ele = list(np.diag(args.unitcell.ele_dielectric_const))
+    ion = list(np.diag(args.unitcell.ion_dielectric_const))
+    center = args.perfect_slab.lattice.c * args.center
+    grid = Grid(args.perfect_slab.lattice.c, args.num_grid)
+
+    if type_ == "gauss":
+        dist = GaussianDist.from_grid(grid, center, args.sigma)
+    elif type_ == "step":
+        dist = StepDist.from_grid(
+            grid, center, args.width, args.error_func_width)
     else:
         raise ValueError
-
-    ax = plt.gca()
-    z_grid = vol_data.get_axis_grid(args.direction)
-    values = vol_data.get_average_along_axis(ind=args.direction)
-#    if is_sum:
-#        surface_area = np.prod(vol_data.structure.lattice.lengths[:2])
-#        values *= surface_area
-    ax.plot(z_grid, values, color="red")
-    plt.savefig(f"{args.filename}.pdf")
-
-
-def make_dielectric_distribution(args):
-    """depends on the supercell size"""
-    electronic = list(np.diag(args.unitcell.ele_dielectric_const))
-    ionic = list(np.diag(args.unitcell.ion_dielectric_const))
-    grid = Grid(args.structure.lattice.c, args.num_grid)
-
-    if args.type == "gauss":
-        position = args.structure.lattice.c * args.position
-        dist = GaussianDist.from_grid(grid, position, args.sigma)
-    elif args.type == "step":
-        left = args.structure.lattice.c * args.step_left
-        right = args.structure.lattice.c * args.step_right
-        dist = StepDist.from_grid(grid, left, right, args.error_func_width)
-    else:
-        raise ValueError
-
-    diele = DielectricConstDist(electronic, ionic, dist)
+    diele = DielectricConstDist(ele, ion, dist)
     diele.to_json_file()
+    plot(diele.json_filename, diele)
+
+
+def make_gauss_dielectric_distribution(args):
+    make_diele_dist("gauss", args)
+
+
+def make_step_dielectric_distribution(args):
+    make_diele_dist("step", args)
 
 
 def _add_z_pos(filename: str,
@@ -102,8 +92,7 @@ def make_1d_gauss_models(args):
                                             sigma=args.sigma,
                                             surface=xy_area,
                                             gauss_pos_in_frac=pos)
-        calc_1d_pot = Calc1DPotential(diele, charge_model,
-                                      effective=args.effective)
+        calc_1d_pot = Calc1DPotential(diele, charge_model)
 
         pot = calc_1d_pot.potential
         filename = _add_z_pos(pot.json_filename, charge_model)
@@ -112,26 +101,54 @@ def make_1d_gauss_models(args):
         pot.to_plot(plt.gca())
     plt.savefig("1d_pot.pdf")
 
-#        SlabModel(args.dielectric_dist, charge_model, pot, charge_state=1)
 
+def make_fp_1d_potential(args):
 
-def set_gauss_pos(args):
-    grads, gaussian_pos = [], []
+    perfect_pot = args.perfect_locpot.get_average_along_axis(ind=args.axis)
 
-    for gauss_1d_pot in args.gauss_1d_pots:
-        gauss_1d_pot.charge_state = args.defect_entry.charge
-        diff = OneDPotDiff(fp_pot=args.fp_potential, gauss_pot=gauss_1d_pot)
-        grads.append(diff.potential_diff_gradient)
-        gaussian_pos.append(gauss_1d_pot.gauss_positions)
+    gauss_1d_pots = []
 
-    pot_grads = PotDiffGradients(grads, gaussian_pos)
-    pot_grads.to_json_file()
-    pot_grads.to_plot(plt.gca())
-    plt.show()
+    print("aaaaaaaaaaaaaa")
 
-    args.fp_potential.gauss_positions = pot_grads.gauss_pos_w_min_grad()
-    print(args.fp_potential.gauss_positions)
-    args.fp_potential.to_json_file()
+    for gauss_1d_pot in glob.glob(f'{args.gauss_1d_pot_dir}/gauss1_d_potential*json'):
+        gauss_1d_pots.append(loadfn(gauss_1d_pot))
+
+    def _inner(_dir: Path):
+        locpot = Locpot.from_file(_dir / "LOCPOT")
+        defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
+        length = defect_entry.structure.lattice.lengths[args.axis]
+        grid_num = locpot.dim[args.axis]
+        grid = Grid(length, grid_num)
+        defect_pot = locpot.get_average_along_axis(ind=args.axis)
+        try:
+            # "-" is needed because the VASP potential is defined for electrons.
+            pot = (-(defect_pot - perfect_pot)).tolist()
+        except ValueError:
+            print("The size of two LOCPOT files seems different.")
+            raise
+
+        fp_potential = Fp1DPotential(grid, pot)
+
+        grads, gaussian_pos = [], []
+
+        for gauss_1d_pot in gauss_1d_pots:
+            gauss_pot = deepcopy(gauss_1d_pot)
+            gauss_pot.potential *= defect_entry.charge
+            diff = OneDPotDiff(fp_pot=fp_potential, gauss_pot=gauss_pot)
+            grads.append(diff.potential_diff_gradient)
+            gaussian_pos.append(gauss_1d_pot.gauss_positions)
+
+        pot_grads = PotDiffGradients(grads, gaussian_pos)
+        pot_grads.to_json_file()
+        pot_grads.to_plot(plt.gca())
+        plt.show()
+
+        fp_potential.gauss_positions = pot_grads.gauss_pos_w_min_grad()
+        print(fp_potential.gauss_positions)
+        fp_potential.to_json_file()
+
+    file_name = "fp1_d_potential.json"
+    parse_dirs(args.dirs, _inner, args.verbose, file_name)
 
 
 def make_gauss_charge_model(args):
@@ -162,8 +179,7 @@ def calc_gauss_charge_potential(args):
     potential = CalcGaussChargePotential(
         dielectric_const=args.dielectric_dist,
         gauss_charge_model=args.gauss_charge_model,
-        multiprocess=args.multiprocess,
-        effective=args.effective).potential
+        multiprocess=args.multiprocess).potential
     filename = _add_z_pos(potential.json_filename, args.gauss_charge_model)
     potential.to_json_file(filename)
     return potential
@@ -182,34 +198,11 @@ def make_isolated_gauss_energy(args):
     isolated = IsolatedGaussEnergy(gauss_charge_model=args.gauss_charge_model,
                                    diele_const_dist=args.dielectric_dist,
                                    k_max=args.k_max,
-                                   num_k_mesh=args.num_k_mesh,
-                                   effective=False)
+                                   num_k_mesh=args.num_k_mesh)
     print(isolated)
     filename = _add_z_pos(isolated.json_filename, args.gauss_charge_model)
     isolated.to_json_file(filename)
     return isolated
-
-
-def make_fp_1d_potential(args):
-    length = args.defect_locpot.structure.lattice.lengths[args.axis]
-    grid_num = args.defect_locpot.dim[args.axis]
-    grid = Grid(length, grid_num)
-    if args.defect_entry:
-        charge = args.defect_entry.charge
-    else:
-        charge = args.charge
-
-    defect_pot = args.defect_locpot.get_average_along_axis(ind=args.axis)
-    perfect_pot = args.perfect_locpot.get_average_along_axis(ind=args.axis)
-
-    try:
-        # "-" is needed because the VASP potential is defined for electrons.
-        pot = (-(defect_pot - perfect_pot)).tolist()
-    except ValueError:
-        print("The size of two LOCPOT files seems different.")
-        raise
-
-    Fp1DPotential(grid, pot, charge).to_json_file()
 
 
 def _get_obj(dir_: Path, filename: str, fp_potential: Fp1DPotential):
