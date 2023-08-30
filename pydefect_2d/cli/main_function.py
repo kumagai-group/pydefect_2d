@@ -27,7 +27,7 @@ from pydefect_2d.dielectric.distribution import GaussianDist, StepDist
 from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.correction.make_site_potential import make_potential_sites
 from pydefect_2d.potential.one_d_potential import OneDPotDiff, \
-    PotDiffGradients, Fp1DPotential
+    PotDiffGradients, Fp1DPotential, Gauss1DPotential
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
@@ -35,30 +35,29 @@ from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
 logger = get_logger(__name__)
 
 
-def make_diele_dist(type_: str, args):
+def make_diele_dist(dist, args):
     ele = list(np.diag(args.unitcell.ele_dielectric_const))
     ion = list(np.diag(args.unitcell.ion_dielectric_const))
-    center = args.perfect_slab.lattice.c * args.center
-    grid = Grid(args.perfect_slab.lattice.c, args.num_grid)
+    slab_length = args.perfect_slab.lattice.c
+    center = slab_length * args.center
+    grid = Grid.from_mesh_distance(slab_length, args.mesh_distance)
 
-    if type_ == "gauss":
-        dist = GaussianDist.from_grid(grid, center, args.sigma)
-    elif type_ == "step":
-        dist = StepDist.from_grid(
-            grid, center, args.width, args.error_func_width)
-    else:
-        raise ValueError
-    diele = DielectricConstDist(ele, ion, dist)
+    diele = DielectricConstDist(ele, ion, dist(grid, center, args))
     diele.to_json_file()
     plot(diele.json_filename, diele)
 
 
-def make_gauss_dielectric_distribution(args):
-    make_diele_dist("gauss", args)
+def make_gauss_diele_dist(args):
+    def dist(grid, center, args_):
+        return GaussianDist.from_grid(grid, center, args_.sigma)
+    make_diele_dist(dist, args)
 
 
 def make_step_dielectric_distribution(args):
-    make_diele_dist("step", args)
+    def dist(grid, center, args_):
+        return StepDist.from_grid(
+            grid, center, args_.width, args.error_func_width)
+    make_diele_dist(dist, args)
 
 
 def _add_z_pos(filename: str,
@@ -73,33 +72,32 @@ need to be specified."""
 
 
 def make_1d_gauss_models(args):
-    left, right = args.range
-    assert left < right
-    assert right - left < 0.5
-    gauss_pos = np.linspace(left, right, args.num_mesh, endpoint=True)
-
-    supercell: Structure = args.supercell_info.structure
-    a, b = supercell.lattice.matrix[:2, :2]
-    c = supercell.lattice.c
-    xy_area = np.linalg.norm(np.cross(a, b))
-
-    diele = args.dielectric_dist
-    diele.dist.num_grid = args.num_grid
-    grid = Grid(c, args.num_grid)
+    left, right = sorted(args.range)
+    n_grid = round((right - left) / args.num_mesh) + 1
+    gauss_pos = np.linspace(left, right, n_grid, endpoint=True)
+    supercell = args.supercell_info.structure
 
     for pos in gauss_pos:
-        charge_model = OneDGaussChargeModel(grid=grid,
+        filename = _add_z_pos("one_d_gauss_charge_model.json", charge_model)
+        if Path(filename).exists():
+            logger.info(f"Because {filename} exists, so skip.")
+            continue
+
+        charge_model = OneDGaussChargeModel(grid=args.diele_dist.dist.grid,
                                             sigma=args.sigma,
-                                            surface=xy_area,
+                                            surface=_xy_area(supercell),
                                             gauss_pos_in_frac=pos)
-        calc_1d_pot = Calc1DPotential(diele, charge_model)
+        calc_1d_pot = Calc1DPotential(args.diele_dist, charge_model)
+        logger.info(f"{filename} is being created.")
+        calc_1d_pot.potential.to_json_file(filename)
+        calc_1d_pot.potential.to_plot(plt.gca())
 
-        pot = calc_1d_pot.potential
-        filename = _add_z_pos(pot.json_filename, charge_model)
-        pot.to_json_file(filename)
-
-        pot.to_plot(plt.gca())
     plt.savefig("1d_pot.pdf")
+
+
+def _xy_area(structure):
+    a, b = structure.lattice.matrix[:2, :2]
+    return np.linalg.norm(np.cross(a, b))
 
 
 def make_fp_1d_potential(args):
@@ -107,8 +105,6 @@ def make_fp_1d_potential(args):
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=args.axis)
 
     gauss_1d_pots = []
-
-    print("aaaaaaaaaaaaaa")
 
     for gauss_1d_pot in glob.glob(f'{args.gauss_1d_pot_dir}/gauss1_d_potential*json'):
         gauss_1d_pots.append(loadfn(gauss_1d_pot))
@@ -166,7 +162,7 @@ def make_gauss_charge_model(args):
         raise
 
     grids = Grids.from_z_grid(lat.matrix[:2, :2],
-                              args.dielectric_dist.dist.grid)
+                              args.diele_dist.dist.grid)
 
     model = GaussChargeModel(grids, args.sigma, defect_z_pos)
     filename = _add_z_pos(model.json_filename, model)
@@ -177,7 +173,7 @@ def make_gauss_charge_model(args):
 def calc_gauss_charge_potential(args):
     """depends on the supercell size and defect position"""
     potential = CalcGaussChargePotential(
-        dielectric_const=args.dielectric_dist,
+        dielectric_const=args.diele_dist,
         gauss_charge_model=args.gauss_charge_model,
         multiprocess=args.multiprocess).potential
     filename = _add_z_pos(potential.json_filename, args.gauss_charge_model)
@@ -187,7 +183,7 @@ def calc_gauss_charge_potential(args):
 
 def make_isolated_gauss_energy(args):
     """depends on the supercell size, defect position"""
-    # static = args.dielectric_dist.static
+    # static = args.diele_dist.static
     # try:
     #     assert_almost_equal(diele[0], diele[1])
     # except AssertionError:
@@ -196,7 +192,7 @@ def make_isolated_gauss_energy(args):
     #     raise
 
     isolated = IsolatedGaussEnergy(gauss_charge_model=args.gauss_charge_model,
-                                   diele_const_dist=args.dielectric_dist,
+                                   diele_const_dist=args.diele_dist,
                                    k_max=args.k_max,
                                    num_k_mesh=args.num_k_mesh)
     print(isolated)
@@ -228,7 +224,7 @@ def make_slab_model(args):
     gauss_charge_pot = _get_obj(d, "gauss_charge_potential.json", fp)
 
     charge = fp.charge_state if fp else 1
-    slab_model = SlabModel(diele_dist=args.dielectric_dist,
+    slab_model = SlabModel(diele_dist=args.diele_dist,
                            gauss_charge_model=gauss_charge_model,
                            gauss_charge_potential=gauss_charge_pot,
                            charge_state=charge,
@@ -271,7 +267,7 @@ def make_correction(args):
 
 def make_corr(args):
     d, fp = args.correction_dir, args.fp_potential
-    args.dielectric_dist = loadfn(d / "dielectric_const_dist.json")
+    args.diele_dist = loadfn(d / "dielectric_const_dist.json")
     args.defect_structure_info = None
     args.defect_z_pos = args.fp_potential.gauss_positions
 

@@ -10,7 +10,7 @@ from pydefect.cli.main import add_sub_parser
 from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
-from pydefect_2d.cli.main_function import make_gauss_dielectric_distribution, \
+from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
     make_step_dielectric_distribution, make_gauss_charge_model, \
     make_fp_1d_potential, \
     calc_gauss_charge_potential, make_slab_model, make_isolated_gauss_energy, \
@@ -22,8 +22,7 @@ def parse_args_main_vasp(args):
 
     parser = argparse.ArgumentParser(epilog="",
                                      description="""       
-    The command is used for creating and analyzing VASP input and output 
-    files for pydefect_2d.""")
+    The command is used for analyzing VASP output files for pydefect_2d.""")
 
     subparsers = parser.add_subparsers()
 
@@ -38,7 +37,7 @@ def parse_args_main_vasp(args):
 
     dielectric_dist = argparse.ArgumentParser(description="", add_help=False)
     dielectric_dist.add_argument(
-        "-d", "--dielectric_dist", required=True, type=loadfn,
+        "-d", "--diele_dist", required=True, type=loadfn,
         help="dielectric_distribution.json file")
 
     perfect_slab = argparse.ArgumentParser(description="", add_help=False)
@@ -46,14 +45,14 @@ def parse_args_main_vasp(args):
         "-p", "--perfect_slab", required=True, type=Structure.from_file,
         help="POSCAR file of the perfect slab model.")
 
-    z_num_grid = argparse.ArgumentParser(description="", add_help=False)
-    z_num_grid.add_argument(
-        "-n", "--num_grid", type=int,
-        help="Number of grid along z direction.")
+    mesh_dist = argparse.ArgumentParser(description="", add_help=False)
+    mesh_dist.add_argument(
+        "-m", "--mesh_distance", type=float, default=0.05,
+        help="Mesh distance for the grid along z direction (1/Å).")
 
     center = argparse.ArgumentParser(description="", add_help=False)
     center.add_argument(
-        "-c", "--center", type=float,
+        "-c", "--center", type=float, required=True,
         help="Center position of layer in fractional coordinates.")
 
     defect_entry = argparse.ArgumentParser(description="", add_help=False)
@@ -70,29 +69,29 @@ def parse_args_main_vasp(args):
         help="Number of mesh.")
 
     # --------------------------------------------------------------------------
-    parser_make_gauss_dielectric_dist = subparsers.add_parser(
-        name="make_gauss_dielectric_distribution",
+    parser_gauss_diele_dist = subparsers.add_parser(
+        name="gauss_diele_dist",
         description="Make gauss dielectric distribution.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[unitcell_parser, perfect_slab, z_num_grid, center],
+        parents=[unitcell_parser, perfect_slab, mesh_dist, center],
         aliases=['gdd'])
 
-    parser_make_gauss_dielectric_dist.add_argument(
-        "--sigma", default=0.5, type=float,
+    parser_gauss_diele_dist.add_argument(
+        "--sigma", type=float, required=True,
         help="Sigma of the gaussian smearing in Å.")
-    parser_make_gauss_dielectric_dist.set_defaults(
-        func=make_gauss_dielectric_distribution)
+    parser_gauss_diele_dist.set_defaults(
+        func=make_gauss_diele_dist)
 
     # --------------------------------------------------------------------------
     parser_make_step_dielectric_dist = subparsers.add_parser(
-        name="make_step_dielectric_distributions",
+        name="step_diele_dist",
         description="Make step-like dielectric distributions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[unitcell_parser, perfect_slab, z_num_grid, center],
+        parents=[unitcell_parser, perfect_slab, mesh_dist, center],
         aliases=['sdd'])
 
     parser_make_step_dielectric_dist.add_argument(
-        "-w", "--width", type=float,
+        "-w", "--step_width", type=float, required=True,
         help="")
     parser_make_step_dielectric_dist.add_argument(
         "--error_func_width", type=float, default=0.3,
@@ -102,7 +101,7 @@ def parse_args_main_vasp(args):
 
     # --------------------------------------------------------------------------
     parser_make_1d_gauss_model = subparsers.add_parser(
-        name="make_1d_gauss_models",
+        name="one_d_gauss_models",
         description=f"Make 1D Gauss models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[dielectric_dist],
@@ -115,14 +114,11 @@ def parse_args_main_vasp(args):
         "-si", "--supercell_info", type=loadfn,
         help="supercell_info.json file.")
     parser_make_1d_gauss_model.add_argument(
-        "-ng", "--num_grid", type=int,
-        help="Number of FFT xy_grids.")
-    parser_make_1d_gauss_model.add_argument(
         "--sigma", default=0.5, type=float,
         help="Sigma of the gaussian smearing in Å.")
     parser_make_1d_gauss_model.add_argument(
-        "-n", "--num_mesh", type=int, default=10,
-        help="Number of mesh for gauss charge positions.")
+        "-m", "--mesh_distance", type=int, default=0.01,
+        help="Mesh distance between charge positions in fractional coord.")
     parser_make_1d_gauss_model.set_defaults(func=make_1d_gauss_models)
 
     # --------------------------------------------------------------------------

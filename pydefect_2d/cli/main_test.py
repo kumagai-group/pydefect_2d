@@ -9,30 +9,21 @@ from pydefect_2d.potential.slab_model_info import GaussChargeModel
 from pydefect_2d.cli.main import parse_args_main_vasp
 
 
-def test_make_dielectric_distribution(mocker):
-    mock_unitcell = mocker.patch("pydefect_2d.vasp.cli.main.Unitcell")
-    mock_structure = mocker.patch("pydefect_2d.vasp.cli.main.Structure")
+def test_gauss_diele_dist(mocker):
+    mock_unitcell = mocker.patch("pydefect.cli.main.Unitcell")
+    mock_structure = mocker.patch("pydefect_2d.cli.main.Structure")
 
-    parsed_args = parse_args_main_vasp(["ed",
+    parsed_args = parse_args_main_vasp(["gdd",
                                         "-u", "unitcell.yaml",
-                                        "-s", "CONTCAR",
-                                        "-n", "100",
-                                        "-t", "gauss",
-                                        "-p", "0.5",
-                                        "--sigma", "0.1",
-                                        "-sl", "0.2",
-                                        "-sr", "0.3",
-                                        "--error_func_width", "0.4"])
+                                        "-p", "CONTCAR",
+                                        "-c", "0.5",
+                                        "--sigma", "0.1"])
     expected = Namespace(
         unitcell=mock_unitcell.from_yaml.return_value,
-        structure=mock_structure.from_file.return_value,
-        num_grid=100,
-        type="gauss",
-        position=0.5,
+        perfect_slab=mock_structure.from_file.return_value,
+        mesh_distance=0.05,
+        center=0.5,
         sigma=0.1,
-        step_left=0.2,
-        step_right=0.3,
-        error_func_width=0.4,
         func=parsed_args.func)
 
     assert parsed_args == expected
