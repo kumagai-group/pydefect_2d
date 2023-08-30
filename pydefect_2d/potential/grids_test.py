@@ -38,6 +38,13 @@ def test_grid_neighboring_grid_idx(grid):
     assert grid.farthest_grid_point(2.3) == (3, 1.5)
 
 
+def test_grid_from_mesh_distance(grid):
+    actual = Grid.from_mesh_distance(length=2.0, mesh_distance=0.5)
+    assert actual == grid
+    actual = Grid.from_mesh_distance(length=2.0, mesh_distance=0.65)
+    assert actual == grid
+
+
 @pytest.fixture
 def xy_grids():
     return XYGrids(lattice=np.array([[6.0, 0.0], [-3.0, 3 * sqrt(3)]]),

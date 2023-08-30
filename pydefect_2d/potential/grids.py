@@ -36,6 +36,11 @@ class Grid(MSONable):
     length: float  # in Å
     num_grid: int
 
+    @classmethod
+    def from_mesh_distance(cls, length, mesh_distance):
+        num_grid = round(length / (mesh_distance * 2)) * 2
+        return cls(length, num_grid)
+
     def __str__(self):
         return f"length: {self.length}, num grid: {self.num_grid}"
 
