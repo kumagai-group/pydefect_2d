@@ -12,7 +12,7 @@ class ProfilePlotter:
         self.slab_model = slab_model
         self.gauss_charge_model = slab_model.gauss_charge_model
         self.gauss_charge_potential = slab_model.gauss_charge_potential
-        self.z_grid_points = slab_model.grids.z_grid_points
+        self.z_grid_points = slab_model.grids.z_grid.grid_points()
         self.epsilon = slab_model.diele_dist.static
 
         self.fp_potential = None

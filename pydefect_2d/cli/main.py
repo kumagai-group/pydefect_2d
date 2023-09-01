@@ -11,11 +11,8 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
-    make_step_dielectric_distribution, make_gauss_charge_model, \
-    make_fp_1d_potential, \
-    calc_gauss_charge_potential, make_slab_model, make_isolated_gauss_energy, \
-    make_correction, make_gauss_charge_model_msg, \
-    make_1d_gauss_models, make_corr
+    make_step_diele_dist, make_fp_1d_potential, make_slab_model, \
+    make_1d_gauss_models, make_gauss_model
 
 
 def parse_args_main_vasp(args):
@@ -37,8 +34,13 @@ def parse_args_main_vasp(args):
 
     dielectric_dist = argparse.ArgumentParser(description="", add_help=False)
     dielectric_dist.add_argument(
-        "-d", "--diele_dist", required=True, type=loadfn,
-        help="dielectric_distribution.json file")
+        "-d", "--diele_dist", type=loadfn,
+        help="dielectric_const_dist.json file")
+
+    gauss_charge_sigma = argparse.ArgumentParser(description="", add_help=False)
+    gauss_charge_sigma.add_argument(
+        "--sigma", default=0.5, type=float,
+        help="Standard deviation of the gaussian charge [Å].")
 
     perfect_slab = argparse.ArgumentParser(description="", add_help=False)
     perfect_slab.add_argument(
@@ -55,18 +57,13 @@ def parse_args_main_vasp(args):
         "-c", "--center", type=float, required=True,
         help="Center position of layer in fractional coordinates.")
 
-    defect_entry = argparse.ArgumentParser(description="", add_help=False)
-    defect_entry.add_argument(
-        "-de", "--defect_entry", type=loadfn,
-        help="defect_entry.json file.")
-
     isolated_gauss = argparse.ArgumentParser( description="", add_help=False)
     isolated_gauss.add_argument(
-        "--k_max", type=float, default=6.0,
+        "--k_max", type=float, default=5.0,
         help="Max of k integration range.")
     isolated_gauss.add_argument(
-        "--num_k_mesh", type=int, default=100,
-        help="Number of mesh.")
+        "--k_mesh_dist", type=float, default=0.05,
+        help="k mesh distance.")
 
     # --------------------------------------------------------------------------
     parser_gauss_diele_dist = subparsers.add_parser(
@@ -78,7 +75,7 @@ def parse_args_main_vasp(args):
 
     parser_gauss_diele_dist.add_argument(
         "--sigma", type=float, required=True,
-        help="Sigma of the gaussian smearing in Å.")
+        help="Standard deviation of the gaussian smearing [Å].")
     parser_gauss_diele_dist.set_defaults(
         func=make_gauss_diele_dist)
 
@@ -92,107 +89,74 @@ def parse_args_main_vasp(args):
 
     parser_make_step_dielectric_dist.add_argument(
         "-w", "--step_width", type=float, required=True,
-        help="")
+        help="Width of step function [Å]")
     parser_make_step_dielectric_dist.add_argument(
         "--error_func_width", type=float, default=0.3,
-        help="Width of error function in Å")
+        help="Width of error function [Å]")
     parser_make_step_dielectric_dist.set_defaults(
-        func=make_step_dielectric_distribution)
+        func=make_step_diele_dist)
 
     # --------------------------------------------------------------------------
-    parser_make_1d_gauss_model = subparsers.add_parser(
-        name="one_d_gauss_models",
+    parser_1d_gauss_models = subparsers.add_parser(
+        name="1d_gauss_models",
         description=f"Make 1D Gauss models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist],
-        aliases=['ogm'])
+        parents=[dielectric_dist, gauss_charge_sigma],
+        aliases=['1gm'])
 
-    parser_make_1d_gauss_model.add_argument(
+    parser_1d_gauss_models.add_argument(
         "-r", "--range", type=float, nargs=2,
         help="Position range of gauss charge in fractional coord.")
-    parser_make_1d_gauss_model.add_argument(
+    parser_1d_gauss_models.add_argument(
         "-si", "--supercell_info", type=loadfn,
         help="supercell_info.json file.")
-    parser_make_1d_gauss_model.add_argument(
-        "--sigma", default=0.5, type=float,
-        help="Sigma of the gaussian smearing in Å.")
-    parser_make_1d_gauss_model.add_argument(
-        "-m", "--mesh_distance", type=int, default=0.01,
+    parser_1d_gauss_models.add_argument(
+        "-m", "--mesh_distance", type=float, default=0.01,
         help="Mesh distance between charge positions in fractional coord.")
-    parser_make_1d_gauss_model.set_defaults(func=make_1d_gauss_models)
+    parser_1d_gauss_models.set_defaults(func=make_1d_gauss_models)
 
     # --------------------------------------------------------------------------
-    parser_make_fp_1d_potential = subparsers.add_parser(
-        name="make_fp_1d_potential",
-        description="Make planar averaged 1D potential.",
+    parser_fp_1d_potential = subparsers.add_parser(
+        name="fp_1d_potential",
+        description="Make planar averaged potential of first-principles "
+                    "calculation result.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[dir_parser],
         aliases=['fp'])
 
-    parser_make_fp_1d_potential.add_argument(
+    parser_fp_1d_potential.add_argument(
         "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
         help="LOCPOT file from a perfect supercell calculation.")
-    parser_make_fp_1d_potential.add_argument(
-        "-a", "--axis", type=int, choices=[0, 1, 2], default=2,
-        help="Set axis along the normal direction to slab model. "
-             "0, 1, and 2 correspond to x, y, and z directions, respectively")
-    parser_make_fp_1d_potential.add_argument(
-        "-g", "--gauss_1d_pot_dir", type=Path,
-        help="")
-    parser_make_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
+    parser_fp_1d_potential.add_argument(
+        "-p", "--pot_dir", type=Path,
+        help="Directory includes gauss1_d_potential.json files.")
+    parser_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
 
     # --------------------------------------------------------------------------
-    parser_make_gauss_charge_model = subparsers.add_parser(
-        name="make_gauss_charge_model",
-        description=f"Make Gauss charge models. {make_gauss_charge_model_msg}",
+    parser_gauss_model = subparsers.add_parser(
+        name="gauss_model",
+        description=f"Make Gauss model.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist],
-        aliases=['gcm'])
+        parents=[dielectric_dist, gauss_charge_sigma, isolated_gauss],
+        aliases=['gm'])
 
-    parser_make_gauss_charge_model.add_argument(
-        "-dsi", "--defect_structure_info", type=loadfn,
-        help="defect_structure_info.json file.")
-    parser_make_gauss_charge_model.add_argument(
+    parser_gauss_model.add_argument(
         "-si", "--supercell_info", type=loadfn,
         help="supercell_info.json file.")
-    parser_make_gauss_charge_model.add_argument(
+    parser_gauss_model.add_argument(
         "-dp", "--defect_z_pos", type=float,
         help="Defect position along z direction in fractional coord.")
-    parser_make_gauss_charge_model.add_argument(
-        "--sigma", default=0.5, type=float,
-        help="Sigma of the gaussian smearing in Å.")
-    parser_make_gauss_charge_model.set_defaults(
-        func=make_gauss_charge_model)
-
-    # --------------------------------------------------------------------------
-    parser_calc_potential = subparsers.add_parser(
-        name="calc_gauss_charge_potential",
-        description="calc potential.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_model],
-        aliases=['gcp'])
-
-    parser_calc_potential.add_argument(
+    parser_gauss_model.add_argument(
         "--no_multiprocess", dest="multiprocess", action="store_false",
         help="Switch of the multiprocess.")
-    parser_calc_potential.set_defaults(func=calc_gauss_charge_potential)
-
-    # --------------------------------------------------------------------------
-    parser_isolated_gauss_energy = subparsers.add_parser(
-        name="make_isolated_gauss_energy",
-        description="Calculate the isolated gauss energy.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_model],
-        aliases=['ige'])
-
-    parser_isolated_gauss_energy.set_defaults(func=make_isolated_gauss_energy)
+    parser_gauss_model.set_defaults(func=make_gauss_model)
 
     # --------------------------------------------------------------------------
     parser_make_slab_model = subparsers.add_parser(
         name="make_slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist],
+        parents=[dielectric_dist, pcr_parser],
         aliases=['sm'])
 
     parser_make_slab_model.add_argument(
@@ -201,54 +165,10 @@ def parse_args_main_vasp(args):
     parser_make_slab_model.add_argument(
         "-fp", "--fp_potential", type=loadfn,
         help="fp_potential.json file")
-    parser_make_slab_model.set_defaults(func=make_slab_model)
-
-    # --------------------------------------------------------------------------
-    parser_make_correction = subparsers.add_parser(
-        name="make_correction",
-        description="Make 2d point defect correction.",
-        parents=[pcr_parser],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        aliases=['c'])
-
-    parser_make_correction.add_argument(
+    parser_make_slab_model.add_argument(
         "-d", "--dir", required=True, type=Path,
         help="")
-    parser_make_correction.add_argument(
-        "-cd", "--correction_dir", required=True, type=Path,
-        help="")
-    # parser_make_correction.add_argument(
-    #     "-fp", "--fp_potential", type=loadfn,
-    #     help="fp_potential.json file")
-    # parser_make_correction.add_argument(
-    #     "-s", "--slab_model", type=loadfn,
-    #     help="slab_model.json file.")
-    parser_make_correction.set_defaults(func=make_correction)
-
-    # --------------------------------------------------------------------------
-    parser_make_corr = subparsers.add_parser(
-        name="make_corr",
-        description="Make 2d point defect correction.",
-        parents=[isolated_gauss],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        aliases=['mc'])
-
-    parser_make_corr.add_argument(
-        "-cd", "--correction_dir", required=True, type=Path,
-        help="")
-    parser_make_corr.add_argument(
-        "-fp", "--fp_potential", type=loadfn,
-        help="fp_potential.json file")
-    parser_make_corr.add_argument(
-        "-si", "--supercell_info", type=loadfn,
-        help="supercell_info.json file.")
-    parser_make_corr.add_argument(
-        "--no_multiprocess", dest="multiprocess", action="store_false",
-        help="Switch of the multiprocess.")
-    parser_make_corr.add_argument(
-        "--sigma", default=0.5, type=float,
-        help="Sigma of the gaussian smearing in Å.")
-    parser_make_corr.set_defaults(func=make_corr)
+    parser_make_slab_model.set_defaults(func=make_slab_model)
 
     # --------------------------------------------------------------------------
     return parser.parse_args(args)

@@ -43,12 +43,13 @@ def potential(epsilon_dist, gauss_charge_model):
 
 @pytest.fixture(scope="session")
 def fp_1d_potential():
-    return OneDPotential(charge_state=1, grid=grid, potential=[0.1, 0.2, 0.3, 0.4])
+    return OneDPotential(grid=grid, potential=np.array([0.1, 0.2, 0.3, 0.4]))
 
 
 @pytest.fixture(scope="session")
 def slab_model(epsilon_dist, gauss_charge_model, potential, fp_1d_potential):
-    return SlabModel(epsilon_dist, gauss_charge_model, potential, 2, fp_1d_potential)
+    return SlabModel(epsilon_dist, gauss_charge_model, potential, 2,
+                     fp_1d_potential)
 
 
 def test_plot(gauss_charge_model):
@@ -79,7 +80,7 @@ def test_():
                   Grid(**z_grid))
     gauss = GaussChargeModel(grids,
                              sigma=0.3,
-                             defect_z_pos_in_frac=0.5)
+                             gauss_pos_in_frac=0.5)
 
     calc_pot = CalcGaussChargePotential(
         dielectric_const=diele_const,

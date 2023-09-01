@@ -26,7 +26,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
     gauss_charge_model: GaussChargeModel
     diele_const_dist: DielectricConstDist
     k_max: float
-    num_k_mesh: int
+    k_mesh_dist: int
     multiprocess: bool = True
     _U_ks: np.ndarray = None
 
@@ -43,7 +43,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def L(self):
-        return self.gauss_charge_model.grids.z_length
+        return self.gauss_charge_model.grids.z_grid.length
 
     @property
     def z0(self):
@@ -55,8 +55,9 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def ks(self):
+        num_k_mesh = round(self.k_max / self.k_mesh_dist )
         return np.logspace(log10(0.001), log10(self.k_max),
-                           num=self.num_k_mesh - 1, endpoint=True)
+                           num=num_k_mesh - 1, endpoint=True)
 
     @cached_property
     def Gs(self):

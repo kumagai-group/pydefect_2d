@@ -20,7 +20,7 @@ from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grids
-from pydefect_2d.potential.one_d_potential import OneDPotential
+from pydefect_2d.potential.one_d_potential import OneDPotential, Fp1DPotential
 
 
 @dataclass
@@ -52,8 +52,8 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         (nx, ny), nz = self.grids.xy_grids.num_grids, self.grids.z_grid.num_grid
         gauss = np.zeros([nx, ny, nz])
 
-        xy2 = self.grids.xy_grids.squared_length_on_grids
-        for nz, lz in enumerate(self.grids.z_grid_points):
+        xy2 = self.grids.xy_grids.squared_length_on_grids()
+        for nz, lz in enumerate(self.grids.z_grid.grid_points()):
             xyz2 = xy2 + self._min_z2(lz)
             gauss[:, :, nz] = exp(- xyz2 / (2 * self.sigma ** 2))
 
@@ -61,7 +61,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     def _min_z2(self, lz):
         return min(
-            [abs(lz - self.grids.z_length * (i + self.gauss_pos_in_frac))
+            [abs(lz - self.grids.z_grid.length * (i + self.gauss_pos_in_frac))
              for i in range(-1, 2)]
         ) ** 2
 
@@ -82,12 +82,13 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:
         rel_z_in_frac = (self.gauss_pos_in_frac + 0.5) % 1.
-        z = self.grids.z_length * rel_z_in_frac
-        return self.grids.nearest_z_grid_point(z)
+        z = self.grids.z_grid.length * rel_z_in_frac
+        return self.grids.z_grid.nearest_grid_point(z)
 
     def to_plot(self, ax, charge=1):
         ax.set_ylabel("Charge (|e|/Å)")
-        ax.plot(self.grids.z_grid_points, self.xy_integrated_charge * charge,
+        ax.plot(self.grids.z_grid.grid_points(),
+                self.xy_integrated_charge * charge,
                 label="charge", color="black")
 
 
@@ -102,12 +103,13 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
 
     def get_potential(self, coord):
         x, y, z = coord
-        ids = self.grids.nearest_xyz_grid_pt_indices(x, y, z)
-        return self.potential[ids[0], ids[1], ids[2]]
+        xi, yi = self.grids.xy_grids.nearest_grid_point(x, y)[0]
+        zi = self.grids.z_grid.nearest_grid_point(z)
+        return self.potential[xi, yi, zi]
 
     def to_plot(self, ax, charge=1):
         ax.set_ylabel("Potential energy (eV)")
-        ax.plot(self.grids.z_grid_points,
+        ax.plot(self.grids.z_grid.grid_points(),
                 self.potential.mean(axis=(0, 1)) * charge,
                 label="Gauss model potential", color="red")
         ax.legend()
@@ -208,14 +210,14 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
     charge_state: int
-    fp_potential: OneDPotential = None
+    fp_potential: Fp1DPotential
 
     def __post_init__(self):
         assert (self.diele_dist.dist.length
                 == self.gauss_charge_model.grids.z_grid.length)
 
     @property
-    def xy_grids(self) -> Grids:
+    def grids(self) -> Grids:
         return self.gauss_charge_model.grids
 
     @cached_property
@@ -236,7 +238,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]
         list_ = [[z, charge, pot] for z, charge, pot in
-                 zip(self.grids.z_grid_points,
+                 zip(self.grids.z_grid.grid_points(),
                      self.xy_integrated_charge,
                      self.xy_ave_pot)]
         result = [tabulate(list_, tablefmt="plain", headers=header)]
@@ -250,8 +252,6 @@ class SlabModel(MSONable, ToJsonFileMixIn):
 
     @property
     def potential_diff(self):
-        if self.fp_potential is None:
-            return
         grid_idx, z = self.gauss_charge_model.farthest_z_from_defect
         gauss_pot = self.xy_ave_pot[grid_idx]
         fp_pot = self.fp_potential.potential_func(z)

@@ -35,7 +35,7 @@ class OneDPotential(MSONable, ToJsonFileMixIn, ABC):
     def to_plot(self, ax):
         ax.set_ylabel("Potential (V)")
         ax.plot(self.grid_points, self.potential_w_end,
-                label="potential", color="blue")
+                label="potential")
 
 
 class Fp1DPotential(OneDPotential):

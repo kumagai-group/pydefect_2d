@@ -168,7 +168,7 @@ def parse_args_main_vasp(args):
         "-fp", "--fp_potential", type=loadfn,
         help="OneDPotential object obtained from first principles calculations")
     parser_set_gauss_charge_pos.add_argument(
-        "-g", "--gauss_1d_pots", type=loadfn, nargs="+",
+        "-g", "--_gauss_1d_pots", type=loadfn, nargs="+",
         help="")
     parser_set_gauss_charge_pos.add_argument(
         "-de", "--defect_entry", required=True, type=loadfn,
@@ -177,7 +177,7 @@ def parse_args_main_vasp(args):
 
     # --------------------------------------------------------------------------
     parser_make_gauss_charge_model = subparsers.add_parser(
-        name="make_gauss_charge_model",
+        name="_make_gauss_charge_model",
         description=f"Make Gauss charge models. {make_gauss_charge_model_msg}",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[dielectric_dist],
