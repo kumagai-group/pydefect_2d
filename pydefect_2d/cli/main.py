@@ -38,9 +38,10 @@ def parse_args_main_vasp(args):
         "-dd", "--diele_dist", type=loadfn,
         help="dielectric_const_dist.json file")
 
-    gauss_charge_sigma = argparse.ArgumentParser(description="", add_help=False)
-    gauss_charge_sigma.add_argument(
-        "--sigma", default=0.5, type=float,
+    gauss_charge_std_dev = \
+        argparse.ArgumentParser(description="", add_help=False)
+    gauss_charge_std_dev.add_argument(
+        "--std_dev", default=0.5, type=float,
         help="Standard deviation of the gaussian charge [Å].")
 
     perfect_slab = argparse.ArgumentParser(description="", add_help=False)
@@ -80,7 +81,7 @@ def parse_args_main_vasp(args):
         aliases=['gdd'])
 
     parser_gauss_diele_dist.add_argument(
-        "--sigma", type=float, required=True,
+        "--std_dev", type=float, required=True,
         help="Standard deviation of the gaussian smearing [Å].")
     parser_gauss_diele_dist.set_defaults(
         func=make_gauss_diele_dist)
@@ -107,7 +108,7 @@ def parse_args_main_vasp(args):
         name="1d_gauss_models",
         description=f"Make 1D Gauss models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_sigma, supercell_info_parser,
+        parents=[dielectric_dist, gauss_charge_std_dev, supercell_info_parser,
                  perfect_locpot],
         aliases=['1gm'])
 
@@ -135,7 +136,7 @@ def parse_args_main_vasp(args):
         name="gauss_model",
         description=f"Make Gauss model.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_sigma, isolated_gauss,
+        parents=[dielectric_dist, gauss_charge_std_dev, isolated_gauss,
                  dir_parser],
         aliases=['gm'])
 

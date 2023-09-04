@@ -19,13 +19,13 @@ def test_gauss_diele_dist(mocker):
                                         "-u", "unitcell.yaml",
                                         "-p", "CONTCAR",
                                         "-c", "0.5",
-                                        "--sigma", "0.1"])
+                                        "--std_dev", "0.1"])
     expected = Namespace(
         unitcell=mock_unitcell.from_yaml.return_value,
         perfect_slab=mock_structure.from_file.return_value,
         mesh_distance=0.05,
         center=0.5,
-        sigma=0.1,
+        std_dev=0.1,
         func=parsed_args.func)
 
     assert parsed_args == expected
@@ -99,7 +99,7 @@ def test_make_1d_gauss_models(mocker):
         range=[0.1, 0.2],
         supercell_info=mock_supercell_info,
         perfect_locpot=mock_locpot_perfect,
-        sigma=0.5,
+        std_dev=0.5,
         func=parsed_args.func)
 
     assert parsed_args == expected
@@ -147,7 +147,7 @@ def test_make_gauss_model(mocker):
                                         ])
     expected = Namespace(
         diele_dist=mock_dielectric_dist,
-        sigma=0.5,
+        std_dev=0.5,
         multiprocess=True,
         k_max=5.0,
         k_mesh_dist=0.05,

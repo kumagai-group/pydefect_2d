@@ -17,7 +17,7 @@ def test_make_gauss_diele_dist(test_files, tmpdir):
          "--perfect_slab", str(test_files / "main_function" / "POSCAR_slab"),
          "--mesh_distance", "0.1",
          "--center", "0.5",
-         "--sigma", "1.0"])
+         "--std_dev", "1.0"])
     make_gauss_diele_dist(args)
 
 
@@ -43,8 +43,8 @@ def test_make_1d_gauss_models(test_files, tmpdir):
         ["1gm",
          "-dd", str(test_files / "main_function" / "dielectric_const_dist.json"),
          "-r", "0.2", "-0.2",
-         "-si", str(test_files / "main_function" / "supercell_info.json"),
-         "--sigma", "0.5",
+         "-s", str(test_files / "main_function" / "supercell_info.json"),
+         "--std_dev", "0.5",
          "-pl", str(test_files / "main_function" / "perfect" / "LOCPOT"),
          ])
     make_1d_gauss_models(args)
@@ -68,7 +68,7 @@ def test_make_gauss_model(test_files, tmpdir):
     args = parse_args_main_vasp(
         ["gm",
          "-dd", str(test_files / "main_function" / "dielectric_const_dist.json"),
-         "--sigma", "0.5",
+         "--std_dev", "0.5",
          "--no_multiprocess",
          "--k_max", "1.0",
          "--k_mesh_dist", "0.5",

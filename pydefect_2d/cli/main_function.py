@@ -49,7 +49,7 @@ def make_diele_dist(dist, args):
 
 def make_gauss_diele_dist(args):
     def dist(grid, center, args_):
-        return GaussianDist.from_grid(grid, center, args_.sigma)
+        return GaussianDist.from_grid(grid, center, args_.std_dev)
     make_diele_dist(dist, args)
 
 
@@ -83,7 +83,7 @@ def make_1d_gauss_models(args):
             continue
 
         charge_model = OneDGaussChargeModel(grid=args.diele_dist.dist.grid,
-                                            sigma=args.sigma,
+                                            std_dev=args.std_dev,
                                             surface=_xy_area(supercell),
                                             gauss_pos_in_frac=pos)
         calc_1d_pot = Calc1DPotential(args.diele_dist, charge_model)
@@ -160,7 +160,7 @@ def make_gauss_model(args):
 
         logger.info(f"GaussChargeModel is being created.")
         gauss_charge = _make_gauss_charge_model(
-            grids, args.sigma, defect_z_pos)
+            grids, args.std_dev, defect_z_pos)
 
         logger.info(f"GaussChargePotential is being calculated.")
         _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess)
@@ -172,8 +172,8 @@ def make_gauss_model(args):
     parse_dirs(args.dirs, _inner, True, "gauss_charge_model.json")
 
 
-def _make_gauss_charge_model(grids, sigma, defect_z_pos):
-    result = GaussChargeModel(grids, sigma, defect_z_pos)
+def _make_gauss_charge_model(grids, std_dev, defect_z_pos):
+    result = GaussChargeModel(grids, std_dev, defect_z_pos)
     filename = _add_z_pos(result.json_filename, defect_z_pos)
     result.to_json_file(filename)
     return result

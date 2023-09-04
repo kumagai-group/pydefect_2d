@@ -18,7 +18,7 @@ from pydefect_2d.potential.one_d_potential import Gauss1DPotential
 class OneDGaussChargeModel:
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grid: Grid
-    sigma: float
+    std_dev: float
     gauss_pos_in_frac: float  # in fractional coord. x=y=0
     surface: float  # in Å^2
     periodic_charges: np.array = None
@@ -29,11 +29,11 @@ class OneDGaussChargeModel:
 
     @property
     def _make_periodic_gauss_charges(self):
-        coefficient = 1 / self.sigma / (2 * pi) ** 0.5 / self.surface
+        coefficient = 1 / self.std_dev / (2 * pi) ** 0.5 / self.surface
 
         gauss = np.zeros(self.grid.num_grid)
         for nz, lz in enumerate(self.grid.grid_points()):
-            gauss[nz] = exp(-self._min_z(lz) ** 2 / (2 * self.sigma ** 2))
+            gauss[nz] = exp(-self._min_z(lz) ** 2 / (2 * self.std_dev ** 2))
 
         return coefficient * gauss
 
