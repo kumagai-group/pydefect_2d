@@ -26,6 +26,7 @@ def parse_args_main_vasp(args):
     pcr_parser = add_sub_parser(argparse, name="perfect_calc_results")
     unitcell_parser = add_sub_parser(argparse, name="unitcell")
     dir_parser = add_sub_parser(argparse, name="dirs")
+    supercell_info_parser = add_sub_parser(argparse, name="supercell_info")
 
     gauss_charge_model = argparse.ArgumentParser(description="", add_help=False)
     gauss_charge_model.add_argument(
@@ -46,6 +47,11 @@ def parse_args_main_vasp(args):
     perfect_slab.add_argument(
         "-p", "--perfect_slab", required=True, type=Structure.from_file,
         help="POSCAR file of the perfect slab model.")
+
+    perfect_locpot = argparse.ArgumentParser(description="", add_help=False)
+    perfect_locpot.add_argument(
+        "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
+        help="LOCPOT file from a perfect supercell calculation.")
 
     mesh_dist = argparse.ArgumentParser(description="", add_help=False)
     mesh_dist.add_argument(
@@ -101,18 +107,13 @@ def parse_args_main_vasp(args):
         name="1d_gauss_models",
         description=f"Make 1D Gauss models.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_sigma],
+        parents=[dielectric_dist, gauss_charge_sigma, supercell_info_parser,
+                 perfect_locpot],
         aliases=['1gm'])
 
     parser_1d_gauss_models.add_argument(
         "-r", "--range", type=float, nargs=2,
         help="Position range of gauss charge in fractional coord.")
-    parser_1d_gauss_models.add_argument(
-        "-si", "--supercell_info", type=loadfn,
-        help="supercell_info.json file.")
-    parser_1d_gauss_models.add_argument(
-        "-m", "--mesh_distance", type=float, default=0.01,
-        help="Mesh distance between charge positions in fractional coord.")
     parser_1d_gauss_models.set_defaults(func=make_1d_gauss_models)
 
     # --------------------------------------------------------------------------
@@ -121,12 +122,9 @@ def parse_args_main_vasp(args):
         description="Make planar averaged potential of first-principles "
                     "calculation result.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dir_parser],
+        parents=[dir_parser, perfect_locpot],
         aliases=['fp'])
 
-    parser_fp_1d_potential.add_argument(
-        "-pl", "--perfect_locpot", required=True, type=Locpot.from_file,
-        help="LOCPOT file from a perfect supercell calculation.")
     parser_fp_1d_potential.add_argument(
         "-p", "--pot_dir", type=Path,
         help="Directory includes gauss1_d_potential.json files.")
@@ -137,12 +135,10 @@ def parse_args_main_vasp(args):
         name="gauss_model",
         description=f"Make Gauss model.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_sigma, isolated_gauss],
+        parents=[dielectric_dist, gauss_charge_sigma, isolated_gauss,
+                 dir_parser],
         aliases=['gm'])
 
-    parser_gauss_model.add_argument(
-        "-d", "--dir", required=True, type=Path,
-        help="Defect directory.")
     parser_gauss_model.add_argument(
         "--no_multiprocess", dest="multiprocess", action="store_false",
         help="Switch of the multiprocess.")
@@ -153,12 +149,9 @@ def parse_args_main_vasp(args):
         name="slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, pcr_parser],
+        parents=[dielectric_dist, pcr_parser, dir_parser],
         aliases=['sm'])
 
-    parser_make_slab_model.add_argument(
-        "-d", "--dir", required=True, type=Path,
-        help="Defect directory.")
     parser_make_slab_model.add_argument(
         "-cd", "--correction_dir", required=True, type=Path,
         help="correction director.")

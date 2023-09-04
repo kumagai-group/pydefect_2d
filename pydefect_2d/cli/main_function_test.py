@@ -45,7 +45,7 @@ def test_make_1d_gauss_models(test_files, tmpdir):
          "-r", "0.2", "-0.2",
          "-si", str(test_files / "main_function" / "supercell_info.json"),
          "--sigma", "0.5",
-         "--mesh_distance", "0.01",
+         "-pl", str(test_files / "main_function" / "perfect" / "LOCPOT"),
          ])
     make_1d_gauss_models(args)
 

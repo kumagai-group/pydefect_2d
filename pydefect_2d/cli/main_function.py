@@ -72,7 +72,7 @@ need to be specified."""
 
 def make_1d_gauss_models(args):
     left, right = sorted(args.range)
-    n_grid = round((right - left) / args.mesh_distance) + 1
+    n_grid = args.perfect_locpot.dim[2]
     gauss_pos = np.linspace(left, right, n_grid, endpoint=True)
     supercell = args.supercell_info.structure
 
@@ -150,25 +150,29 @@ def _gauss_1d_pots(pot_dir) -> List[Gauss1DPotential]:
 
 def make_gauss_model(args):
     """depends on the supercell size and defect position"""
-    fp_potential: Fp1DPotential = loadfn(args.dir / "fp1_d_potential.json")
-    calc_results: CalcResults = loadfn(args.dir / "calc_results.json")
+    def _inner(_dir: Path):
+        fp_potential: Fp1DPotential = loadfn(_dir / "fp1_d_potential.json")
+        calc_results: CalcResults = loadfn(_dir / "calc_results.json")
 
-    defect_z_pos = fp_potential.gauss_pos
-    lat = calc_results.structure.lattice
-    grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
+        defect_z_pos = fp_potential.gauss_pos
+        lat = calc_results.structure.lattice
+        grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
 
-    gauss_charge = _make_gauss_charge_model(
-        grids, args.sigma, defect_z_pos)
-    potential = _make_gauss_potential(
-        args.diele_dist, gauss_charge, args.multiprocess)
-    logger.info("Calculating isolated gauss charge self energy...")
-    isolated = _make_isolated_gauss(
-        args.diele_dist, gauss_charge, args.k_max, args.k_mesh_dist)
-    return gauss_charge, potential, isolated
+        logger.info(f"GaussChargeModel is being created.")
+        gauss_charge = _make_gauss_charge_model(
+            grids, args.sigma, defect_z_pos)
+
+        logger.info(f"GaussChargePotential is being calculated.")
+        _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess)
+
+        logger.info("Calculating isolated gauss charge self energy...")
+        _make_isolated_gauss(args.diele_dist, gauss_charge,
+                             args.k_max, args.k_mesh_dist)
+
+    parse_dirs(args.dirs, _inner, True, "gauss_charge_model.json")
 
 
 def _make_gauss_charge_model(grids, sigma, defect_z_pos):
-    logger.info(f"GaussChargeModel is being created at {defect_z_pos}")
     result = GaussChargeModel(grids, sigma, defect_z_pos)
     filename = _add_z_pos(result.json_filename, defect_z_pos)
     result.to_json_file(filename)
@@ -176,8 +180,6 @@ def _make_gauss_charge_model(grids, sigma, defect_z_pos):
 
 
 def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess):
-    pos = gauss_charge_model.gauss_pos_in_frac
-    logger.info(f"GaussChargePotential is being calculated at {pos}")
     result = CalcGaussChargePotential(
         dielectric_const=diele_dist,
         gauss_charge_model=gauss_charge_model,
@@ -204,32 +206,34 @@ def make_slab_model(args):
 
     This should be placed at each defect calc dir.
     """
+    def _inner(_dir: Path):
+        fp_potential: Fp1DPotential = loadfn(_dir / "fp1_d_potential.json")
+        calc_results = loadfn(_dir / "calc_results.json")
+        defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
 
-    fp_potential: Fp1DPotential = loadfn(args.dir / "fp1_d_potential.json")
-    calc_results = loadfn(args.dir / "calc_results.json")
-    defect_entry: DefectEntry = loadfn(args.dir / "defect_entry.json")
+        def _get_obj_from_corr_dir(filename: str):
+            x, y = filename.split(".")
+            filename = f"{x}_{fp_potential.gauss_pos:.3f}.{y}"
+            try:
+                return loadfn(args.correction_dir / filename)
+            except FileNotFoundError:
+                print(f"{filename} is not found.")
+                raise
 
-    def _get_obj_from_corr_dir(filename: str):
-        x, y = filename.split(".")
-        filename = f"{x}_{fp_potential.gauss_pos:.3f}.{y}"
-        try:
-            return loadfn(args.correction_dir / filename)
-        except FileNotFoundError:
-            print(f"{filename} is not found.")
-            raise
+        gauss_charge_model = _get_obj_from_corr_dir("gauss_charge_model.json")
+        gauss_charge_pot = _get_obj_from_corr_dir("gauss_charge_potential.json")
+        isolated_energy = _get_obj_from_corr_dir("isolated_gauss_energy.json")
 
-    gauss_charge_model = _get_obj_from_corr_dir("gauss_charge_model.json")
-    gauss_charge_pot = _get_obj_from_corr_dir("gauss_charge_potential.json")
-    isolated_gauss_energy = _get_obj_from_corr_dir("isolated_gauss_energy.json")
+        logger.info(f"slab_model.json is being created.")
+        slab_model = _make_slab_model(args.diele_dist,
+                                      defect_entry,
+                                      gauss_charge_model,
+                                      gauss_charge_pot,
+                                      fp_potential)
+        _make_correction(isolated_energy, slab_model)
+        _make_site_potential(args.perfect_calc_results, calc_results, slab_model)
 
-    logger.info(f"slab_model.json is being created.")
-    slab_model = _make_slab_model(args.diele_dist,
-                                  defect_entry,
-                                  gauss_charge_model,
-                                  gauss_charge_pot,
-                                  fp_potential)
-    _make_correction(isolated_gauss_energy, slab_model)
-    _make_site_potential(args.perfect_calc_results, calc_results, slab_model)
+    parse_dirs(args.dirs, _inner, True, "slab_model.json")
 
 
 def _make_slab_model(diele_dist, defect_entry, gauss_charge_model,
