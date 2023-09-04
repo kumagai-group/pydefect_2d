@@ -5,7 +5,7 @@ from pathlib import Path
 from pydefect_2d.cli.main import parse_args_main_vasp
 from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
     make_step_diele_dist, make_1d_gauss_models, make_fp_1d_potential, \
-    make_gauss_model
+    make_gauss_model, make_slab_model
 
 
 def test_make_gauss_diele_dist(test_files, tmpdir):
@@ -41,7 +41,7 @@ def test_make_1d_gauss_models(test_files, tmpdir):
     Path("gauss1_d_potential_0.000.json").touch()
     args = parse_args_main_vasp(
         ["1gm",
-         "-d", str(test_files / "main_function" / "dielectric_const_dist.json"),
+         "-dd", str(test_files / "main_function" / "dielectric_const_dist.json"),
          "-r", "0.2", "-0.2",
          "-si", str(test_files / "main_function" / "supercell_info.json"),
          "--sigma", "0.5",
@@ -67,13 +67,24 @@ def test_make_gauss_model(test_files, tmpdir):
     tmpdir.chdir()
     args = parse_args_main_vasp(
         ["gm",
-         "-si", str(test_files / "main_function" / "supercell_info.json"),
-         "-d", str(test_files / "main_function" / "dielectric_const_dist.json"),
-         "-dp", "0.5",
+         "-dd", str(test_files / "main_function" / "dielectric_const_dist.json"),
          "--sigma", "0.5",
          "--no_multiprocess",
          "--k_max", "1.0",
          "--k_mesh_dist", "0.5",
+         "-d", str(test_files / "main_function" / "H_ad_1/"),
          ])
     make_gauss_model(args)
+
+
+def test_make_slab_model(test_files, tmpdir):
+    print(tmpdir)
+    tmpdir.chdir()
+    args = parse_args_main_vasp(
+        ["sm",
+         "-dd", str(test_files / "main_function" / "dielectric_const_dist.json"),
+         "-pcr", str(test_files / "main_function" / "perfect" / "calc_results.json"),
+         "-d", str(test_files / "main_function" / "H_ad_1/"),
+         "-cd", str(test_files / "main_function" / "correction")])
+    make_slab_model(args)
 

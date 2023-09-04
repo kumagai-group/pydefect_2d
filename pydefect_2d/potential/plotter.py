@@ -41,7 +41,7 @@ class ProfilePlotter:
 
     def _plot_potential(self):
         if self.fp_potential:
-            self.ax3.plot(self.fp_potential.grid.grid_points,
+            self.ax3.plot(self.fp_potential.grid.grid_points(),
                           self.fp_potential.potential,
                           label="FP", color="blue")
             self.ax3.plot(self.z_grid_points, self._diff_potential,

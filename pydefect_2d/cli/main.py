@@ -34,7 +34,7 @@ def parse_args_main_vasp(args):
 
     dielectric_dist = argparse.ArgumentParser(description="", add_help=False)
     dielectric_dist.add_argument(
-        "-d", "--diele_dist", type=loadfn,
+        "-dd", "--diele_dist", type=loadfn,
         help="dielectric_const_dist.json file")
 
     gauss_charge_sigma = argparse.ArgumentParser(description="", add_help=False)
@@ -141,11 +141,8 @@ def parse_args_main_vasp(args):
         aliases=['gm'])
 
     parser_gauss_model.add_argument(
-        "-si", "--supercell_info", type=loadfn,
-        help="supercell_info.json file.")
-    parser_gauss_model.add_argument(
-        "-dp", "--defect_z_pos", type=float,
-        help="Defect position along z direction in fractional coord.")
+        "-d", "--dir", required=True, type=Path,
+        help="Defect directory.")
     parser_gauss_model.add_argument(
         "--no_multiprocess", dest="multiprocess", action="store_false",
         help="Switch of the multiprocess.")
@@ -153,21 +150,18 @@ def parse_args_main_vasp(args):
 
     # --------------------------------------------------------------------------
     parser_make_slab_model = subparsers.add_parser(
-        name="make_slab_model",
+        name="slab_model",
         description="Make slab_model.json.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[dielectric_dist, pcr_parser],
         aliases=['sm'])
 
     parser_make_slab_model.add_argument(
-        "-cd", "--correction_dir", required=True, type=Path,
-        help="")
-    parser_make_slab_model.add_argument(
-        "-fp", "--fp_potential", type=loadfn,
-        help="fp_potential.json file")
-    parser_make_slab_model.add_argument(
         "-d", "--dir", required=True, type=Path,
-        help="")
+        help="Defect directory.")
+    parser_make_slab_model.add_argument(
+        "-cd", "--correction_dir", required=True, type=Path,
+        help="correction director.")
     parser_make_slab_model.set_defaults(func=make_slab_model)
 
     # --------------------------------------------------------------------------

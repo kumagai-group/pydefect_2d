@@ -9,6 +9,7 @@ from typing import List
 import numpy as np
 from matplotlib import pyplot as plt
 from monty.serialization import loadfn
+from pydefect.analyzer.calc_results import CalcResults
 from pydefect.cli.main_tools import parse_dirs
 from pydefect.corrections.site_potential_plotter import SitePotentialMplPlotter
 from pydefect.input_maker.defect_entry import DefectEntry
@@ -104,14 +105,16 @@ def make_fp_1d_potential(args):
         pot_grads.to_plot(plt.gca())
         plt.show()
 
-        fp_potential.gauss_positions = pot_grads.gauss_pos_w_min_grad()
-        logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_positions}.")
+        fp_potential.gauss_pos = pot_grads.gauss_pos_w_min_grad()
+        logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_pos}.")
+
+        print(fp_potential.gauss_pos)
         fp_potential.to_json_file()
 
     parse_dirs(args.dirs, _inner, True, "fp1_d_potential.json")
 
 
-def _make_fp_potential(_dir, perfect_pot):
+def _make_fp_potential(_dir, perfect_pot) -> Fp1DPotential:
     locpot = Locpot.from_file(_dir / "LOCPOT")
     length = locpot.structure.lattice.lengths[2]
     grid_num = locpot.dim[2]
@@ -147,12 +150,15 @@ def _gauss_1d_pots(pot_dir) -> List[Gauss1DPotential]:
 
 def make_gauss_model(args):
     """depends on the supercell size and defect position"""
+    fp_potential: Fp1DPotential = loadfn(args.dir / "fp1_d_potential.json")
+    calc_results: CalcResults = loadfn(args.dir / "calc_results.json")
 
-    lat = args.supercell_info.structure.lattice
+    defect_z_pos = fp_potential.gauss_pos
+    lat = calc_results.structure.lattice
     grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
 
     gauss_charge = _make_gauss_charge_model(
-        grids, args.sigma, args.defect_z_pos)
+        grids, args.sigma, defect_z_pos)
     potential = _make_gauss_potential(
         args.diele_dist, gauss_charge, args.multiprocess)
     logger.info("Calculating isolated gauss charge self energy...")
@@ -199,11 +205,13 @@ def make_slab_model(args):
     This should be placed at each defect calc dir.
     """
 
-    gauss_pos = args.fp_potential.gauss_pos
+    fp_potential: Fp1DPotential = loadfn(args.dir / "fp1_d_potential.json")
+    calc_results = loadfn(args.dir / "calc_results.json")
+    defect_entry: DefectEntry = loadfn(args.dir / "defect_entry.json")
 
     def _get_obj_from_corr_dir(filename: str):
         x, y = filename.split(".")
-        filename = f"{x}_{gauss_pos:.3f}.{y}"
+        filename = f"{x}_{fp_potential.gauss_pos:.3f}.{y}"
         try:
             return loadfn(args.correction_dir / filename)
         except FileNotFoundError:
@@ -214,14 +222,12 @@ def make_slab_model(args):
     gauss_charge_pot = _get_obj_from_corr_dir("gauss_charge_potential.json")
     isolated_gauss_energy = _get_obj_from_corr_dir("isolated_gauss_energy.json")
 
-    calc_results = loadfn(args.dir / "calc_results.json")
-    defect_entry: DefectEntry = loadfn(args.dir / "defect_entry.json")
-
+    logger.info(f"slab_model.json is being created.")
     slab_model = _make_slab_model(args.diele_dist,
                                   defect_entry,
                                   gauss_charge_model,
                                   gauss_charge_pot,
-                                  args.fp_potential)
+                                  fp_potential)
     _make_correction(isolated_gauss_energy, slab_model)
     _make_site_potential(args.perfect_calc_results, calc_results, slab_model)
 

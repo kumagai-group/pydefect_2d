@@ -20,7 +20,7 @@ from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grids
-from pydefect_2d.potential.one_d_potential import OneDPotential, Fp1DPotential
+from pydefect_2d.potential.one_d_potential import Fp1DPotential
 
 
 @dataclass
@@ -104,7 +104,7 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
     def get_potential(self, coord):
         x, y, z = coord
         xi, yi = self.grids.xy_grids.nearest_grid_point(x, y)[0]
-        zi = self.grids.z_grid.nearest_grid_point(z)
+        zi = self.grids.z_grid.nearest_grid_point(z)[0]
         return self.potential[xi, yi, zi]
 
     def to_plot(self, ax, charge=1):
