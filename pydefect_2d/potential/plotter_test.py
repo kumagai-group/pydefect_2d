@@ -9,7 +9,7 @@ from pydefect_2d.potential.grids import Grid, Grids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import GaussChargePotential, \
     SlabModel, GaussChargeModel
-from pydefect_2d.potential.one_d_potential import OneDPotential
+from pydefect_2d.potential.one_d_potential import Fp1DPotential
 
 
 def test_plot_profile():
@@ -22,8 +22,8 @@ def test_plot_profile():
     charges = [0.0, 1.0, 2.0, 4.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0]
     grids = Grids.from_z_grid(np.array([[10., 0.], [0., 10.]]), grid)
     charge = GaussChargeModel(grids=grids,
-                              sigma=1.0,
-                              defect_z_pos_in_frac=0.0,
+                              std_dev=1.0,
+                              gauss_pos_in_frac=0.0,
                               periodic_charges=np.array([[charges]*2]*2))
 
     pot = [-1.0, 1.0, 2.0, 4.0, 2.0, 1.0, -1.0, -2.0, -3.0, -2.0]
@@ -31,9 +31,10 @@ def test_plot_profile():
         grids=grids,
         potential=np.array([[pot]*2]*2))
 
-    fp_pot_dist = [-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5]
+    fp_pot_dist = np.array(
+        [-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
     charge_state = 1
-    fp_pot = OneDPotential(charge_state, grid, fp_pot_dist)
+    fp_pot = Fp1DPotential(grid, fp_pot_dist)
 
     slab_model = SlabModel(diele_dist, charge, potential, charge_state, fp_pot)
     plotter = ProfilePlotter(plt, slab_model)

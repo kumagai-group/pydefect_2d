@@ -9,7 +9,7 @@ def test_plot_volumetric_data(test_files, tmpdir):
     print(tmpdir)
     tmpdir.chdir()
     parsed_args = parse_args_main_util_vasp([
-        "pvd", "-f", str(test_files / "main_function" / "perfect" / "LOCPOT")])
+        "pvd", "-f", str(test_files / "perfect" / "LOCPOT")])
     plot_volumetric_data(parsed_args)
 
 
@@ -18,9 +18,9 @@ def test_gauss_model_from_z(test_files, tmpdir):
 
     args = parse_args_main_util_vasp(
         ["gmz",
-         "-s", str(test_files / "main_function" / "supercell_info.json"),
+         "-s", str(test_files / "supercell_info.json"),
          "-z", "0.5",
-         "-dd", str(test_files / "main_function" / "dielectric_const_dist.json"),
+         "-dd", str(test_files / "dielectric_const_dist.json"),
          "--std_dev", "0.5",
          "--no_multiprocess",
          "--k_max", "1.0",

@@ -12,7 +12,7 @@ from pydefect_2d.potential.grids import Grid, Grids, XYGrids
 from pydefect_2d.potential.plotter import ProfilePlotter
 from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
-from pydefect_2d.potential.one_d_potential import OneDPotential
+from pydefect_2d.potential.one_d_potential import OneDPotential, Fp1DPotential
 
 grid = Grid(10., 4)
 
@@ -31,7 +31,7 @@ def gauss_charge_model():
         grids=Grids(xy_grids=XYGrids(lattice=np.array([[10., 0.], [0., 10.]]),
                                      num_grids=[4, 4]),
                     z_grid=grid),
-        sigma=1.0,
+        std_dev=1.0,
         gauss_pos_in_frac=0.0
     )
 
@@ -69,7 +69,7 @@ def test_gauss_charge_model_charges(gauss_charge_model: GaussChargeModel):
     assert gauss_charge_model.farthest_z_from_defect == (2, 5.0)
 
 
-def test_():
+def test_slab_model_plotter():
     z_grid = dict(length=10., num_grid=30)
     diele_const = DielectricConstDist(
         ave_ele=[1.]*3,
@@ -79,18 +79,22 @@ def test_():
     grids = Grids(XYGrids(np.array([[10., 0.], [0., 10.]]), [30]*2),
                   Grid(**z_grid))
     gauss = GaussChargeModel(grids,
-                             sigma=0.3,
+                             std_dev=0.3,
                              gauss_pos_in_frac=0.5)
 
     calc_pot = CalcGaussChargePotential(
         dielectric_const=diele_const,
         gauss_charge_model=gauss)
+    potential = calc_pot.potential
+
+    fp_potential = Fp1DPotential(grid=Grid(**z_grid),
+                                 potential=np.array([1.0]*30))
+
     slab_model = SlabModel(diele_dist=diele_const,
                            gauss_charge_model=gauss,
-                           gauss_charge_potential=calc_pot.potential,
-                           charge_state=2)
-    print(slab_model.xy_ave_pot)
-    print(slab_model.gauss_charge_potential.xy_ave_potential)
+                           gauss_charge_potential=potential,
+                           charge_state=2,
+                           fp_potential=fp_potential)
 
     ProfilePlotter(plt, slab_model)
     plt.show()

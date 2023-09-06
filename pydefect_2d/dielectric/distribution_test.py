@@ -22,10 +22,11 @@ def test_step_dist():
     assert round(actual.unscaled_dist[3], 5) == 0.00234
     print(actual)
 
+
 def test_diele_in_plane_scale():
     dist = ManualDist(length=1.0, num_grid=2, manual_dist=np.array([1.0, 3.0]))
-    actual = dist.diele_in_plane_scale(ave_diele=1.0)
-    expected = np.array([0.5, 1.5])
+    actual = dist.diele_in_plane_scale(ave_diele=2.0)
+    expected = np.array([1.5, 2.5])
     assert_array_almost_equal(actual, expected)
 
 

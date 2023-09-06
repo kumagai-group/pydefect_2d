@@ -23,13 +23,13 @@ from pydefect_2d.potential.slab_model_info import GaussChargeModel
 
 @dataclass
 class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
-    sigma: float
+    std_dev: float
     ks: List[float]
     U_ks: List[float]
 
     @cached_property
     def k_exps(self):
-        return [k*exp(-k**2*self.sigma**2) for k in self.ks]
+        return [k * exp(-k**2 * self.std_dev ** 2) for k in self.ks]
 
     @cached_property
     def Us(self):
@@ -74,7 +74,7 @@ class CalcIsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
 
     @property
     def sigma(self):
-        return self.gauss_charge_model.sigma
+        return self.gauss_charge_model.std_dev
 
     @property
     def L(self):

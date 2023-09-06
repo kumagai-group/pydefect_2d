@@ -28,13 +28,13 @@ from pydefect_2d.potential.one_d_potential import Fp1DPotential
 class GaussChargeModel(MSONable, ToJsonFileMixIn):
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grids: Grids
-    sigma: float
+    std_dev: float
     gauss_pos_in_frac: float  # in fractional coord. x=y=0
     periodic_charges: np.array = None
 
     def __str__(self):
         charge = self.periodic_charges.mean() * self.grids.volume
-        result = [f"sigma (A): {self.sigma:.2}",
+        result = [f"Standard deviation (A): {self.std_dev:.2}",
                   f"Charge sum (|e|): {charge:.3}"]
         return "\n".join(result)
 
@@ -48,7 +48,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
 
     @property
     def _make_periodic_gauss_charge_profile(self):
-        coefficient = 1 / self.sigma ** 3 / (2 * pi) ** 1.5
+        coefficient = 1 / self.std_dev ** 3 / (2 * pi) ** 1.5
 
         (nx, ny), nz = self.grids.xy_grids.num_grids, self.grids.z_grid.num_grid
         gauss = np.zeros([nx, ny, nz])
@@ -56,7 +56,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         xy2 = self.grids.xy_grids.squared_length_on_grids()
         for nz, lz in enumerate(self.grids.z_grid.grid_points()):
             xyz2 = xy2 + self._min_z2(lz)
-            gauss[:, :, nz] = exp(- xyz2 / (2 * self.sigma ** 2))
+            gauss[:, :, nz] = exp(- xyz2 / (2 * self.std_dev ** 2))
 
         return coefficient * gauss
 
