@@ -1,32 +1,13 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-import glob
-import shutil
-from pathlib import Path
-from typing import Union
 
-import numpy as np
 from matplotlib import pyplot as plt
-from monty.serialization import loadfn
-from pydefect.analyzer.defect_structure_info import DefectStructureInfo
-from pydefect.corrections.site_potential_plotter import SitePotentialMplPlotter
-from pymatgen.core import Structure
 from pymatgen.io.vasp import Chgcar, Locpot
 from vise.util.logger import get_logger
 
-from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
-from pydefect_2d.potential.calc_one_d_potential import Calc1DPotential, \
-    OneDGaussChargeModel
-from pydefect_2d.dielectric.dielectric_distribution import \
-    DielectricConstDist
-from pydefect_2d.dielectric.distribution import GaussianDist, StepDist
-from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.correction.make_site_potential import make_potential_sites
-from pydefect_2d.potential.one_d_potential import OneDPotDiff, \
-    PotDiffGradients, Fp1DPotential
-from pydefect_2d.potential.plotter import ProfilePlotter
-from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
-    GaussChargeModel, SlabModel
+from pydefect_2d.cli.main_function import _make_gauss_charge_model, \
+    _make_gauss_potential, _make_isolated_gauss, _add_z_pos
+from pydefect_2d.potential.grids import Grids
 
 logger = get_logger(__name__)
 
@@ -34,10 +15,8 @@ logger = get_logger(__name__)
 def plot_volumetric_data(args):
     if "CHG" in args.filename:
         vol_data = Chgcar.from_file(args.filename)
-        is_sum = True
     elif "LOCPOT" in args.filename:
         vol_data = Locpot.from_file(args.filename)
-        is_sum = False
     else:
         raise ValueError
 
@@ -50,3 +29,44 @@ def plot_volumetric_data(args):
     ax.plot(z_grid, values, color="red")
     plt.savefig(f"{args.filename}.pdf")
 
+
+def make_gauss_model_from_z(args):
+    """depends on the supercell size and defect position"""
+    lat = args.supercell_info.structure.lattice
+    grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
+    for z_pos in args.z_pos:
+        logger.info(f"At z={z_pos}...")
+        filename = _add_z_pos("gauss_charge_model.json", z_pos)
+        if (args.correction_dir / filename).exists():
+            logger.info(f"{filename} already exists, so skip.")
+            continue
+
+        gauss_charge = _make_gauss_charge_model(grids, args.std_dev, z_pos,
+                                                args.correction_dir)
+
+        _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess,
+                              args.correction_dir)
+
+        _make_isolated_gauss(args.diele_dist, gauss_charge, args.k_max,
+                             args.k_mesh_dist, args.correction_dir)
+
+
+def make_gaussian_energies(args):
+    """depends on the supercell size and defect position"""
+    lat = args.supercell_info.structure.lattice
+    grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
+    for z_pos in args.z_pos:
+        logger.info(f"At z={z_pos}...")
+        filename = _add_z_pos("gauss_charge_model.json", z_pos)
+        if (args.correction_dir / filename).exists():
+            logger.info(f"{filename} already exists, so skip.")
+            continue
+
+        gauss_charge = _make_gauss_charge_model(grids, args.std_dev, z_pos,
+                                                args.correction_dir)
+
+        _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess,
+                              args.correction_dir)
+
+        _make_isolated_gauss(args.diele_dist, gauss_charge, args.k_max,
+                             args.k_mesh_dist, args.correction_dir)

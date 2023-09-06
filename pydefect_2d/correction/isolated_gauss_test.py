@@ -2,17 +2,12 @@
 #  Copyright (c) 2023 Kumagai group.
 from pathlib import Path
 
-import numpy as np
 import pytest
-from matplotlib import pyplot as plt
 from monty.serialization import loadfn
-from numpy import pi
-from scipy.constants import epsilon_0, elementary_charge, angstrom
 from scipy.fft import fft
 
-from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
-from pydefect_2d.potential.grids import Grids, Grid, XYGrids
-from pydefect_2d.potential.slab_model_info import GaussChargeModel
+from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy, \
+    CalcIsolatedGaussEnergy
 
 sigma = 1.0
 
@@ -22,21 +17,17 @@ path = Path(__file__).parent
 
 @pytest.fixture
 def gauss_energy():
-    # n_grid = 50
     gauss = loadfn(path / "gauss_charge_model_0.500.json")
     diele = loadfn(path / "dielectric_const_dist.json")
 
-    return IsolatedGaussEnergy(gauss_charge_model=gauss,
-                               diele_const_dist=diele,
-                               k_max=1,
-                               num_k_mesh=20,
-                               multiprocess=True)
+    return CalcIsolatedGaussEnergy(gauss_charge_model=gauss,
+                                   diele_const_dist=diele,
+                                   k_max=1,
+                                   k_mesh_dist=0.05,
+                                   multiprocess=True).isolated_gauss_energy
 
 
-def test_gaussian_energy(gauss_energy: IsolatedGaussEnergy):
-    # print(gauss_energy.Gs)
-    # print("-"*10)
-
+def test_isolated_gaussian_energy(gauss_energy: IsolatedGaussEnergy):
     print(gauss_energy.self_energy)
 
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 import multiprocessing as multi
+from abc import ABC
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import product

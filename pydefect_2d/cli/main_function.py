@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 import glob
-import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import List
@@ -18,7 +17,8 @@ from vise.util.logger import get_logger
 
 from pydefect_2d.cli.main_plot_json import plot
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
-from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
+from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy, \
+    CalcIsolatedGaussEnergy
 from pydefect_2d.correction.make_site_potential import make_potential_sites
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
@@ -38,9 +38,16 @@ logger = get_logger(__name__)
 def make_diele_dist(dist, args):
     ele = list(np.diag(args.unitcell.ele_dielectric_const))
     ion = list(np.diag(args.unitcell.ion_dielectric_const))
-    slab_length = args.perfect_slab.lattice.c
+
+    slab_length = args.perfect_locpot.structure.lattice.c
+    orig_num_grid = args.perfect_locpot.dim[2]
+    num_grid = round(orig_num_grid / args.denominator)
+
+    logger.info(f"Original #grid: {orig_num_grid}, #grid: {num_grid}")
+#    logger.info(f"The number of grid is set to {num_grid}")
+
     center = slab_length * args.center
-    grid = Grid.from_mesh_distance(slab_length, args.mesh_distance)
+    grid = Grid(slab_length, num_grid)
 
     diele = DielectricConstDist(ele, ion, dist(grid, center, args))
     diele.to_json_file()
@@ -72,7 +79,7 @@ need to be specified."""
 
 def make_1d_gauss_models(args):
     left, right = sorted(args.range)
-    n_grid = args.perfect_locpot.dim[2]
+    n_grid = round((right - left) / args.mesh_distance) + 1
     gauss_pos = np.linspace(left, right, n_grid, endpoint=True)
     supercell = args.supercell_info.structure
 
@@ -158,46 +165,50 @@ def make_gauss_model(args):
         lat = calc_results.structure.lattice
         grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
 
-        logger.info(f"GaussChargeModel is being created.")
         gauss_charge = _make_gauss_charge_model(
-            grids, args.std_dev, defect_z_pos)
+            grids, args.std_dev, defect_z_pos, args.correction_dir)
 
-        logger.info(f"GaussChargePotential is being calculated.")
-        _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess)
+        _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess,
+                              args.correction_dir)
 
-        logger.info("Calculating isolated gauss charge self energy...")
         _make_isolated_gauss(args.diele_dist, gauss_charge,
-                             args.k_max, args.k_mesh_dist)
+                             args.k_max, args.k_mesh_dist,
+                             args.correction_dir)
 
     parse_dirs(args.dirs, _inner, True, "gauss_charge_model.json")
 
 
-def _make_gauss_charge_model(grids, std_dev, defect_z_pos):
+def _make_gauss_charge_model(grids, std_dev, defect_z_pos, dir_):
+    logger.info(f"GaussChargeModel is being created.")
     result = GaussChargeModel(grids, std_dev, defect_z_pos)
     filename = _add_z_pos(result.json_filename, defect_z_pos)
-    result.to_json_file(filename)
+    result.to_json_file(dir_ / filename)
     return result
 
 
-def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess):
+def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess, dir_):
+    logger.info(f"GaussChargePotential is being calculated.")
     result = CalcGaussChargePotential(
         dielectric_const=diele_dist,
         gauss_charge_model=gauss_charge_model,
         multiprocess=multiprocess).potential
     filename = _add_z_pos(result.json_filename,
                           gauss_charge_model.gauss_pos_in_frac)
-    result.to_json_file(filename)
+    result.to_json_file(dir_ / filename)
     return result
 
 
-def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist):
-    result = IsolatedGaussEnergy(gauss_charge_model=gauss_charge_model,
-                                 diele_const_dist=diele_dist,
-                                 k_max=k_max,
-                                 k_mesh_dist=k_mesh_dist)
+def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist,
+                         dir_):
+    logger.info("Calculating isolated gauss charge self energy...")
+    calculator = CalcIsolatedGaussEnergy(gauss_charge_model=gauss_charge_model,
+                                         diele_const_dist=diele_dist,
+                                         k_max=k_max,
+                                         k_mesh_dist=k_mesh_dist)
+    result = calculator.isolated_gauss_energy
     filename = _add_z_pos(result.json_filename,
                           gauss_charge_model.gauss_pos_in_frac)
-    result.to_json_file(filename)
+    result.to_json_file(dir_ / filename)
     return result
 
 
@@ -208,7 +219,6 @@ def make_slab_model(args):
     """
     def _inner(_dir: Path):
         fp_potential: Fp1DPotential = loadfn(_dir / "fp1_d_potential.json")
-        calc_results = loadfn(_dir / "calc_results.json")
         defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
 
         def _get_obj_from_corr_dir(filename: str):
@@ -231,7 +241,8 @@ def make_slab_model(args):
                                       gauss_charge_pot,
                                       fp_potential)
         _make_correction(isolated_energy, slab_model)
-        _make_site_potential(args.perfect_calc_results, calc_results, slab_model)
+        # calc_results = loadfn(_dir / "calc_results.json")
+        # _make_site_potential(args.perfect_calc_results, calc_results, slab_model)
 
     parse_dirs(args.dirs, _inner, True, "slab_model.json")
 
@@ -260,13 +271,14 @@ def _make_correction(isolated_gauss_energy, slab_model):
     correction.to_json_file()
 
 
-def _make_site_potential(perfect_calc_results, calc_results, slab_model):
-    sites = make_potential_sites(calc_results,
-                                 perfect_calc_results,
-                                 slab_model)
-    plotter = SitePotentialMplPlotter(
-        title="atomic site potential", sites=sites)
-    plotter.construct_plot()
-    plotter.plt.savefig(fname="atomic_site_potential.pdf")
-    plotter.plt.clf()
+# def _make_site_potential(perfect_calc_results, calc_results, slab_model):
+#     sites = make_potential_sites(calc_results,
+#                                  perfect_calc_results,
+#                                  slab_model)
+#     plt.clf()
+#     plotter = SitePotentialMplPlotter(
+#         title="atomic site potential", sites=sites)
+#     plotter.construct_plot()
+#     plotter.plt.savefig(fname="atomic_site_potential.pdf")
+#     plotter.plt.clf()
 

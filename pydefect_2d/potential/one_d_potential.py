@@ -52,8 +52,8 @@ class OneDPotDiff(MSONable, ToJsonFileMixIn):
     fp_pot: Fp1DPotential
     gauss_pot: Gauss1DPotential
 
-    # def __post_init__(self):
-    #     assert self.fp_pot.grid == self.gauss_pot.grid
+    def __post_init__(self):
+        assert self.fp_pot.grid.length == self.gauss_pot.grid.length
 
     @property
     def fp_grid_points(self):
@@ -61,15 +61,17 @@ class OneDPotDiff(MSONable, ToJsonFileMixIn):
 
     @property
     def potential_diff_gradient(self):
-        pos = self.gauss_pot.gauss_pos * self.fp_pot.grid.length
+        pos = self.gauss_pot.gauss_pos * self.gauss_pot.grid.length
         idx, z = self.fp_pot.grid.farthest_grid_point(pos)
+        idx_m1, idx_p1 = idx - 1, (idx + 1) % len(self.fp_grid_points)
 
-        z_m1 = self.fp_grid_points[idx - 1]
-        z_p1 = self.fp_grid_points[idx + 1]
+        z_m1 = self.fp_grid_points[idx_m1]
+        z_p1 = self.fp_grid_points[idx_p1]
+
         diff1 = (self.gauss_pot.potential_func(z_m1)
-                 - self.fp_pot.potential[idx-1])
+                 - self.fp_pot.potential[idx_m1])
         diff2 = (self.gauss_pot.potential_func(z_p1)
-                 - self.fp_pot.potential[idx+1])
+                 - self.fp_pot.potential[idx_p1])
         return (diff2 - diff1) / (self.fp_pot.grid.mesh_dist * 2)
 
 
@@ -79,10 +81,10 @@ class PotDiffGradients(MSONable, ToJsonFileMixIn):
     gauss_positions: List[float]  # in fractional coordinate
 
     def to_plot(self, ax):
-        ax.set_xlabel("Gradient (V/Å)")
-        ax.set_ylabel("Gauss charge position (Å)")
+        ax.set_xlabel("Gauss charge position (Å)")
+        ax.set_ylabel("Gradient (V/Å)")
         ax.plot(self.gauss_positions, self.gradients, color="blue")
 
     def gauss_pos_w_min_grad(self):
         idx = np.argmin(abs(np.array(self.gradients)))
-        return self.gauss_positions[idx]
+        return round(self.gauss_positions[idx], 5)
