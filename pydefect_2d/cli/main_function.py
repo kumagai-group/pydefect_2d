@@ -10,16 +10,14 @@ from matplotlib import pyplot as plt
 from monty.serialization import loadfn
 from pydefect.analyzer.calc_results import CalcResults
 from pydefect.cli.main_tools import parse_dirs
-from pydefect.corrections.site_potential_plotter import SitePotentialMplPlotter
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Locpot
 from vise.util.logger import get_logger
 
 from pydefect_2d.cli.main_plot_json import plot
+from pydefect_2d.util.utils import add_z_to_filename
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
-from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy, \
-    CalcIsolatedGaussEnergy
-from pydefect_2d.correction.make_site_potential import make_potential_sites
+from pydefect_2d.correction.isolated_gauss import CalcIsolatedGaussEnergy
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.dielectric.distribution import GaussianDist, StepDist
@@ -67,11 +65,6 @@ def make_step_diele_dist(args):
     make_diele_dist(dist, args)
 
 
-def _add_z_pos(filename: str, pos_in_frac: float):
-    x, y = filename.split(".")
-    return f"{x}_{pos_in_frac:.3f}.{y}"
-
-
 make_gauss_charge_model_msg = \
     """defect_structure_info.json or a set of (supercell_info.json, defect_pos) 
 need to be specified."""
@@ -84,7 +77,7 @@ def make_1d_gauss_models(args):
     supercell = args.supercell_info.structure
 
     for pos in gauss_pos:
-        filename = _add_z_pos("gauss1_d_potential.json", pos)
+        filename = add_z_to_filename("gauss1_d_potential.json", pos)
         if Path(filename).exists():
             logger.info(f"Because {filename} exists, so skip.")
             continue
@@ -181,7 +174,7 @@ def make_gauss_model(args):
 def _make_gauss_charge_model(grids, std_dev, defect_z_pos, dir_):
     logger.info(f"GaussChargeModel is being created.")
     result = GaussChargeModel(grids, std_dev, defect_z_pos)
-    filename = _add_z_pos(result.json_filename, defect_z_pos)
+    filename = add_z_to_filename(result.json_filename, defect_z_pos)
     result.to_json_file(dir_ / filename)
     return result
 
@@ -192,8 +185,8 @@ def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess, dir_):
         dielectric_const=diele_dist,
         gauss_charge_model=gauss_charge_model,
         multiprocess=multiprocess).potential
-    filename = _add_z_pos(result.json_filename,
-                          gauss_charge_model.gauss_pos_in_frac)
+    filename = add_z_to_filename(result.json_filename,
+                                 gauss_charge_model.gauss_pos_in_frac)
     result.to_json_file(dir_ / filename)
     return result
 
@@ -206,8 +199,8 @@ def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist,
                                          k_max=k_max,
                                          k_mesh_dist=k_mesh_dist)
     result = calculator.isolated_gauss_energy
-    filename = _add_z_pos(result.json_filename,
-                          gauss_charge_model.gauss_pos_in_frac)
+    filename = add_z_to_filename(result.json_filename,
+                                 gauss_charge_model.gauss_pos_in_frac)
     result.to_json_file(dir_ / filename)
     return result
 
@@ -279,6 +272,4 @@ def _make_correction(isolated_gauss_energy, slab_model):
 #     plotter = SitePotentialMplPlotter(
 #         title="atomic site potential", sites=sites)
 #     plotter.construct_plot()
-#     plotter.plt.savefig(fname="atomic_site_potential.pdf")
-#     plotter.plt.clf()
 

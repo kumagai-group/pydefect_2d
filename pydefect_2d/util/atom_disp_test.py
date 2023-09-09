@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pymatgen.core import Structure
 
-from pydefect_2d.vasp.util.atom_disp import atom_disp, disp_from_yaml
+from pydefect_2d.util.atom_disp import atom_disp, disp_from_yaml
 
 
 def test_atom_disp():

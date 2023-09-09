@@ -80,9 +80,7 @@ def parse_args_main_vasp(args):
 
     dielectric_dist = add_2d_sub_parser(argparse, "diele_dist")
     gauss_charge_std_dev = add_2d_sub_parser(argparse, "std_dev")
-    perfect_slab = add_2d_sub_parser(argparse, "perfect_slab")
     perfect_locpot = add_2d_sub_parser(argparse, "perfect_locpot")
-    num_grid = add_2d_sub_parser(argparse, "num_grid")
     center = add_2d_sub_parser(argparse, "center")
     isolated_gauss = add_2d_sub_parser(argparse, "isolated_gauss")
     corr_dir = add_2d_sub_parser(argparse, "corr_dir")
@@ -114,6 +112,9 @@ def parse_args_main_vasp(args):
     parser_make_step_dielectric_dist.add_argument(
         "-w", "--step_width", type=float, required=True,
         help="Width of step function [Å]")
+    parser_make_step_dielectric_dist.add_argument(
+        "-wz", "--step_width_z", type=float,
+        help="Width of step function for epsilon_z [Å]")
     parser_make_step_dielectric_dist.add_argument(
         "--error_func_width", type=float, default=0.3,
         help="Width of error function [Å]")

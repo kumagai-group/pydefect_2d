@@ -223,10 +223,9 @@ class SlabModel(MSONable, ToJsonFileMixIn):
 
     @cached_property
     def electrostatic_energy(self) -> float:
-        pot = self.gauss_charge_potential.potential
-        chgs = self.gauss_charge_model.periodic_charges
-        vol = self.gauss_charge_model.grids.volume
-        return np.real((np.mean(pot * chgs) * vol / 2)) * self.charge_state ** 2
+        x = electrostatic_energy_at_q1(self.gauss_charge_potential,
+                                       self.gauss_charge_model)
+        return x * self.charge_state ** 2
 
     @cached_property
     def xy_integrated_charge(self):
@@ -258,3 +257,10 @@ class SlabModel(MSONable, ToJsonFileMixIn):
         fp_pot = self.fp_potential.potential_func(z)
         return fp_pot - gauss_pot
 
+
+def electrostatic_energy_at_q1(potential: GaussChargePotential,
+                               chg_model: GaussChargeModel) -> float:
+    pot = potential.potential
+    chg = chg_model.periodic_charges
+    vol = chg_model.grids.volume
+    return np.real((np.mean(pot * chg) * vol / 2))

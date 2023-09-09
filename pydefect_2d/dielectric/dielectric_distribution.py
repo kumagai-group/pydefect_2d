@@ -23,6 +23,11 @@ class DielectricConstDist(MSONable, ToJsonFileMixIn):
     ave_ele: List[float]  # [x, y, z] include vacuum permittivity.
     ave_ion: List[float]
     dist: Dist
+    dist_z: Dist = None
+
+    def __post_init__(self):
+        if self.dist_z is None:
+            self.dist_z = self.dist
 
     @property
     def grid_points(self):
@@ -48,13 +53,13 @@ class DielectricConstDist(MSONable, ToJsonFileMixIn):
     def static(self):
         return [self.dist.diele_in_plane_scale(self.ave_static_x),
                 self.dist.diele_in_plane_scale(self.ave_static_y),
-                self.dist.diele_out_of_plane_scale(self.ave_static_z)]
+                self.dist_z.diele_out_of_plane_scale(self.ave_static_z)]
 
     @cached_property
     def electronic(self):
         return [self.dist.diele_in_plane_scale(self.ave_ele[0]),
                 self.dist.diele_in_plane_scale(self.ave_ele[1]),
-                self.dist.diele_out_of_plane_scale(self.ave_ele[2])]
+                self.dist_z.diele_out_of_plane_scale(self.ave_ele[2])]
 
     @cached_property
     def effective(self):

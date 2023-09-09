@@ -8,7 +8,7 @@ from pydefect.cli.main import add_sub_parser
 
 from pydefect_2d.cli.main import add_2d_sub_parser
 from pydefect_2d.cli.main_util_function import plot_volumetric_data, \
-    make_gauss_model_from_z
+    make_gauss_model_from_z, make_gaussian_energies_from_args
 
 
 def parse_args_main_util_vasp(args):
@@ -54,6 +54,18 @@ def parse_args_main_util_vasp(args):
         "-z", "--z_pos", type=float, nargs="+", required=True,
         help="Positions gauss models along z in frac coords.")
     parser_gauss_model.set_defaults(func=make_gauss_model_from_z)
+
+    # --------------------------------------------------------------------------
+    parser_gauss_energies = subparsers.add_parser(
+        name="gauss_energies",
+        description=f"Make Gaussian energies.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[corr_dir],
+        aliases=['ge'])
+
+    parser_gauss_energies.add_argument(
+        "-z", "--z_range", type=float, nargs=2, help="Z range")
+    parser_gauss_energies.set_defaults(func=make_gaussian_energies_from_args)
 
     # --------------------------------------------------------------------------
     return parser.parse_args(args)
