@@ -10,8 +10,16 @@ from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 
 
 def test_plot_volumetric_data():
-    parsed_args = parse_args_main_util_vasp(["pvd", "-f", "LOCPOT"])
-    expected = Namespace(filename="LOCPOT", direction=2, func=parsed_args.func)
+    parsed_args = parse_args_main_util_vasp([
+        "pvd",
+        "-f", "LOCPOT",
+        "-y", "0.0", "1.0"])
+    expected = Namespace(filename="LOCPOT",
+                         direction=2,
+                         y_range=[0.0, 1.0],
+                         target_val=None,
+                         z_guess=None,
+                         func=parsed_args.func)
 
     assert parsed_args == expected
 

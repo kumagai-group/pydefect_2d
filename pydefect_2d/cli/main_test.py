@@ -58,13 +58,15 @@ def test_step_diele_dist(mocker):
                                         "-u", "unitcell.yaml",
                                         "-c", "0.5",
                                         "-w", "0.1",
+                                        "-s", "0.5",
                                         "-pl", "LOCPOT_perfect"])
     expected = Namespace(
         unitcell=mock_unitcell.from_yaml.return_value,
         center=0.5,
         step_width=0.1,
+        step_width_z=None,
         denominator=1,
-        error_func_width=0.3,
+        std_dev=0.5,
         perfect_locpot=mock_locpot_perfect,
         func=parsed_args.func)
 

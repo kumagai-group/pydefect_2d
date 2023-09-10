@@ -27,8 +27,7 @@ def test_make_gaussian_energy(test_files):
 def test_make_gaussian_energies(test_files):
     corr_dir = test_files / "correction"
     actual = make_gaussian_energies(corr_dir,
-                                    z_range=[0.35, 0.38],
-                                    inv_center=0.5)
+                                    z_range=[0.35, 0.38])
     expected = GaussianEnergies([GaussianEnergy(z=0.37,
                                                 isolated_energy=1.0352530163235767,
                                                 periodic_energy=0.5855912156941347)])

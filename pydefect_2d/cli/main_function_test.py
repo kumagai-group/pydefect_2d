@@ -30,7 +30,8 @@ def test_make_step_diele_dist(test_files, tmpdir):
          "-pl", str(test_files / "perfect" / "LOCPOT"),
          "--center", "0.5",
          "--step_width", "3.0",
-         "--error_func_width", "0.3",
+         "--step_width_z", "3.4",
+         "--std_dev", "0.3",
          "--denominator", "4"])
     make_step_diele_dist(args)
 

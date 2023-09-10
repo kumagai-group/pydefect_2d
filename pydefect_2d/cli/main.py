@@ -21,11 +21,15 @@ def add_2d_sub_parser(_argparse, name: str):
         result.add_argument(
             "--denominator", type=int, default=1,
             help="Denominator of FFT grid.")
+    elif name == "std_dev":
+        result.add_argument(
+            "-s", "--std_dev", type=float, required=True,
+            help="Standard deviation of the (integrand) gaussian smearing [Å].")
     elif name == "diele_dist":
         result.add_argument(
             "-dd", "--diele_dist", type=loadfn, required=True,
             help="dielectric_const_dist.json file")
-    elif name == "std_dev":
+    elif name == "gauss_charge_std_dev":
         result.add_argument(
             "--std_dev", default=0.5, type=float,
             help="Standard deviation of the gaussian charge [Å].")
@@ -79,25 +83,24 @@ def parse_args_main_vasp(args):
     supercell_info_parser = add_sub_parser(argparse, name="supercell_info")
 
     dielectric_dist = add_2d_sub_parser(argparse, "diele_dist")
-    gauss_charge_std_dev = add_2d_sub_parser(argparse, "std_dev")
+    gauss_charge_std_dev = add_2d_sub_parser(argparse, "gauss_charge_std_dev")
     perfect_locpot = add_2d_sub_parser(argparse, "perfect_locpot")
     center = add_2d_sub_parser(argparse, "center")
     isolated_gauss = add_2d_sub_parser(argparse, "isolated_gauss")
     corr_dir = add_2d_sub_parser(argparse, "corr_dir")
     no_multiprocess = add_2d_sub_parser(argparse, "no_multiprocess")
     denominator = add_2d_sub_parser(argparse, "denominator")
+    std_dev = add_2d_sub_parser(argparse, "std_dev")
 
     # --------------------------------------------------------------------------
     parser_gauss_diele_dist = subparsers.add_parser(
         name="gauss_diele_dist",
         description="Make gauss dielectric distribution.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[unitcell_parser, center, perfect_locpot, denominator],
+        parents=[unitcell_parser, center, perfect_locpot, denominator,
+                 std_dev],
         aliases=['gdd'])
 
-    parser_gauss_diele_dist.add_argument(
-        "--std_dev", type=float, required=True,
-        help="Standard deviation of the gaussian smearing [Å].")
     parser_gauss_diele_dist.set_defaults(
         func=make_gauss_diele_dist)
 
@@ -106,7 +109,8 @@ def parse_args_main_vasp(args):
         name="step_diele_dist",
         description="Make step-like dielectric distributions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[unitcell_parser, center, perfect_locpot, denominator],
+        parents=[unitcell_parser, center, perfect_locpot, denominator,
+                 std_dev],
         aliases=['sdd'])
 
     parser_make_step_dielectric_dist.add_argument(
@@ -115,9 +119,6 @@ def parse_args_main_vasp(args):
     parser_make_step_dielectric_dist.add_argument(
         "-wz", "--step_width_z", type=float,
         help="Width of step function for epsilon_z [Å]")
-    parser_make_step_dielectric_dist.add_argument(
-        "--error_func_width", type=float, default=0.3,
-        help="Width of error function [Å]")
     parser_make_step_dielectric_dist.set_defaults(
         func=make_step_diele_dist)
 

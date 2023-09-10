@@ -49,20 +49,24 @@ def make_diele_dist(dist, args):
 
     diele = DielectricConstDist(ele, ion, dist(grid, center, args))
     diele.to_json_file()
-    plot(diele.json_filename, diele)
+    plot([diele.json_filename], plt.gca())
+    plt.savefig("dielectric_const_dist.pdf")
 
 
 def make_gauss_diele_dist(args):
     def dist(grid, center, args_):
         return GaussianDist.from_grid(grid, center, args_.std_dev)
+
     make_diele_dist(dist, args)
 
 
 def make_step_diele_dist(args):
     def dist(grid, center, args_):
+        width_z = args_.step_width_z or args_.step_width
         return StepDist.from_grid(
-            grid, center, args_.step_width, args.error_func_width)
-    make_diele_dist(dist, args)
+            grid, center, args_.step_width, args_.std_dev, width_z)
+
+    return make_diele_dist(dist, args)
 
 
 make_gauss_charge_model_msg = \

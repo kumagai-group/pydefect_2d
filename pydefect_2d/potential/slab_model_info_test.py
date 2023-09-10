@@ -22,7 +22,9 @@ def epsilon_dist():
     return DielectricConstDist(
         ave_ele=[0.5]*3,
         ave_ion=[0.]*3,
-        dist=ManualDist(10.0, 4, manual_dist=np.array([1.0]*4)))
+        dist=ManualDist(10.0, 4,
+                        unscaled_in_plane_dist_=np.array([1.0]*4),
+                        unscaled_out_of_plane_dist_=np.array([1.0]*4)))
 
 
 @pytest.fixture(scope="session")
@@ -74,7 +76,10 @@ def test_slab_model_plotter():
     diele_const = DielectricConstDist(
         ave_ele=[1.]*3,
         ave_ion=[0.]*3,
-        dist=GaussianDist(center=5.0, sigma=100000000.0, **z_grid))
+        dist=GaussianDist(center=5.0,
+                          in_plane_sigma=100000000.0,
+                          out_of_plane_sigma=100000000.0,
+                          **z_grid))
 
     grids = Grids(XYGrids(np.array([[10., 0.], [0., 10.]]), [30]*2),
                   Grid(**z_grid))

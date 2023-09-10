@@ -22,7 +22,7 @@ def parse_args_main_util_vasp(args):
     supercell_info_parser = add_sub_parser(argparse, name="supercell_info")
 
     dielectric_dist = add_2d_sub_parser(argparse, "diele_dist")
-    gauss_charge_std_dev = add_2d_sub_parser(argparse, "std_dev")
+    gauss_charge_std_dev = add_2d_sub_parser(argparse, "gauss_charge_std_dev")
     isolated_gauss = add_2d_sub_parser(argparse, "isolated_gauss")
     corr_dir = add_2d_sub_parser(argparse, "corr_dir")
     no_multiprocess = add_2d_sub_parser(argparse, "no_multiprocess")
@@ -39,6 +39,15 @@ def parse_args_main_util_vasp(args):
     parser_plot_volumetric_data.add_argument(
         "-d", "--direction", type=int, default=2,
         help="Plot direction.")
+    parser_plot_volumetric_data.add_argument(
+        "-y", "--y_range", type=float, nargs=2,
+        help=".")
+    parser_plot_volumetric_data.add_argument(
+        "-t", "--target_val", type=float,
+        help=".")
+    parser_plot_volumetric_data.add_argument(
+        "-z", "--z_guess", type=float, nargs="+",
+        help=".")
     parser_plot_volumetric_data.set_defaults(func=plot_volumetric_data)
 
     # --------------------------------------------------------------------------

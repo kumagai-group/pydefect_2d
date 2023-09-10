@@ -2,7 +2,7 @@
 #  Copyright (c) 2023 Kumagai group.
 from abc import abstractmethod
 from dataclasses import dataclass
-from math import erf, exp
+from math import erf, exp, sqrt
 
 import numpy as np
 from scipy.optimize import minimize
@@ -19,12 +19,17 @@ class Dist(Grid):
 
     @property
     @abstractmethod
-    def unscaled_dist(self) -> np.ndarray:
+    def unscaled_in_plane_dist(self) -> np.ndarray:
+        pass
+
+    @property
+    @abstractmethod
+    def unscaled_out_of_plane_dist(self) -> np.ndarray:
         pass
 
     def diele_in_plane_scale(self, ave_diele: float) -> np.ndarray:
-        scale = (ave_diele - 1.) / self.unscaled_dist.mean()
-        return self.unscaled_dist * scale + 1.
+        scale = (ave_diele - 1.) / self.unscaled_in_plane_dist.mean()
+        return self.unscaled_in_plane_dist * scale + 1.
 
     def diele_out_of_plane_scale(self, ave_diele: float) -> np.ndarray:
         """Calculate the scaled distribution
@@ -37,13 +42,14 @@ class Dist(Grid):
         """
 
         def f(factor):
-            denominator = 1.0 / (1. + factor * self.unscaled_dist)
+            denominator = 1.0 / (1. + factor * self.unscaled_out_of_plane_dist)
             return abs(1 / denominator.mean() - ave_diele)
 
-        initial_guess = (ave_diele - 1.) / self.unscaled_dist.mean()
+        initial_guess = \
+            (ave_diele - 1.) / self.unscaled_out_of_plane_dist.mean()
         min_res = minimize(f, initial_guess, method='BFGS')
         scale_factor = min_res.x[0]
-        return scale_factor * self.unscaled_dist + 1.0
+        return scale_factor * self.unscaled_out_of_plane_dist + 1.0
 
     @property
     def grid(self):
@@ -52,43 +58,60 @@ class Dist(Grid):
 
 @dataclass
 class ManualDist(Dist):
-    manual_dist: np.ndarray
+    unscaled_in_plane_dist_: np.ndarray
+    unscaled_out_of_plane_dist_: np.ndarray
 
     def __post_init__(self):
-        assert self.num_grid == len(self.manual_dist)
-
-    @classmethod
-    def from_grid(cls, grid: Grid, manual_dist):
-        return cls(grid.length, grid.num_grid, manual_dist)
+        assert self.num_grid == len(self.unscaled_in_plane_dist_)
+        assert self.num_grid == len(self.unscaled_out_of_plane_dist_)
 
     @property
-    def unscaled_dist(self) -> np.ndarray:
-        return self.manual_dist
+    def unscaled_in_plane_dist(self) -> np.ndarray:
+        return self.unscaled_in_plane_dist_
+
+    @property
+    def unscaled_out_of_plane_dist(self) -> np.ndarray:
+        return self.unscaled_out_of_plane_dist_
+
+    @classmethod
+    def from_grid(cls, grid: Grid, in_plane_dist, out_of_plane_dist=None):
+        if out_of_plane_dist is None:
+            out_of_plane_dist = in_plane_dist
+        return cls(grid.length, grid.num_grid, in_plane_dist, out_of_plane_dist)
 
 
 @dataclass
 class GaussianDist(Dist):
     center: float  # in Å
-    sigma: float  # in Å
+    in_plane_sigma: float  # in Å
+    out_of_plane_sigma: float  # in Å
 
     @classmethod
     def from_grid(cls, grid: Grid, center, sigma):
-        return cls(grid.length, grid.num_grid, center, sigma)
+        return cls(grid.length, grid.num_grid, center, sigma, sigma)
 
     def __str__(self):
         result = [super().__str__(),
                   f"center: {self.center:.1} Å",
-                  f"sigma: {self.sigma:.1} Å"]
+                  f"in-plane sigma: {self.in_plane_sigma:.1} Å",
+                  f"out-of-plane sigma: {self.out_of_plane_sigma:.1} Å"]
         return "\n".join(result)
 
     @property
-    def unscaled_dist(self) -> np.ndarray:
+    def unscaled_in_plane_dist(self) -> np.ndarray:
+        return self.unscaled_dist(self.in_plane_sigma)
+
+    @property
+    def unscaled_out_of_plane_dist(self) -> np.ndarray:
+        return self.unscaled_dist(self.out_of_plane_sigma)
+
+    def unscaled_dist(self, sigma) -> np.ndarray:
         """Distribution w/o normalization under periodic boundary condition.
 
         All lengths are in Å.
         """
         def gaussian(length):
-            return exp(-length**2/(2*self.sigma**2))
+            return exp(-length**2/(2*sigma**2))
 
         result = []
         for g in self.grid_points():
@@ -105,51 +128,61 @@ class GaussianDist(Dist):
 class StepDist(Dist):
     """ Make step-like distribution
 
-    error_func_width: Width in Å.
+    sigma: Width in Å.
     """
     center: float  # in Å
-    width: float  # in Å
-    error_func_width: float  # in Å
-
-    @property
-    def step_left(self):
-        return self.center - self.width / 2
-
-    @property
-    def step_right(self):
-        return self.center + self.width / 2
+    in_plane_width: float  # in Å
+    in_plane_sigma: float  # in Å
+    out_of_plane_width: float  # in Å
+    out_of_plane_sigma: float  # in Å
 
     @classmethod
-    def from_grid(cls, grid: Grid, center: float, width: float,
-                  error_func_width: float):
-        return cls(grid.length, grid.num_grid, center, width, error_func_width)
+    def from_grid(cls, grid: Grid, center: float, in_plane_width: float,
+                  out_of_plane_width: float, sigma: float):
+        return cls(
+            grid.length, grid.num_grid, center,
+            in_plane_width=in_plane_width, in_plane_sigma=sigma,
+            out_of_plane_width=out_of_plane_width, out_of_plane_sigma=sigma)
 
     def __str__(self):
         result = [
             f""
-            f"step left: {self.step_left:.2f} Å",
-            f"step right: {self.step_right:.2f} Å",
-            f"width of error function: {self.error_func_width:.2f} Å",
+            f"Center: {self.center:.2f} Å",
+            f"In-plane width: {self.in_plane_width:.2f} Å",
+            f"In-plane sigma of error func: {self.in_plane_sigma:.2f} Å",
+            f"Out-of-plane width: {self.in_plane_width:.2f} Å",
+            f"Out-of-plane sigma of error func: {self.in_plane_sigma:.2f} Å",
             super().__str__()]
         return "\n".join(result)
 
     @property
-    def unscaled_dist(self) -> np.ndarray:
+    def unscaled_in_plane_dist(self) -> np.ndarray:
+        return self.unscaled_dist(self.in_plane_width, self.in_plane_sigma)
+
+    @property
+    def unscaled_out_of_plane_dist(self) -> np.ndarray:
+        return self.unscaled_dist(
+            self.out_of_plane_width, self.out_of_plane_sigma)
+
+    def unscaled_dist(self, width, sigma) -> np.ndarray:
+        error_func_width = sigma * sqrt(2)
+        step_left = self.center - width / 2
+        step_right = self.center + width / 2
 
         def func_left(dist):
-            return - erf(dist / self.error_func_width) / 2 + 0.5
+            return - erf(dist / error_func_width) / 2 + 0.5
 
         def func_right(dist):
-            return erf(dist / self.error_func_width) / 2 + 0.5
+            return erf(dist / error_func_width) / 2 + 0.5
 
         result = []
         for g in self.grid_points():
-            d = {"l": self.step_left - g,
-                 "l_p1": self.step_left - g + self.length,
-                 "l_m1": self.step_left - g - self.length,
-                 "r": self.step_right - g,
-                 "r_p1": self.step_right - g + self.length,
-                 "r_m1": self.step_right - g - self.length}
+            d = {"l": step_left - g,
+                 "l_p1": step_left - g + self.length,
+                 "l_m1": step_left - g - self.length,
+                 "r": step_right - g,
+                 "r_p1": step_right - g + self.length,
+                 "r_m1": step_right - g - self.length}
             dd = {k: abs(v) for k, v in d.items()}
             shortest = min(d, key=dd.get)
 

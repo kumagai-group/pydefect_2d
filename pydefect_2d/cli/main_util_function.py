@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-
+import numpy as np
 from matplotlib import pyplot as plt
 from pymatgen.io.vasp import Chgcar, Locpot
 from vise.util.logger import get_logger
 
 from pydefect_2d.cli.main_function import _make_gauss_charge_model, \
     _make_gauss_potential, _make_isolated_gauss
-from pydefect_2d.util.utils import add_z_to_filename
+from pydefect_2d.util.utils import add_z_to_filename, show_x_values
 from pydefect_2d.correction.gaussian_energy import make_gaussian_energies
 from pydefect_2d.potential.grids import Grids
 
@@ -25,10 +25,23 @@ def plot_volumetric_data(args):
     ax = plt.gca()
     z_grid = vol_data.get_axis_grid(args.direction)
     values = vol_data.get_average_along_axis(ind=args.direction)
-#    if is_sum:
-#        surface_area = np.prod(vol_data.structure.lattice.lengths[:2])
-#        values *= surface_area
+
+    if "CHG" in args.filename:
+        values /= vol_data.structure.lattice.abc[args.direction]
+        ax.set_ylabel("Charge density (e/Å)")
+    if "LOCPOT" in args.filename:
+        ax.set_ylabel("Potential (V)")
+
+    ax.set_xlabel("Distance (Å)")
     ax.plot(z_grid, values, color="red")
+    plt.ylim(args.y_range)
+    if args.target_val:
+        plt.hlines(args.target_val, z_grid[0], z_grid[-1], "blue",
+                   linestyles='dashed')
+    if args.target_val and args.z_guess:
+        vals = show_x_values(np.array(z_grid), np.array(values), args.target_val,
+                             args.z_guess)
+        print(np.round(vals, 3))
     plt.savefig(f"{args.filename}.pdf")
 
 
