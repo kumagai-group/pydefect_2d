@@ -8,7 +8,7 @@ from vise.util.logger import get_logger
 from pydefect_2d.cli.main_function import _make_gauss_charge_model, \
     _make_gauss_potential, _make_isolated_gauss
 from pydefect_2d.util.utils import add_z_to_filename, show_x_values
-from pydefect_2d.correction.gaussian_energy import make_gaussian_energies
+from pydefect_2d.correction.gauss_energy import make_gauss_energies
 from pydefect_2d.potential.grids import Grids
 
 logger = get_logger(__name__)
@@ -67,8 +67,8 @@ def make_gauss_model_from_z(args):
 
 
 def make_gaussian_energies_from_args(args):
-    gauss_energies = make_gaussian_energies(args.correction_dir,
-                                            args.z_range)
+    gauss_energies = make_gauss_energies(args.correction_dir,
+                                         args.z_range)
     gauss_energies.to_json_file()
     gauss_energies.to_plot(plt.gca())
     plt.savefig(fname="gauss_energies.pdf")

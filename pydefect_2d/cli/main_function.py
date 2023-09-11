@@ -63,8 +63,12 @@ def make_gauss_diele_dist(args):
 def make_step_diele_dist(args):
     def dist(grid, center, args_):
         width_z = args_.step_width_z or args_.step_width
+
         return StepDist.from_grid(
-            grid, center, args_.step_width, args_.std_dev, width_z)
+            grid=grid, center=center,
+            in_plane_width=args_.step_width,
+            out_of_plane_width=width_z,
+            sigma=args_.std_dev)
 
     return make_diele_dist(dist, args)
 
