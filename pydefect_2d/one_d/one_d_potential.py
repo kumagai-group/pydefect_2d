@@ -8,8 +8,14 @@ from typing import List
 import numpy as np
 from matplotlib.axes import Axes
 from monty.json import MSONable
+from scipy.constants import epsilon_0, elementary_charge, angstrom
+from scipy.fftpack import fft, ifft
 from scipy.interpolate import interp1d
+from scipy.linalg import solve
 from vise.util.mix_in import ToJsonFileMixIn
+
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
+from pydefect_2d.one_d.one_d_charge import OneDGaussChargeModel
 
 from pydefect_2d.potential.grids import Grid
 
@@ -92,3 +98,51 @@ class PotDiffGradients(MSONable, ToJsonFileMixIn):
     def gauss_pos_w_min_grad(self):
         idx = np.argmin(abs(np.array(self.gradients)))
         return round(self.gauss_positions[idx], 5)
+
+
+@dataclass
+class Calc1DPotential:
+    diele_dist: DielectricConstDist  # [epsilon_x, epsilon_y, epsilon_z] along z
+    one_d_gauss_charge_model: OneDGaussChargeModel  # assume orthogonal system
+
+    @property
+    def _reciprocal_charge(self):
+        result = fft(self.one_d_gauss_charge_model.periodic_charges)
+        result[0] = 0.0
+        return result
+
+    @property
+    def z_rec_e(self):
+        return self.diele_dist.reciprocal_static_z
+
+    def _solve_poisson_eq(self):
+        z_num_grid = self.one_d_gauss_charge_model.grid.num_grid
+
+        factors = []
+        Gzs = self.one_d_gauss_charge_model.grid.Gs
+        for i_gz, gz in enumerate(Gzs):
+            inv_rho_by_mz = [self.z_rec_e[i_gz - i_gz_prime] * gz * gz_prime
+                             for i_gz_prime, gz_prime in enumerate(Gzs)]
+            if i_gz == 0:
+                # To avoid a singular error, any non-zero value needs to be set.
+                inv_rho_by_mz[0] = 1.0
+            factors.append(inv_rho_by_mz)
+        factors = np.array(factors)
+
+        inv_pot_by_mz = solve(factors,
+                              self._reciprocal_charge * z_num_grid,
+                              assume_a="her")
+        inv_pot_by_mz[0] = 0.0
+        return inv_pot_by_mz
+
+    @cached_property
+    def reciprocal_potential(self):
+        inv_pot = self._solve_poisson_eq()
+        return inv_pot / epsilon_0 * elementary_charge / angstrom
+
+    @cached_property
+    def potential(self):
+        real = np.real(ifft(self.reciprocal_potential))
+        return Gauss1DPotential(self.one_d_gauss_charge_model.grid,
+                                real,
+                                self.one_d_gauss_charge_model.gauss_pos_in_frac)

@@ -4,9 +4,13 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
+from pydefect_2d.dielectric.distribution import ManualDist
+from pydefect_2d.one_d.one_d_charge import OneDGaussChargeModel
+
 from pydefect_2d.potential.grids import Grid
-from pydefect_2d.potential.one_d_potential import OneDPotDiff, \
-    Gauss1DPotential, Fp1DPotential, PotDiffGradients
+from pydefect_2d.one_d.one_d_potential import OneDPotDiff, \
+    Gauss1DPotential, Fp1DPotential, PotDiffGradients, Calc1DPotential
 
 grid = Grid(10., 4)
 
@@ -37,3 +41,17 @@ def test_pot_diff_gradients():
     pot_diff_gradients.to_plot(plt.gca())
     plt.show()
 
+
+def test_calc_1d_potential():
+    n_grid = 100
+    grid = Grid(10, n_grid)
+    dist = ManualDist.from_grid(grid, np.array([1.0]*n_grid))
+    charge_model = OneDGaussChargeModel(grid=grid,
+                                        gauss_pos_in_frac=0.5,
+                                        std_dev=0.1,
+                                        surface=100.)
+    diele_dist = DielectricConstDist([1.]*3, [0.]*3, dist)
+
+    calc_1_potential = Calc1DPotential(diele_dist, charge_model)
+    calc_1_potential.potential.to_plot(plt.gca())
+    plt.show()

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-from pydefect_2d.cli.main import parse_args_main_vasp
 from pydefect_2d.cli.main_util import parse_args_main_util_vasp
 from pydefect_2d.cli.main_util_function import plot_volumetric_data, \
     make_gauss_model_from_z, make_fp_1d_potential, make_gauss_model, \

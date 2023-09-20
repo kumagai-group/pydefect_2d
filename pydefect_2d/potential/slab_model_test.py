@@ -12,7 +12,7 @@ from pydefect_2d.potential.grids import Grid, Grids, XYGrids
 from pydefect_2d.potential.slab_model_plotter import SlabModelPlotter
 from pydefect_2d.potential.slab_model import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
-from pydefect_2d.potential.one_d_potential import OneDPotential, Fp1DPotential
+from pydefect_2d.one_d.one_d_potential import OneDPotential, Fp1DPotential
 
 grid = Grid(10., 4)
 

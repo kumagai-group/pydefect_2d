@@ -11,8 +11,8 @@ from pydefect_2d.util.utils import add_z_to_filename
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.dielectric.distribution import GaussianDist, StepDist
-from pydefect_2d.potential.calc_one_d_potential import Calc1DPotential, \
-    OneDGaussChargeModel
+from pydefect_2d.one_d.one_d_charge import OneDGaussChargeModel
+from pydefect_2d.one_d.one_d_potential import Calc1DPotential
 from pydefect_2d.potential.grids import Grid
 
 logger = get_logger(__name__)

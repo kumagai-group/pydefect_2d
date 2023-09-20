@@ -17,7 +17,7 @@ from vise.util.logger import get_logger
 from pydefect_2d.cli.main_function import logger
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.isolated_gauss import CalcIsolatedGaussEnergy
-from pydefect_2d.potential.one_d_potential import Fp1DPotential, OneDPotDiff, \
+from pydefect_2d.one_d.one_d_potential import Fp1DPotential, OneDPotDiff, \
     PotDiffGradients, Gauss1DPotential
 from pydefect_2d.potential.slab_model import GaussChargeModel, \
     CalcGaussChargePotential, SlabModel
