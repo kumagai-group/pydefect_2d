@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-import numpy as np
 
-from pydefect_2d.potential.slab_model import SlabModel
+from pydefect_2d.three_d.slab_model import SlabModel
 from pydefect_2d.util.utils import with_end_point
 
 

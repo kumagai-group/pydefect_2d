@@ -11,7 +11,8 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
-    make_step_diele_dist, make_1d_gauss_models
+    make_step_diele_dist, make_1d_gauss_models, make_gauss_model_from_z, \
+    make_gaussian_energies_from_args, make_fp_1d_potential
 
 
 def add_2d_sub_parser(_argparse, name: str):
@@ -78,6 +79,7 @@ def parse_args_main_vasp(args):
 
     unitcell_parser = add_sub_parser(argparse, name="unitcell")
     supercell_info_parser = add_sub_parser(argparse, name="supercell_info")
+    dir_parser = add_sub_parser(argparse, name="dirs")
 
     dielectric_dist = add_2d_sub_parser(argparse, "diele_dist")
     gauss_charge_std_dev = add_2d_sub_parser(argparse, "gauss_charge_std_dev")
@@ -85,6 +87,9 @@ def parse_args_main_vasp(args):
     center = add_2d_sub_parser(argparse, "center")
     denominator = add_2d_sub_parser(argparse, "denominator")
     std_dev = add_2d_sub_parser(argparse, "std_dev")
+    corr_dir = add_2d_sub_parser(argparse, "corr_dir")
+    isolated_gauss = add_2d_sub_parser(argparse, "isolated_gauss")
+    no_multiprocess = add_2d_sub_parser(argparse, "no_multiprocess")
 
     # --------------------------------------------------------------------------
     parser_gauss_diele_dist = subparsers.add_parser(
@@ -131,6 +136,46 @@ def parse_args_main_vasp(args):
         "-r", "--range", type=float, nargs=2, required=True,
         help="Position range of gauss charge in fractional coord.")
     parser_1d_gauss_models.set_defaults(func=make_1d_gauss_models)
+
+    # --------------------------------------------------------------------------
+    parser_gauss_model = subparsers.add_parser(
+        name="gauss_model_from_z",
+        description=f"Make Gauss models at given z sites.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[supercell_info_parser, dielectric_dist, gauss_charge_std_dev,
+                 isolated_gauss, corr_dir, no_multiprocess],
+        aliases=['gmz'])
+
+    parser_gauss_model.add_argument(
+        "-z", "--z_pos", type=float, nargs="+", required=True,
+        help="Positions gauss models along z in frac coords.")
+    parser_gauss_model.set_defaults(func=make_gauss_model_from_z)
+
+    # --------------------------------------------------------------------------
+    parser_gauss_energies = subparsers.add_parser(
+        name="gauss_energies",
+        description=f"Make Gaussian energies.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[corr_dir],
+        aliases=['ge'])
+
+    parser_gauss_energies.add_argument(
+        "-z", "--z_range", type=float, nargs=2, help="Z range")
+    parser_gauss_energies.set_defaults(func=make_gaussian_energies_from_args)
+
+    # --------------------------------------------------------------------------
+    parser_fp_1d_potential = subparsers.add_parser(
+        name="fp_1d_potential",
+        description="Make planar averaged potential of first-principles "
+                    "calculation result.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[dir_parser, perfect_locpot],
+        aliases=['fp'])
+
+    parser_fp_1d_potential.add_argument(
+        "-p", "--pot_dir", type=Path, required=True,
+        help="Directory includes gauss1_d_potential.json files.")
+    parser_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
 
     # --------------------------------------------------------------------------
     return parser.parse_args(args)

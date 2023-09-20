@@ -6,7 +6,7 @@ from pydefect.analyzer.calc_results import CalcResults
 from pydefect.cli.vasp.make_efnv_correction import make_sites
 from vise.util.typing import Coords
 
-from pydefect_2d.potential.slab_model import SlabModel
+from pydefect_2d.three_d.slab_model import SlabModel
 
 
 def make_potential_sites(calc_results: CalcResults,

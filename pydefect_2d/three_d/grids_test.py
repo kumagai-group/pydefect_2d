@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
 
-from pydefect_2d.potential.grids import Grid, XYGrids, reduced_zone_indices, Grids
+from pydefect_2d.three_d.grids import Grid, XYGrids, reduced_zone_indices, Grids
 
 
 def test_reduced_zone_idx():

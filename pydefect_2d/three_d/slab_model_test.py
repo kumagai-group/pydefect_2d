@@ -8,9 +8,9 @@ from vise.tests.helpers.assertion import assert_json_roundtrip
 from pydefect_2d.dielectric.distribution import ManualDist, GaussianDist
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
-from pydefect_2d.potential.grids import Grid, Grids, XYGrids
-from pydefect_2d.potential.slab_model_plotter import SlabModelPlotter
-from pydefect_2d.potential.slab_model import CalcGaussChargePotential, \
+from pydefect_2d.three_d.grids import Grid, Grids, XYGrids
+from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
+from pydefect_2d.three_d.slab_model import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
 from pydefect_2d.one_d.one_d_potential import OneDPotential, Fp1DPotential
 

@@ -17,7 +17,7 @@ from vise.util.mix_in import ToJsonFileMixIn
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.one_d.one_d_charge import OneDGaussChargeModel
 
-from pydefect_2d.potential.grids import Grid
+from pydefect_2d.three_d.grids import Grid
 
 
 @dataclass

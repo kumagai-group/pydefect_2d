@@ -5,9 +5,9 @@ from matplotlib import pyplot as plt
 
 from pydefect_2d.dielectric.distribution import ManualDist
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
-from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.potential.slab_model_plotter import SlabModelPlotter
-from pydefect_2d.potential.slab_model import GaussChargePotential, \
+from pydefect_2d.three_d.grids import Grid, Grids
+from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
+from pydefect_2d.three_d.slab_model import GaussChargePotential, \
     SlabModel, GaussChargeModel
 from pydefect_2d.one_d.one_d_potential import Fp1DPotential
 

@@ -5,7 +5,7 @@ from math import pi, exp
 
 import numpy as np
 
-from pydefect_2d.potential.grids import Grid
+from pydefect_2d.three_d.grids import Grid
 
 
 @dataclass

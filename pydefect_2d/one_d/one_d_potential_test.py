@@ -8,7 +8,7 @@ from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.dielectric.distribution import ManualDist
 from pydefect_2d.one_d.one_d_charge import OneDGaussChargeModel
 
-from pydefect_2d.potential.grids import Grid
+from pydefect_2d.three_d.grids import Grid
 from pydefect_2d.one_d.one_d_potential import OneDPotDiff, \
     Gauss1DPotential, Fp1DPotential, PotDiffGradients, Calc1DPotential
 

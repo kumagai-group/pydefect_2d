@@ -19,7 +19,7 @@ from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
-from pydefect_2d.potential.grids import Grids
+from pydefect_2d.three_d.grids import Grids
 from pydefect_2d.one_d.one_d_potential import Fp1DPotential
 from pydefect_2d.util.utils import with_end_point
 

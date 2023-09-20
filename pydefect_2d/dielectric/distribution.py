@@ -8,7 +8,7 @@ import numpy as np
 from scipy.optimize import minimize
 from vise.util.logger import get_logger
 
-from pydefect_2d.potential.grids import Grid
+from pydefect_2d.three_d.grids import Grid
 
 
 logger = get_logger(__name__)

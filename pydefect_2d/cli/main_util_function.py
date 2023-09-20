@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
-import glob
-from copy import deepcopy
 from pathlib import Path
-from typing import List
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -14,17 +11,15 @@ from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Chgcar, Locpot
 from vise.util.logger import get_logger
 
-from pydefect_2d.cli.main_function import logger
+from pydefect_2d.cli.main_function import _make_gauss_charge_model, \
+    _make_gauss_potential, _make_isolated_gauss
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
-from pydefect_2d.correction.isolated_gauss import CalcIsolatedGaussEnergy
-from pydefect_2d.one_d.one_d_potential import Fp1DPotential, OneDPotDiff, \
-    PotDiffGradients, Gauss1DPotential
-from pydefect_2d.potential.slab_model import GaussChargeModel, \
-    CalcGaussChargePotential, SlabModel
-from pydefect_2d.potential.slab_model_plotter import SlabModelPlotter
-from pydefect_2d.util.utils import add_z_to_filename, show_x_values
-from pydefect_2d.correction.gauss_energy import make_gauss_energies
-from pydefect_2d.potential.grids import Grids, Grid
+from pydefect_2d.one_d.one_d_potential import Fp1DPotential
+from pydefect_2d.three_d.slab_model import SlabModel
+from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
+from pydefect_2d.util.utils import show_x_values
+from pydefect_2d.three_d.grids import Grids
+
 
 logger = get_logger(__name__)
 
@@ -60,89 +55,6 @@ def plot_volumetric_data(args):
     plt.savefig(f"{args.filename}.pdf")
 
 
-def make_gauss_model_from_z(args):
-    """depends on the supercell size and defect position"""
-    lat = args.supercell_info.structure.lattice
-    grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
-    for z_pos in args.z_pos:
-        logger.info(f"At z={z_pos}...")
-        filename = add_z_to_filename("gauss_charge_model.json", z_pos)
-        if (args.correction_dir / filename).exists():
-            logger.info(f"{filename} already exists, so skip.")
-            continue
-
-        gauss_charge = _make_gauss_charge_model(grids, args.std_dev, z_pos,
-                                                args.correction_dir)
-
-        _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess,
-                              args.correction_dir)
-
-        _make_isolated_gauss(args.diele_dist, gauss_charge, args.k_max,
-                             args.k_mesh_dist, args.correction_dir)
-
-
-def make_gaussian_energies_from_args(args):
-    gauss_energies = make_gauss_energies(args.correction_dir,
-                                         args.z_range)
-    gauss_energies.to_json_file()
-    gauss_energies.to_plot(plt.gca())
-    plt.savefig(fname="gauss_energies.pdf")
-    plt.clf()
-
-
-def make_fp_1d_potential(args):
-    perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
-
-    def _inner(_dir: Path):
-        fp_potential = _make_fp_potential(_dir, perfect_pot)
-        pot_grads = _make_pot_diff_grads(_dir, fp_potential, args.pot_dir)
-        pot_grads.to_json_file()
-        pot_grads.to_plot(plt.gca())
-        plt.show()
-
-        fp_potential.gauss_pos = pot_grads.gauss_pos_w_min_grad()
-        logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_pos}.")
-
-        print(fp_potential.gauss_pos)
-        fp_potential.to_json_file()
-
-    parse_dirs(args.dirs, _inner, True, "fp1_d_potential.json")
-
-
-def _make_fp_potential(_dir, perfect_pot) -> Fp1DPotential:
-    locpot = Locpot.from_file(_dir / "LOCPOT")
-    length = locpot.structure.lattice.lengths[2]
-    grid_num = locpot.dim[2]
-    grid = Grid(length, grid_num)
-    defect_pot = locpot.get_average_along_axis(ind=2)
-    try:
-        # "-" is needed because the VASP potential is defined for electrons.
-        pot = (-(defect_pot - perfect_pot)).tolist()
-    except ValueError:
-        print("The size of two LOCPOT files seems different.")
-        raise
-    return Fp1DPotential(grid, pot)
-
-
-def _make_pot_diff_grads(_dir, fp_potential, pot_dir):
-    grads, gaussian_pos = [], []
-    defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
-    for gauss_1d_pot in _gauss_1d_pots(pot_dir):
-        gauss_pot = deepcopy(gauss_1d_pot)
-        gauss_pot.potential *= defect_entry.charge
-        diff = OneDPotDiff(fp_pot=fp_potential, gauss_pot=gauss_pot)
-        grads.append(diff.potential_diff_gradient)
-        gaussian_pos.append(gauss_1d_pot.gauss_pos)
-    return PotDiffGradients(grads, gaussian_pos)
-
-
-def _gauss_1d_pots(pot_dir) -> List[Gauss1DPotential]:
-    result = []
-    for gauss_1d_pot in glob.glob(f'{pot_dir}/gauss1_d_potential*json'):
-        result.append(loadfn(gauss_1d_pot))
-    return sorted(result, key=lambda x: x.gauss_pos)
-
-
 def make_gauss_model(args):
     """depends on the supercell size and defect position"""
     def _inner(_dir: Path):
@@ -164,40 +76,6 @@ def make_gauss_model(args):
                              args.correction_dir)
 
     parse_dirs(args.dirs, _inner, True, "gauss_charge_model.json")
-
-
-def _make_gauss_charge_model(grids, std_dev, defect_z_pos, dir_):
-    logger.info(f"GaussChargeModel is being created.")
-    result = GaussChargeModel(grids, std_dev, defect_z_pos)
-    filename = add_z_to_filename(result.json_filename, defect_z_pos)
-    result.to_json_file(dir_ / filename)
-    return result
-
-
-def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess, dir_):
-    logger.info(f"GaussChargePotential is being calculated.")
-    result = CalcGaussChargePotential(
-        dielectric_const=diele_dist,
-        gauss_charge_model=gauss_charge_model,
-        multiprocess=multiprocess).potential
-    filename = add_z_to_filename(result.json_filename,
-                                 gauss_charge_model.gauss_pos_in_frac)
-    result.to_json_file(dir_ / filename)
-    return result
-
-
-def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist,
-                         dir_):
-    logger.info("Calculating isolated gauss charge self energy...")
-    calculator = CalcIsolatedGaussEnergy(gauss_charge_model=gauss_charge_model,
-                                         diele_const_dist=diele_dist,
-                                         k_max=k_max,
-                                         k_mesh_dist=k_mesh_dist)
-    result = calculator.isolated_gauss_energy
-    filename = add_z_to_filename(result.json_filename,
-                                 gauss_charge_model.gauss_pos_in_frac)
-    result.to_json_file(dir_ / filename)
-    return result
 
 
 def make_slab_model(args):
