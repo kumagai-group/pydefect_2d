@@ -9,8 +9,8 @@ from pydefect_2d.dielectric.distribution import ManualDist, GaussianDist
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.potential.grids import Grid, Grids, XYGrids
-from pydefect_2d.potential.plotter import ProfilePlotter
-from pydefect_2d.potential.slab_model_info import CalcGaussChargePotential, \
+from pydefect_2d.potential.slab_model_plotter import SlabModelPlotter
+from pydefect_2d.potential.slab_model import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
 from pydefect_2d.potential.one_d_potential import OneDPotential, Fp1DPotential
 
@@ -101,5 +101,5 @@ def test_slab_model_plotter():
                            charge_state=2,
                            fp_potential=fp_potential)
 
-    ProfilePlotter(plt, slab_model)
+    SlabModelPlotter(plt, slab_model)
     plt.show()

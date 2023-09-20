@@ -25,3 +25,7 @@ def show_x_values(xs: np.ndarray, ys: np.ndarray, given_y: float, x_guess):
 
     solution = root(find_x_for_given_y, x0=x_guess, args=(given_y,))
     return solution.x
+
+
+def with_end_point(array: np.ndarray):
+    return np.append(array, array[0])

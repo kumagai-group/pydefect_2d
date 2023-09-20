@@ -3,7 +3,8 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from pydefect_2d.util.utils import get_z_from_filename, show_x_values
+from pydefect_2d.util.utils import get_z_from_filename, show_x_values, \
+    with_end_point
 
 
 def test_get_z_from_filename():
@@ -15,3 +16,9 @@ def test_show_x_values():
     ys = np.array([0.0, 1.0, 2.0, 1.0, 0.0, 0.0])
     actual = show_x_values(xs, ys, given_y=0.5, x_guess=[1, 3])
     assert_array_almost_equal(actual, [0.5, 3.5])
+
+
+def test_with_end_point():
+    actual = with_end_point(np.array([1, 2]))
+    expected = np.array([1, 2, 1])
+    assert_array_almost_equal(actual, expected)

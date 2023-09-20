@@ -2,10 +2,11 @@
 #  Copyright (c) 2023 Kumagai group.
 import numpy as np
 import pytest
+from matplotlib import pyplot as plt
 
 from pydefect_2d.potential.grids import Grid
 from pydefect_2d.potential.one_d_potential import OneDPotDiff, \
-    Gauss1DPotential, Fp1DPotential
+    Gauss1DPotential, Fp1DPotential, PotDiffGradients
 
 grid = Grid(10., 4)
 
@@ -29,5 +30,10 @@ def test_one_d_pot_diff(fp_pot, gauss_pot):
     assert actual == expected
 
 
-
+def test_pot_diff_gradients():
+    pot_diff_gradients = PotDiffGradients(gradients=[0.9, -0.1, -1.3],
+                                          gauss_positions=[0.4, 0.5, 0.6])
+    assert pot_diff_gradients.gauss_pos_w_min_grad() == 0.5
+    pot_diff_gradients.to_plot(plt.gca())
+    plt.show()
 

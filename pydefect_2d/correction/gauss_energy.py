@@ -14,7 +14,7 @@ from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.util.utils import add_z_to_filename, get_z_from_filename
 from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
-from pydefect_2d.potential.slab_model_info import GaussChargePotential, \
+from pydefect_2d.potential.slab_model import GaussChargePotential, \
     GaussChargeModel, electrostatic_energy_at_q1
 
 

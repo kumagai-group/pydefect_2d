@@ -11,8 +11,7 @@ from pymatgen.core import Structure
 from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
-    make_step_diele_dist, make_fp_1d_potential, make_slab_model, \
-    make_1d_gauss_models, make_gauss_model
+    make_step_diele_dist, make_1d_gauss_models
 
 
 def add_2d_sub_parser(_argparse, name: str):
@@ -77,18 +76,13 @@ def parse_args_main_vasp(args):
 
     subparsers = parser.add_subparsers()
 
-    pcr_parser = add_sub_parser(argparse, name="perfect_calc_results")
     unitcell_parser = add_sub_parser(argparse, name="unitcell")
-    dir_parser = add_sub_parser(argparse, name="dirs")
     supercell_info_parser = add_sub_parser(argparse, name="supercell_info")
 
     dielectric_dist = add_2d_sub_parser(argparse, "diele_dist")
     gauss_charge_std_dev = add_2d_sub_parser(argparse, "gauss_charge_std_dev")
     perfect_locpot = add_2d_sub_parser(argparse, "perfect_locpot")
     center = add_2d_sub_parser(argparse, "center")
-    isolated_gauss = add_2d_sub_parser(argparse, "isolated_gauss")
-    corr_dir = add_2d_sub_parser(argparse, "corr_dir")
-    no_multiprocess = add_2d_sub_parser(argparse, "no_multiprocess")
     denominator = add_2d_sub_parser(argparse, "denominator")
     std_dev = add_2d_sub_parser(argparse, "std_dev")
 
@@ -137,41 +131,6 @@ def parse_args_main_vasp(args):
         "-r", "--range", type=float, nargs=2, required=True,
         help="Position range of gauss charge in fractional coord.")
     parser_1d_gauss_models.set_defaults(func=make_1d_gauss_models)
-
-    # --------------------------------------------------------------------------
-    parser_fp_1d_potential = subparsers.add_parser(
-        name="fp_1d_potential",
-        description="Make planar averaged potential of first-principles "
-                    "calculation result.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dir_parser, perfect_locpot],
-        aliases=['fp'])
-
-    parser_fp_1d_potential.add_argument(
-        "-p", "--pot_dir", type=Path, required=True,
-        help="Directory includes gauss1_d_potential.json files.")
-    parser_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
-
-    # --------------------------------------------------------------------------
-    parser_gauss_model = subparsers.add_parser(
-        name="gauss_model",
-        description=f"Make Gauss model.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, gauss_charge_std_dev, isolated_gauss,
-                 corr_dir, dir_parser, no_multiprocess],
-        aliases=['gm'])
-
-    parser_gauss_model.set_defaults(func=make_gauss_model)
-
-    # --------------------------------------------------------------------------
-    parser_make_slab_model = subparsers.add_parser(
-        name="slab_model",
-        description="Make slab_model.json.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[dielectric_dist, pcr_parser, corr_dir, dir_parser],
-        aliases=['sm'])
-
-    parser_make_slab_model.set_defaults(func=make_slab_model)
 
     # --------------------------------------------------------------------------
     return parser.parse_args(args)

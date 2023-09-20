@@ -18,7 +18,7 @@ from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
-from pydefect_2d.potential.slab_model_info import GaussChargeModel
+from pydefect_2d.potential.slab_model import GaussChargeModel
 
 
 @dataclass

@@ -6,13 +6,13 @@ from matplotlib import pyplot as plt
 from pydefect_2d.dielectric.distribution import ManualDist
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.potential.grids import Grid, Grids
-from pydefect_2d.potential.plotter import ProfilePlotter
-from pydefect_2d.potential.slab_model_info import GaussChargePotential, \
+from pydefect_2d.potential.slab_model_plotter import SlabModelPlotter
+from pydefect_2d.potential.slab_model import GaussChargePotential, \
     SlabModel, GaussChargeModel
 from pydefect_2d.potential.one_d_potential import Fp1DPotential
 
 
-def test_plot_profile():
+def test_slab_model_plotter():
     grid = Grid(10.0, 10)
     manual_dist = np.array([0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 0.5, 0.0, 0.0])
     dist = ManualDist.from_grid(grid, manual_dist)
@@ -37,5 +37,6 @@ def test_plot_profile():
     fp_pot = Fp1DPotential(grid, fp_pot_dist)
 
     slab_model = SlabModel(diele_dist, charge, potential, charge_state, fp_pot)
-    plotter = ProfilePlotter(plt, slab_model)
+    plotter = SlabModelPlotter(plt, slab_model)
     plotter.plt.show()
+

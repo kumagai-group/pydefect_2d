@@ -6,6 +6,7 @@ from functools import cached_property
 from typing import List
 
 import numpy as np
+from matplotlib.axes import Axes
 from monty.json import MSONable
 from scipy.interpolate import interp1d
 from vise.util.mix_in import ToJsonFileMixIn
@@ -81,10 +82,12 @@ class PotDiffGradients(MSONable, ToJsonFileMixIn):
     gradients: List[float]
     gauss_positions: List[float]  # in fractional coordinate
 
-    def to_plot(self, ax):
+    def to_plot(self, ax: Axes):
         ax.set_xlabel("Gauss charge position (Å)")
         ax.set_ylabel("Gradient (V/Å)")
         ax.plot(self.gauss_positions, self.gradients, color="blue")
+        ax.scatter(self.gauss_positions, self.gradients, color="blue")
+        ax.axhline(y=0, linestyle="--")
 
     def gauss_pos_w_min_grad(self):
         idx = np.argmin(abs(np.array(self.gradients)))
