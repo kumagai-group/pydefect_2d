@@ -9,7 +9,7 @@ from pydefect_2d.three_d.grids import Grid, Grids
 from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
 from pydefect_2d.three_d.slab_model import GaussChargePotential, \
     SlabModel, GaussChargeModel
-from pydefect_2d.one_d.one_d_potential import Fp1DPotential
+from pydefect_2d.one_d.potential import OneDFpPotential
 
 
 def test_slab_model_plotter():
@@ -34,7 +34,7 @@ def test_slab_model_plotter():
     fp_pot_dist = np.array(
         [-1.5, 1.5, 2.5, 4.5, 2.5, 1.5, -1.5, -2.5, -3.5, -1.5])
     charge_state = 1
-    fp_pot = Fp1DPotential(grid, fp_pot_dist)
+    fp_pot = OneDFpPotential(grid, fp_pot_dist)
 
     slab_model = SlabModel(diele_dist, charge, potential, charge_state, fp_pot)
     plotter = SlabModelPlotter(plt, slab_model)

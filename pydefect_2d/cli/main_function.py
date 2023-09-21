@@ -22,9 +22,9 @@ from pydefect_2d.util.utils import add_z_to_filename
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
 from pydefect_2d.dielectric.distribution import GaussianDist, StepDist
-from pydefect_2d.one_d.one_d_charge import OneDGaussChargeModel
-from pydefect_2d.one_d.one_d_potential import Calc1DPotential, Fp1DPotential, \
-    OneDPotDiff, PotDiffGradients, Gauss1DPotential
+from pydefect_2d.one_d.charge import OneDGaussChargeModel
+from pydefect_2d.one_d.potential import Calc1DPotential, OneDFpPotential, \
+    OneDPotDiff, PotDiffGradients, OneDGaussPotential
 from pydefect_2d.three_d.grids import Grid, Grids
 
 
@@ -71,11 +71,6 @@ def make_step_diele_dist(args):
     return make_diele_dist(dist, args)
 
 
-make_gauss_charge_model_msg = \
-    """defect_structure_info.json or a set of (supercell_info.json, defect_pos) 
-need to be specified."""
-
-
 def make_1d_gauss_models(args):
     left, right = sorted(args.range)
     n_grid = round((right - left) / args.mesh_distance) + 1
@@ -83,16 +78,15 @@ def make_1d_gauss_models(args):
     supercell = args.supercell_info.structure
 
     for pos in gauss_pos:
-        filename = add_z_to_filename("gauss1_d_potential.json", pos)
-        if Path(filename).exists():
-            logger.info(f"Because {filename} exists, so skip.")
-            continue
-
         charge_model = OneDGaussChargeModel(grid=args.diele_dist.dist.grid,
                                             std_dev=args.std_dev,
                                             surface=_xy_area(supercell),
                                             gauss_pos_in_frac=pos)
+        filename = add_z_to_filename("gauss_1d_charge.json", pos)
+        charge_model.to_json_file(filename)
+
         calc_1d_pot = Calc1DPotential(args.diele_dist, charge_model)
+        filename = add_z_to_filename("gauss_1d_potential.json", pos)
         calc_1d_pot.potential.to_json_file(filename)
 
 
@@ -131,7 +125,7 @@ def make_gaussian_energies_from_args(args):
     plt.clf()
 
 
-def make_fp_1d_potential(args):
+def make_1d_fp_potential(args):
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
 
     def _inner(_dir: Path):
@@ -145,12 +139,12 @@ def make_fp_1d_potential(args):
         logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_pos}.")
 
         print(fp_potential.gauss_pos)
-        fp_potential.to_json_file()
+        fp_potential.to_json_file("fp_1d_potential.json")
 
-    parse_dirs(args.dirs, _inner, True, "fp1_d_potential.json")
+    parse_dirs(args.dirs, _inner, True, "fp_1d_potential.json")
 
 
-def _make_fp_potential(_dir, perfect_pot) -> Fp1DPotential:
+def _make_fp_potential(_dir, perfect_pot) -> OneDFpPotential:
     locpot = Locpot.from_file(_dir / "LOCPOT")
     length = locpot.structure.lattice.lengths[2]
     grid_num = locpot.dim[2]
@@ -162,7 +156,7 @@ def _make_fp_potential(_dir, perfect_pot) -> Fp1DPotential:
     except ValueError:
         print("The size of two LOCPOT files seems different.")
         raise
-    return Fp1DPotential(grid, pot)
+    return OneDFpPotential(grid, pot)
 
 
 def _make_pot_diff_grads(_dir, fp_potential, pot_dir):
@@ -177,9 +171,9 @@ def _make_pot_diff_grads(_dir, fp_potential, pot_dir):
     return PotDiffGradients(grads, gaussian_pos)
 
 
-def _gauss_1d_pots(pot_dir) -> List[Gauss1DPotential]:
+def _gauss_1d_pots(pot_dir) -> List[OneDGaussPotential]:
     result = []
-    for gauss_1d_pot in glob.glob(f'{pot_dir}/gauss1_d_potential*json'):
+    for gauss_1d_pot in glob.glob(f'{pot_dir}/gauss_1d_potential*json'):
         result.append(loadfn(gauss_1d_pot))
     return sorted(result, key=lambda x: x.gauss_pos)
 

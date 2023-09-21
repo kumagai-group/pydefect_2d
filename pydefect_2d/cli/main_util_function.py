@@ -14,7 +14,7 @@ from vise.util.logger import get_logger
 from pydefect_2d.cli.main_function import _make_gauss_charge_model, \
     _make_gauss_potential, _make_isolated_gauss
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
-from pydefect_2d.one_d.one_d_potential import Fp1DPotential
+from pydefect_2d.one_d.potential import OneDFpPotential
 from pydefect_2d.three_d.slab_model import SlabModel
 from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
 from pydefect_2d.util.utils import show_x_values
@@ -58,7 +58,7 @@ def plot_volumetric_data(args):
 def make_gauss_model(args):
     """depends on the supercell size and defect position"""
     def _inner(_dir: Path):
-        fp_potential: Fp1DPotential = loadfn(_dir / "fp1_d_potential.json")
+        fp_potential: OneDFpPotential = loadfn(_dir / "fp_1d_potential.json")
         calc_results: CalcResults = loadfn(_dir / "calc_results.json")
 
         defect_z_pos = fp_potential.gauss_pos
@@ -84,7 +84,7 @@ def make_slab_model(args):
     This should be placed at each defect calc dir.
     """
     def _inner(_dir: Path):
-        fp_potential: Fp1DPotential = loadfn(_dir / "fp1_d_potential.json")
+        fp_potential: OneDFpPotential = loadfn(_dir / "fp_1d_potential.json")
         defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
 
         def _get_obj_from_corr_dir(filename: str):

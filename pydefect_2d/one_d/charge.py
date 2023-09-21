@@ -2,14 +2,17 @@
 #  Copyright (c) 2023 Kumagai group.
 from dataclasses import dataclass
 from math import pi, exp
+from typing import Tuple
 
 import numpy as np
+from monty.json import MSONable
+from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.three_d.grids import Grid
 
 
 @dataclass
-class OneDGaussChargeModel:
+class OneDGaussChargeModel(MSONable, ToJsonFileMixIn):
     """Gauss charge model with 1|e| under periodic boundary condition. """
     grid: Grid
     std_dev: float
@@ -35,4 +38,8 @@ class OneDGaussChargeModel:
         return min([abs(lz - self.grid.length * (i + self.gauss_pos_in_frac))
                     for i in [-1, 0, 1]])
 
-
+    @property
+    def farthest_z_from_defect(self) -> Tuple[int, float]:
+        rel_z_in_frac = (self.gauss_pos_in_frac + 0.5) % 1.
+        z = self.grid.length * rel_z_in_frac
+        return self.grid.nearest_grid_point(z)

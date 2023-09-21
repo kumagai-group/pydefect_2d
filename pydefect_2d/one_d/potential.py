@@ -15,7 +15,7 @@ from scipy.linalg import solve
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
-from pydefect_2d.one_d.one_d_charge import OneDGaussChargeModel
+from pydefect_2d.one_d.charge import OneDGaussChargeModel
 
 from pydefect_2d.three_d.grids import Grid
 
@@ -46,19 +46,19 @@ class OneDPotential(MSONable, ToJsonFileMixIn, ABC):
                 label=f"z={self.gauss_pos}")
 
 
-class Fp1DPotential(OneDPotential):
+class OneDFpPotential(OneDPotential):
     pass
 
 
-class Gauss1DPotential(OneDPotential):
+class OneDGaussPotential(OneDPotential):
     pass
 
 
 @dataclass
 class OneDPotDiff(MSONable, ToJsonFileMixIn):
     """Potential difference used for determining gaussian position"""
-    fp_pot: Fp1DPotential
-    gauss_pot: Gauss1DPotential
+    fp_pot: OneDFpPotential
+    gauss_pot: OneDGaussPotential
 
     def __post_init__(self):
         assert self.fp_pot.grid.length == self.gauss_pot.grid.length
@@ -143,6 +143,6 @@ class Calc1DPotential:
     @cached_property
     def potential(self):
         real = np.real(ifft(self.reciprocal_potential))
-        return Gauss1DPotential(self.one_d_gauss_charge_model.grid,
-                                real,
-                                self.one_d_gauss_charge_model.gauss_pos_in_frac)
+        return OneDGaussPotential(self.one_d_gauss_charge_model.grid,
+                                  real,
+                                  self.one_d_gauss_charge_model.gauss_pos_in_frac)

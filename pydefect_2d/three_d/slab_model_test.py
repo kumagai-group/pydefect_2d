@@ -12,7 +12,7 @@ from pydefect_2d.three_d.grids import Grid, Grids, XYGrids
 from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
 from pydefect_2d.three_d.slab_model import CalcGaussChargePotential, \
     GaussChargeModel, SlabModel
-from pydefect_2d.one_d.one_d_potential import OneDPotential, Fp1DPotential
+from pydefect_2d.one_d.potential import OneDPotential, OneDFpPotential
 
 grid = Grid(10., 4)
 
@@ -92,8 +92,8 @@ def test_slab_model_plotter():
         gauss_charge_model=gauss)
     potential = calc_pot.potential
 
-    fp_potential = Fp1DPotential(grid=Grid(**z_grid),
-                                 potential=np.array([1.0]*30))
+    fp_potential = OneDFpPotential(grid=Grid(**z_grid),
+                                   potential=np.array([1.0]*30))
 
     slab_model = SlabModel(diele_dist=diele_const,
                            gauss_charge_model=gauss,

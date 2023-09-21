@@ -12,7 +12,7 @@ from pymatgen.io.vasp import Locpot
 
 from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
     make_step_diele_dist, make_1d_gauss_models, make_gauss_model_from_z, \
-    make_gaussian_energies_from_args, make_fp_1d_potential
+    make_gaussian_energies_from_args, make_1d_fp_potential
 
 
 def add_2d_sub_parser(_argparse, name: str):
@@ -174,8 +174,8 @@ def parse_args_main_vasp(args):
 
     parser_fp_1d_potential.add_argument(
         "-p", "--pot_dir", type=Path, required=True,
-        help="Directory includes gauss1_d_potential.json files.")
-    parser_fp_1d_potential.set_defaults(func=make_fp_1d_potential)
+        help="Directory includes gauss_1d_potential.json files.")
+    parser_fp_1d_potential.set_defaults(func=make_1d_fp_potential)
 
     # --------------------------------------------------------------------------
     return parser.parse_args(args)

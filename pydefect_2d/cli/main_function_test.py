@@ -5,7 +5,7 @@ from pathlib import Path
 from pydefect_2d.cli.main import parse_args_main_vasp
 from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
     make_step_diele_dist, make_1d_gauss_models, make_gauss_model_from_z, \
-    make_fp_1d_potential
+    make_1d_fp_potential
 
 
 def test_make_gauss_diele_dist(test_files, tmpdir):
@@ -39,7 +39,7 @@ def test_make_step_diele_dist(test_files, tmpdir):
 def test_make_1d_gauss_models(test_files, tmpdir):
     print(tmpdir)
     tmpdir.chdir()
-    Path("gauss1_d_potential_0.000.json").touch()
+    Path("gauss_1d_potential_0.000.json").touch()
     args = parse_args_main_vasp([
         "1gm",
         "-dd", str(test_files / "dielectric_const_dist.json"),
@@ -80,4 +80,4 @@ def test_make_fp_1d_potential(test_files, tmpdir):
          "-pl", str(test_files / "perfect" / "LOCPOT"),
          "-p", str(test_files / "1d_pots"),
          ])
-    make_fp_1d_potential(args)
+    make_1d_fp_potential(args)

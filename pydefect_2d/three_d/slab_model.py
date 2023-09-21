@@ -20,7 +20,7 @@ from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.three_d.grids import Grids
-from pydefect_2d.one_d.one_d_potential import Fp1DPotential
+from pydefect_2d.one_d.potential import OneDFpPotential
 from pydefect_2d.util.utils import with_end_point
 
 
@@ -211,7 +211,7 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
     charge_state: int
-    fp_potential: Fp1DPotential
+    fp_potential: OneDFpPotential
 
     def __post_init__(self):
         assert (self.diele_dist.dist.length
