@@ -6,6 +6,7 @@ from pathlib import Path
 from pydefect.analyzer.calc_results import CalcResults
 from pydefect.input_maker.supercell_info import SupercellInfo
 
+from pydefect_2d.correction.gauss_energy import GaussEnergies
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.cli.main import parse_args_main_vasp
 
@@ -78,7 +79,7 @@ def test_make_1d_gauss_models(mocker):
     mock_dielectric_dist = mocker.Mock(spec=DielectricConstDist, autospec=True)
 
     def side_effect(filename):
-        if filename == "dielectric_distribution.json":
+        if filename == "dielectric_const_dist.json":
             return mock_dielectric_dist
         else:
             raise ValueError
@@ -96,7 +97,7 @@ def test_make_1d_gauss_models(mocker):
     mocker.patch("pydefect.cli.main.loadfn", side_effect=side_effect_si)
 
     parsed_args = parse_args_main_vasp(["1gm",
-                                        "-dd", "dielectric_distribution.json",
+                                        "-dd", "dielectric_const_dist.json",
                                         "-r", "0.1", "0.2",
                                         "-s", "supercell_info.json"
                                         ])
@@ -153,7 +154,7 @@ def test_gauss_model_from_z(mocker):
     assert parsed_args == expected
 
 
-def test_fp_1d_potential(mocker):
+def test_make_1d_fp_potential(mocker):
     mock_locpot_perfect = mocker.Mock()
 
     def side_effect_locpot(filename):
@@ -165,14 +166,43 @@ def test_fp_1d_potential(mocker):
     mocker.patch("pydefect_2d.cli.main.Locpot.from_file",
                  side_effect=side_effect_locpot)
 
-    parsed_args = parse_args_main_vasp(["fp",
-                                             "-d", "Va_O1_1",
-                                             "-pl", "LOCPOT_perfect",
-                                             "-p", "1d_pots"])
+    parsed_args = parse_args_main_vasp(["1fp",
+                                        "-d", "Va_O1_1",
+                                        "-pl", "LOCPOT_perfect",
+                                        "-od", "1d_pots"])
     expected = Namespace(
         dirs=[Path("Va_O1_1")],
         perfect_locpot=mock_locpot_perfect,
-        pot_dir=Path("1d_pots"),
+        one_d_dir=Path("1d_pots"),
+        func=parsed_args.func)
+
+    assert parsed_args == expected
+
+
+def test_make_1d_slab_model(mocker):
+    mock_dielectric_dist = mocker.Mock(spec=DielectricConstDist, autospec=True)
+    mock_gauss_energies = mocker.Mock(spec=GaussEnergies, autospec=True)
+
+    def side_effect(filename):
+        if filename == "dielectric_const_dist.json":
+            return mock_dielectric_dist
+        elif filename == "gauss_energies.json":
+            return mock_gauss_energies
+        else:
+            raise ValueError
+
+    mocker.patch("pydefect_2d.cli.main.loadfn", side_effect=side_effect)
+
+    parsed_args = parse_args_main_vasp(["1sm",
+                                        "-d", "Va_O1_1",
+                                        "-dd", "dielectric_const_dist.json",
+                                        "-od", "1d_pots",
+                                        "-g", "gauss_energies.json"])
+    expected = Namespace(
+        dirs=[Path("Va_O1_1")],
+        diele_dist=mock_dielectric_dist,
+        one_d_dir=Path("1d_pots"),
+        gauss_energies=mock_gauss_energies,
         func=parsed_args.func)
 
     assert parsed_args == expected

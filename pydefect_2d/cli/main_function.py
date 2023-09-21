@@ -14,8 +14,10 @@ from pymatgen.io.vasp import Locpot
 from vise.util.logger import get_logger
 
 from pydefect_2d.cli.main_plot_json import plot
-from pydefect_2d.correction.gauss_energy import make_gauss_energies
+from pydefect_2d.correction.gauss_energy import make_gauss_energies, \
+    GaussEnergies
 from pydefect_2d.correction.isolated_gauss import CalcIsolatedGaussEnergy
+from pydefect_2d.one_d.slab_model import OneDSlabModel
 from pydefect_2d.three_d.slab_model import GaussChargeModel, \
     CalcGaussChargePotential
 from pydefect_2d.util.utils import add_z_to_filename
@@ -82,11 +84,11 @@ def make_1d_gauss_models(args):
                                             std_dev=args.std_dev,
                                             surface=_xy_area(supercell),
                                             gauss_pos_in_frac=pos)
-        filename = add_z_to_filename("gauss_1d_charge.json", pos)
+        filename = add_z_to_filename("1d_gauss_charge.json", pos)
         charge_model.to_json_file(filename)
 
         calc_1d_pot = Calc1DPotential(args.diele_dist, charge_model)
-        filename = add_z_to_filename("gauss_1d_potential.json", pos)
+        filename = add_z_to_filename("1d_gauss_potential.json", pos)
         calc_1d_pot.potential.to_json_file(filename)
 
 
@@ -126,6 +128,7 @@ def make_gaussian_energies_from_args(args):
 
 
 def make_1d_fp_potential(args):
+    filename = "1d_fp_potential.json"
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
 
     def _inner(_dir: Path):
@@ -139,9 +142,9 @@ def make_1d_fp_potential(args):
         logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_pos}.")
 
         print(fp_potential.gauss_pos)
-        fp_potential.to_json_file("fp_1d_potential.json")
+        fp_potential.to_json_file(filename)
 
-    parse_dirs(args.dirs, _inner, True, "fp_1d_potential.json")
+    parse_dirs(args.dirs, _inner, True, filename)
 
 
 def _make_fp_potential(_dir, perfect_pot) -> OneDFpPotential:
@@ -162,19 +165,19 @@ def _make_fp_potential(_dir, perfect_pot) -> OneDFpPotential:
 def _make_pot_diff_grads(_dir, fp_potential, pot_dir):
     grads, gaussian_pos = [], []
     defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
-    for gauss_1d_pot in _gauss_1d_pots(pot_dir):
-        gauss_pot = deepcopy(gauss_1d_pot)
+    for one_d_gauss_pot in _1d_gauss_pots(pot_dir):
+        gauss_pot = deepcopy(one_d_gauss_pot)
         gauss_pot.potential *= defect_entry.charge
         diff = OneDPotDiff(fp_pot=fp_potential, gauss_pot=gauss_pot)
         grads.append(diff.potential_diff_gradient)
-        gaussian_pos.append(gauss_1d_pot.gauss_pos)
+        gaussian_pos.append(one_d_gauss_pot.gauss_pos)
     return PotDiffGradients(grads, gaussian_pos)
 
 
-def _gauss_1d_pots(pot_dir) -> List[OneDGaussPotential]:
+def _1d_gauss_pots(one_d_dir) -> List[OneDGaussPotential]:
     result = []
-    for gauss_1d_pot in glob.glob(f'{pot_dir}/gauss_1d_potential*json'):
-        result.append(loadfn(gauss_1d_pot))
+    for one_d_gauss_pot in glob.glob(f'{one_d_dir}/1d_gauss_potential*json'):
+        result.append(loadfn(one_d_gauss_pot))
     return sorted(result, key=lambda x: x.gauss_pos)
 
 
@@ -210,3 +213,34 @@ def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist,
                                  gauss_charge_model.gauss_pos_in_frac)
     result.to_json_file(dir_ / filename)
     return result
+
+
+def make_1d_slab_model(args):
+    filename = "1d_slab_potential.json"
+
+    def _inner(_dir: Path):
+        fp_1d_potential: OneDFpPotential = loadfn(_dir / "fp_1d_potential.json")
+        defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
+
+        def _get_obj_from_corr_dir(filename: str):
+            x, y = filename.split(".")
+            filename = f"{x}_{fp_1d_potential.gauss_pos:.3f}.{y}"
+            try:
+                return loadfn(args.one_d_dir / filename)
+            except FileNotFoundError:
+                print(f"{filename} is not found.")
+                raise
+
+        one_d_gauss_charge = _get_obj_from_corr_dir("1d_gauss_charge.json")
+        one_d_gauss_pot = _get_obj_from_corr_dir("1d_gauss_potential.json")
+        gauss_e = args.gauss_energies.get_gauss_energy(fp_1d_potential.gauss_pos)
+
+        slab_model = OneDSlabModel(charge=defect_entry.charge,
+                                   diele_dist=args.diele_dist,
+                                   one_d_gauss_charge=one_d_gauss_charge,
+                                   one_d_gauss_potential=one_d_gauss_pot,
+                                   one_d_fp_potential=fp_1d_potential,
+                                   gauss_energy=gauss_e)
+        slab_model.to_json_file(filename)
+
+    parse_dirs(args.dirs, _inner, True, filename)

@@ -5,7 +5,7 @@ from pathlib import Path
 from pydefect_2d.cli.main import parse_args_main_vasp
 from pydefect_2d.cli.main_function import make_gauss_diele_dist, \
     make_step_diele_dist, make_1d_gauss_models, make_gauss_model_from_z, \
-    make_1d_fp_potential
+    make_1d_fp_potential, make_1d_slab_model
 
 
 def test_make_gauss_diele_dist(test_files, tmpdir):
@@ -71,13 +71,26 @@ def test_gauss_model_from_z(test_files, tmpdir):
     make_gauss_model_from_z(args)
 
 
-def test_make_fp_1d_potential(test_files, tmpdir):
+def test_make_1d_fp_potential(test_files, tmpdir):
     print(tmpdir)
     tmpdir.chdir()
     args = parse_args_main_vasp(
-        ["fp",
+        ["1fp",
          "-d", str(test_files / "H_ad_1"),
          "-pl", str(test_files / "perfect" / "LOCPOT"),
-         "-p", str(test_files / "1d_pots"),
+         "-od", str(test_files / "1d_gauss"),
          ])
     make_1d_fp_potential(args)
+
+
+def test_make_1d_slab_model(test_files, tmpdir):
+    print(tmpdir)
+    tmpdir.chdir()
+    args = parse_args_main_vasp(
+        ["1sm",
+         "-d", str(test_files / "H_ad_1"),
+         "-dd", str(test_files / "dielectric_const_dist.json"),
+         "-od", str(test_files / "1d_gauss"),
+         "-g", str(test_files / "correction" / "gauss_energies.json"),
+         ])
+    make_1d_slab_model(args)
