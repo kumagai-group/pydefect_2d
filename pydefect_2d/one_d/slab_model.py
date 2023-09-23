@@ -11,11 +11,13 @@ from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.one_d.charge import OneDGaussChargeModel
 from pydefect_2d.one_d.potential import OneDGaussPotential, OneDFpPotential
 from pydefect_2d.three_d.grids import Grid
+from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotAbs
+from pydefect_2d.util.utils import with_end_point
 
 
 @dataclass
-class OneDSlabModel(MSONable, ToJsonFileMixIn):
-    charge: int
+class OneDSlabModel(MSONable, ToJsonFileMixIn, SlabModelPlotAbs):
+    charge_state: int
     diele_dist: DielectricConstDist  # [ε_x, ε_y, ε_z] as a function of z
     one_d_gauss_charge: OneDGaussChargeModel  # q is already multiplied.
     one_d_gauss_potential: OneDGaussPotential  # q is already multiplied.
@@ -52,7 +54,7 @@ class OneDSlabModel(MSONable, ToJsonFileMixIn):
 
         volume = self.grid.length * self.one_d_gauss_charge.surface
         integrated = self.one_d_gauss_charge.periodic_charges.mean() * volume
-        d = [[f"Charge (|e|)", self.charge],
+        d = [[f"Charge (|e|)", self.charge_state],
              [f"Integrated charge (|e|)", integrated],
              [f"Isolated energy (eV)", self.isolated_energy],
              [f"Periodic energy (eV)", self.periodic_energy],
@@ -67,3 +69,31 @@ class OneDSlabModel(MSONable, ToJsonFileMixIn):
         gauss_pot = self.one_d_gauss_potential.potential[grid_idx]
         fp_pot = self.one_d_fp_potential.potential_func(z)
         return fp_pot - gauss_pot
+
+    def gauss_charge_z_plot(self, ax):
+        self.one_d_gauss_charge.to_plot(ax)
+
+    def gauss_potential_z_plot(self, ax):
+        self.one_d_gauss_potential.to_plot(ax, label="Gauss potential")
+
+    def fp_potential_plot(self, ax):
+        ax.plot(self.one_d_fp_potential.grid.grid_points(True),
+                with_end_point(self.one_d_fp_potential.potential),
+                label="FP", color="blue")
+
+        grid_pts = self.one_d_gauss_potential.grid.grid_points(True)
+        fp_pot = self.one_d_fp_potential.potential_func(grid_pts)
+        diff_pot = fp_pot - with_end_point(self.one_d_gauss_potential.potential)
+        ax.plot(grid_pts, diff_pot, label="diff", color="green", linestyle=":")
+        ax.legend()
+
+    def epsilon_plot(self, ax):
+        ax.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
+        z_grid_pts = self.diele_dist.dist.grid_points(True)
+        for e, direction in zip(self.diele_dist.static, ["x", "y", "z"]):
+            ax.plot(z_grid_pts, with_end_point(e), label=direction)
+        ax.legend()
+
+    @property
+    def z_length(self):
+        return self.diele_dist.dist.length

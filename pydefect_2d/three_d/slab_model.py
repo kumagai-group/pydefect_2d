@@ -19,8 +19,9 @@ from tqdm import tqdm
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
-from pydefect_2d.three_d.grids import Grids
+from pydefect_2d.three_d.grids import Grids, Grid
 from pydefect_2d.one_d.potential import OneDFpPotential
+from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotAbs
 from pydefect_2d.util.utils import with_end_point
 
 
@@ -206,7 +207,7 @@ class CalcGaussChargePotential:
 
 
 @dataclass
-class SlabModel(MSONable, ToJsonFileMixIn):
+class SlabModel(MSONable, ToJsonFileMixIn, SlabModelPlotAbs):
     diele_dist: DielectricConstDist  # [ε_x, ε_y, ε_z] as a function of z
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
@@ -220,6 +221,34 @@ class SlabModel(MSONable, ToJsonFileMixIn):
     @property
     def grids(self) -> Grids:
         return self.gauss_charge_model.grids
+
+    def gauss_charge_z_plot(self, ax):
+        self.gauss_charge_model.to_plot(ax, charge=self.charge_state)
+
+    def gauss_potential_z_plot(self, ax):
+        self.gauss_charge_potential.to_plot(ax, charge=self.charge_state)
+
+    def fp_potential_plot(self, ax):
+        ax.plot(self.fp_potential.grid.grid_points(True),
+                with_end_point(self.fp_potential.potential),
+                label="FP", color="blue")
+
+        z_grid_pts = self.gauss_charge_potential.grids.z_grid.grid_points(True)
+        fp_pot = self.fp_potential.potential_func(z_grid_pts)
+        diff_pot = fp_pot - with_end_point(self.xy_ave_pot)
+        ax.plot(z_grid_pts, diff_pot,
+                label="diff", color="green", linestyle=":")
+
+    def epsilon_plot(self, ax):
+        ax.set_ylabel("$\epsilon$ ($\epsilon_{vac}$)")
+        z_grid_pts = self.diele_dist.dist.grid_points(True)
+        for e, direction in zip(self.diele_dist.static, ["x", "y", "z"]):
+            ax.plot(z_grid_pts, with_end_point(e), label=direction)
+        ax.legend()
+
+    @property
+    def z_length(self):
+        return self.diele_dist.dist.length
 
     @cached_property
     def electrostatic_energy(self) -> float:

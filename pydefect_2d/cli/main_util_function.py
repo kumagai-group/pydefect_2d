@@ -118,7 +118,7 @@ def _make_slab_model(diele_dist, defect_entry, gauss_charge_model,
     result = SlabModel(diele_dist=diele_dist,
                        gauss_charge_model=gauss_charge_model,
                        gauss_charge_potential=gauss_charge_pot,
-                       charge_state=defect_entry.charge,
+                       charge_state=defect_entry.charge_state,
                        fp_potential=fp_potential)
     result.to_json_file()
     SlabModelPlotter(plt, result)

@@ -9,6 +9,7 @@ from monty.json import MSONable
 from vise.util.mix_in import ToJsonFileMixIn
 
 from pydefect_2d.three_d.grids import Grid
+from pydefect_2d.util.utils import with_end_point
 
 
 @dataclass
@@ -43,3 +44,9 @@ class OneDGaussChargeModel(MSONable, ToJsonFileMixIn):
         rel_z_in_frac = (self.gauss_pos_in_frac + 0.5) % 1.
         z = self.grid.length * rel_z_in_frac
         return self.grid.nearest_grid_point(z)
+
+    def to_plot(self, ax):
+        ax.set_ylabel("Charge (|e|/Å)")
+        xs = self.grid.grid_points(True)
+        ys = with_end_point(self.periodic_charges)
+        ax.plot(xs, ys, label="charge", color="black")

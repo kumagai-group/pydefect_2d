@@ -39,11 +39,10 @@ class OneDPotential(MSONable, ToJsonFileMixIn, ABC):
     def potential_func(self):
         return interp1d(self.grid_points, self.potential_w_end)
 
-    def to_plot(self, ax, ):
+    def to_plot(self, ax, label=None):
         ax.set_xlabel("Distance (Å)")
-        ax.set_ylabel("Potential (V)")
-        ax.plot(self.grid_points, self.potential_w_end,
-                label=f"z={self.gauss_pos}")
+        ax.set_ylabel("Potential energy (V)")
+        ax.plot(self.grid_points, self.potential_w_end, label=label)
 
 
 class OneDFpPotential(OneDPotential):

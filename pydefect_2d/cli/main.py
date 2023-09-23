@@ -58,8 +58,8 @@ def add_2d_sub_parser(_argparse, name: str):
             help="k mesh distance.")
     elif name == "corr_dir":
         result.add_argument(
-            "-cd", "--correction_dir", required=True, type=Path,
-            help="correction director.")
+            "-cd", "--correction_dir", type=Path,
+            default=Path.cwd(), help="correction directory.")
     elif name == "one_d_dir":
         result.add_argument(
             "-od", "--one_d_dir", required=True, type=Path,

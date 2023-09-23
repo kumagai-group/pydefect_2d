@@ -14,12 +14,14 @@ from pymatgen.io.vasp import Locpot
 from vise.util.logger import get_logger
 
 from pydefect_2d.cli.main_plot_json import plot
+from pydefect_2d.correction.correction_2d import Gauss2dCorrection
 from pydefect_2d.correction.gauss_energy import make_gauss_energies, \
-    GaussEnergies
+    GaussEnergies, GaussEnergy
 from pydefect_2d.correction.isolated_gauss import CalcIsolatedGaussEnergy
 from pydefect_2d.one_d.slab_model import OneDSlabModel
 from pydefect_2d.three_d.slab_model import GaussChargeModel, \
     CalcGaussChargePotential
+from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
 from pydefect_2d.util.utils import add_z_to_filename
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
@@ -132,11 +134,11 @@ def make_1d_fp_potential(args):
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
 
     def _inner(_dir: Path):
-        fp_potential = _make_fp_potential(_dir, perfect_pot)
-        pot_grads = _make_pot_diff_grads(_dir, fp_potential, args.pot_dir)
+        fp_potential = _make_1d_fp_potential(_dir, perfect_pot)
+        pot_grads = _make_pot_diff_grads(_dir, fp_potential, args.one_d_dir)
         pot_grads.to_json_file()
         pot_grads.to_plot(plt.gca())
-        plt.show()
+        plt.savefig("pot_diff_gradients.pdf")
 
         fp_potential.gauss_pos = pot_grads.gauss_pos_w_min_grad()
         logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_pos}.")
@@ -147,7 +149,7 @@ def make_1d_fp_potential(args):
     parse_dirs(args.dirs, _inner, True, filename)
 
 
-def _make_fp_potential(_dir, perfect_pot) -> OneDFpPotential:
+def _make_1d_fp_potential(_dir, perfect_pot) -> OneDFpPotential:
     locpot = Locpot.from_file(_dir / "LOCPOT")
     length = locpot.structure.lattice.lengths[2]
     grid_num = locpot.dim[2]
@@ -216,15 +218,15 @@ def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist,
 
 
 def make_1d_slab_model(args):
-    filename = "1d_slab_potential.json"
+    filename = "1d_slab_model.json"
 
     def _inner(_dir: Path):
-        fp_1d_potential: OneDFpPotential = loadfn(_dir / "fp_1d_potential.json")
+        one_d_fp_potential = loadfn(_dir / "1d_fp_potential.json")
         defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
 
         def _get_obj_from_corr_dir(filename: str):
             x, y = filename.split(".")
-            filename = f"{x}_{fp_1d_potential.gauss_pos:.3f}.{y}"
+            filename = f"{x}_{one_d_fp_potential.gauss_pos:.3f}.{y}"
             try:
                 return loadfn(args.one_d_dir / filename)
             except FileNotFoundError:
@@ -233,14 +235,27 @@ def make_1d_slab_model(args):
 
         one_d_gauss_charge = _get_obj_from_corr_dir("1d_gauss_charge.json")
         one_d_gauss_pot = _get_obj_from_corr_dir("1d_gauss_potential.json")
-        gauss_e = args.gauss_energies.get_gauss_energy(fp_1d_potential.gauss_pos)
+        gauss_e = args.gauss_energies.get_gauss_energy(one_d_fp_potential.gauss_pos)
 
-        slab_model = OneDSlabModel(charge=defect_entry.charge,
+        one_d_gauss_charge.periodic_charges *= defect_entry.charge
+        one_d_gauss_pot.potential *= defect_entry.charge
+        gauss_e.isolated_energy *= defect_entry.charge
+        gauss_e.periodic_energy *= defect_entry.charge
+
+        slab_model = OneDSlabModel(charge_state=defect_entry.charge,
                                    diele_dist=args.diele_dist,
                                    one_d_gauss_charge=one_d_gauss_charge,
                                    one_d_gauss_potential=one_d_gauss_pot,
-                                   one_d_fp_potential=fp_1d_potential,
+                                   one_d_fp_potential=one_d_fp_potential,
                                    gauss_energy=gauss_e)
         slab_model.to_json_file(filename)
+        correction = Gauss2dCorrection(slab_model.charge_state,
+                                       slab_model.periodic_energy,
+                                       slab_model.isolated_energy,
+                                       slab_model.potential_diff)
+        SlabModelPlotter(plt, slab_model)
+        plt.savefig("potential_profile.pdf")
+        print(correction)
+        correction.to_json_file()
 
     parse_dirs(args.dirs, _inner, True, filename)
