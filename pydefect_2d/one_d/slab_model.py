@@ -22,7 +22,7 @@ class OneDSlabModel(MSONable, ToJsonFileMixIn, SlabModelPlotAbs):
     one_d_gauss_charge: OneDGaussChargeModel  # q is already multiplied.
     one_d_gauss_potential: OneDGaussPotential  # q is already multiplied.
     one_d_fp_potential: OneDFpPotential
-    gauss_energy: GaussEnergy
+    gauss_energy: GaussEnergy # q is already multiplied.
 
     @property
     def isolated_energy(self):

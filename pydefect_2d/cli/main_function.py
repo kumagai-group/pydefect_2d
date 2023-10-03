@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 import glob
+import os
 from copy import deepcopy
 from pathlib import Path
 from typing import List
@@ -15,8 +16,7 @@ from vise.util.logger import get_logger
 
 from pydefect_2d.cli.main_plot_json import plot
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
-from pydefect_2d.correction.gauss_energy import make_gauss_energies, \
-    GaussEnergies, GaussEnergy
+from pydefect_2d.correction.gauss_energy import make_gauss_energies
 from pydefect_2d.correction.isolated_gauss import CalcIsolatedGaussEnergy
 from pydefect_2d.one_d.slab_model import OneDSlabModel
 from pydefect_2d.three_d.slab_model import GaussChargeModel, \
@@ -30,7 +30,6 @@ from pydefect_2d.one_d.charge import OneDGaussChargeModel
 from pydefect_2d.one_d.potential import Calc1DPotential, OneDFpPotential, \
     OneDPotDiff, PotDiffGradients, OneDGaussPotential
 from pydefect_2d.three_d.grids import Grid, Grids
-
 
 logger = get_logger(__name__)
 
@@ -220,9 +219,9 @@ def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist,
 def make_1d_slab_model(args):
     filename = "1d_slab_model.json"
 
-    def _inner(_dir: Path):
-        one_d_fp_potential = loadfn(_dir / "1d_fp_potential.json")
-        defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
+    def _inner(dir_: Path):
+        one_d_fp_potential = loadfn(dir_ / "1d_fp_potential.json")
+        defect_entry: DefectEntry = loadfn(dir_ / "defect_entry.json")
 
         def _get_obj_from_corr_dir(filename: str):
             x, y = filename.split(".")
@@ -239,8 +238,8 @@ def make_1d_slab_model(args):
 
         one_d_gauss_charge.periodic_charges *= defect_entry.charge
         one_d_gauss_pot.potential *= defect_entry.charge
-        gauss_e.isolated_energy *= defect_entry.charge
-        gauss_e.periodic_energy *= defect_entry.charge
+        gauss_e.isolated_energy *= defect_entry.charge ** 2
+        gauss_e.periodic_energy *= defect_entry.charge ** 2
 
         slab_model = OneDSlabModel(charge_state=defect_entry.charge,
                                    diele_dist=args.diele_dist,
@@ -248,14 +247,13 @@ def make_1d_slab_model(args):
                                    one_d_gauss_potential=one_d_gauss_pot,
                                    one_d_fp_potential=one_d_fp_potential,
                                    gauss_energy=gauss_e)
-        slab_model.to_json_file(filename)
+        slab_model.to_json_file(dir_ / filename)
         correction = Gauss2dCorrection(slab_model.charge_state,
                                        slab_model.periodic_energy,
                                        slab_model.isolated_energy,
                                        slab_model.potential_diff)
         SlabModelPlotter(plt, slab_model)
-        plt.savefig("potential_profile.pdf")
-        print(correction)
-        correction.to_json_file()
+        plt.savefig(dir_ / "potential_profile.pdf")
+        correction.to_json_file(dir_ / "correction.json")
 
     parse_dirs(args.dirs, _inner, True, filename)
