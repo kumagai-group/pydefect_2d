@@ -14,6 +14,8 @@ from vise.util.logger import get_logger
 from pydefect_2d.cli.main_function import _make_gauss_charge_model, \
     _make_gauss_potential, _make_isolated_gauss
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
+from pydefect_2d.dielectric.make_extended_diele_dist import AddVacuum, \
+    RepeatDieleDist
 from pydefect_2d.one_d.potential import OneDFpPotential
 from pydefect_2d.three_d.slab_model import SlabModel
 from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
@@ -63,15 +65,15 @@ def make_gauss_model(args):
 
         defect_z_pos = fp_potential.gauss_pos
         lat = calc_results.structure.lattice
-        grids = Grids.from_z_grid(lat.matrix[:2, :2], args.diele_dist.dist.grid)
+        grids = Grids.from_z_grid(lat.matrix[:2, :2], args.orig_diele_dist.dist.grid)
 
         gauss_charge = _make_gauss_charge_model(
             grids, args.std_dev, defect_z_pos, args.correction_dir)
 
-        _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess,
+        _make_gauss_potential(args.orig_diele_dist, gauss_charge, args.multiprocess,
                               args.correction_dir)
 
-        _make_isolated_gauss(args.diele_dist, gauss_charge,
+        _make_isolated_gauss(args.orig_diele_dist, gauss_charge,
                              args.k_max, args.k_mesh_dist,
                              args.correction_dir)
 
@@ -101,7 +103,7 @@ def make_slab_model(args):
         isolated_energy = _get_obj_from_corr_dir("isolated_gauss_energy.json")
 
         logger.info(f"slab_model.json is being created.")
-        slab_model = _make_slab_model(args.diele_dist,
+        slab_model = _make_slab_model(args.orig_diele_dist,
                                       defect_entry,
                                       gauss_charge_model,
                                       gauss_charge_pot,
@@ -137,12 +139,12 @@ def _make_correction(isolated_gauss_energy, slab_model):
     correction.to_json_file()
 
 
-# def _make_site_potential(perfect_calc_results, calc_results, slab_model):
-#     sites = make_potential_sites(calc_results,
-#                                  perfect_calc_results,
-#                                  slab_model)
-#     plt.clf()
-#     plotter = SitePotentialMplPlotter(
-#         title="atomic site potential", sites=sites)
-#     plotter.construct_plot()
+def add_vacuum(args):
+    added_length = args.length - args.diele_dist.dist.length
+    new_diele_dist = AddVacuum(args.diele_dist, added_length).diele_const_dist
+    new_diele_dist.to_json_file(f"dielectric_const_dist_{args.length}Å.json")
 
+
+def repeat_diele_dist(args):
+    new_diele_dist = RepeatDieleDist(args.diele_dist, args.mul).diele_const_dist
+    new_diele_dist.to_json_file(f"dielectric_const_dist_x{args.mul}.json")

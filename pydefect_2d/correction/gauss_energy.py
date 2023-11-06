@@ -94,8 +94,7 @@ def make_gauss_energy(corr_dir: Path, z: float):
     return GaussEnergy(z, isolated.self_energy, periodic_energy)
 
 
-def make_gauss_energies(corr_dir: Path,
-                        z_range: List[float] = None):
+def make_gauss_energies(corr_dir: Path, z_range: List[float] = None):
     zs = []
     for f in glob.glob(str(corr_dir / "isolated_gauss_energy*.json")):
         z = get_z_from_filename(f)

@@ -101,10 +101,12 @@ def parse_args_main_vasp(args):
         name="gauss_diele_dist",
         description="Make gauss dielectric distribution.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[unitcell_parser, center, perfect_locpot, denominator,
+        parents=[unitcell_parser, perfect_locpot, denominator,
                  std_dev],
         aliases=['gdd'])
-
+    parser_gauss_diele_dist.add_argument(
+        "-c", "--center", type=float, required=True, nargs="+",
+        help="Center positions of layer in fractional coordinates.")
     parser_gauss_diele_dist.set_defaults(
         func=make_gauss_diele_dist)
 

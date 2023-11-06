@@ -3,6 +3,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from math import erf, exp, sqrt
+from typing import List
 
 import numpy as np
 from scipy.optimize import minimize
@@ -26,6 +27,13 @@ class Dist(Grid):
     @abstractmethod
     def unscaled_out_of_plane_dist(self) -> np.ndarray:
         pass
+
+    @property
+    def to_manual_dist(self) -> "ManualDist":
+        return ManualDist(self.length,
+                          self.num_grid,
+                          self.unscaled_in_plane_dist,
+                          self.unscaled_out_of_plane_dist)
 
     def diele_in_plane_scale(self, ave_diele: float) -> np.ndarray:
         scale = (ave_diele - 1.) / self.unscaled_in_plane_dist.mean()
@@ -60,6 +68,11 @@ class Dist(Grid):
 class ManualDist(Dist):
     unscaled_in_plane_dist_: np.ndarray
     unscaled_out_of_plane_dist_: np.ndarray
+
+    def __add__(self, other: Dist):
+        in_ = self.unscaled_in_plane_dist + other.unscaled_in_plane_dist
+        out = self.unscaled_out_of_plane_dist + other.unscaled_out_of_plane_dist
+        return ManualDist(self.length, self.num_grid, in_, out)
 
     def __post_init__(self):
         assert self.num_grid == len(self.unscaled_in_plane_dist_)
@@ -120,6 +133,43 @@ class GaussianDist(Dist):
                             abs(rel - self.length),
                             abs(rel + self.length)])
             result.append(gaussian(shortest))
+
+        return np.array(result)
+
+
+@dataclass
+class PeriodicGaussianDist(Dist):
+    centers: List[float]  # in Å
+    sigma: float  # in Å
+
+    @classmethod
+    def from_grid(cls, grid: Grid, centers, sigma):
+        return cls(grid.length, grid.num_grid, centers, sigma)
+
+    @property
+    def unscaled_in_plane_dist(self) -> np.ndarray:
+        return self.unscaled_dist
+
+    @property
+    def unscaled_out_of_plane_dist(self) -> np.ndarray:
+        return self.unscaled_dist
+
+    @property
+    def unscaled_dist(self) -> np.ndarray:
+        """Distribution w/o normalization under periodic boundary condition.
+
+        All lengths are in Å.
+        """
+        def gaussian(length):
+            return exp(-length**2/(2*self.sigma**2))
+
+        result = np.zeros(self.grid.num_grid)
+        for g in self.grid_points():
+            rel = g - self.center
+            shortest = min([abs(rel),
+                            abs(rel - self.length),
+                            abs(rel + self.length)])
+            result += gaussian(shortest)
 
         return np.array(result)
 

@@ -21,6 +21,19 @@ def test_make_gauss_diele_dist(test_files, tmpdir):
     make_gauss_diele_dist(args)
 
 
+def test_make_gausses_diele_dist(test_files, tmpdir):
+    print(tmpdir)
+    tmpdir.chdir()
+    args = parse_args_main_vasp(
+        ["gdd",
+         "--unitcell", str(test_files / "unitcell.yaml"),
+         "-pl", str(test_files / "perfect" / "LOCPOT"),
+         "--center", "0.2", "0.4",
+         "--std_dev", "1.0",
+         "--denominator", "4"])
+    make_gauss_diele_dist(args)
+
+
 def test_make_step_diele_dist(test_files, tmpdir):
     print(tmpdir)
     tmpdir.chdir()

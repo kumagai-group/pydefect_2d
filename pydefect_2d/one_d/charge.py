@@ -48,5 +48,5 @@ class OneDGaussChargeModel(MSONable, ToJsonFileMixIn):
     def to_plot(self, ax):
         ax.set_ylabel("Charge (|e|/Å)")
         xs = self.grid.grid_points(True)
-        ys = with_end_point(self.periodic_charges)
+        ys = with_end_point(self.periodic_charges * self.surface)
         ax.plot(xs, ys, label="charge", color="black")

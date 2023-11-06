@@ -25,7 +25,8 @@ from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
 from pydefect_2d.util.utils import add_z_to_filename
 from pydefect_2d.dielectric.dielectric_distribution import \
     DielectricConstDist
-from pydefect_2d.dielectric.distribution import GaussianDist, StepDist
+from pydefect_2d.dielectric.distribution import GaussianDist, StepDist, \
+    PeriodicGaussianDist
 from pydefect_2d.one_d.charge import OneDGaussChargeModel
 from pydefect_2d.one_d.potential import Calc1DPotential, OneDFpPotential, \
     OneDPotDiff, PotDiffGradients, OneDGaussPotential
@@ -43,10 +44,12 @@ def make_diele_dist(dist, args):
     num_grid = round(orig_num_grid / args.denominator)
 
     logger.info(f"Original #grid: {orig_num_grid}, #grid: {num_grid}")
-#    logger.info(f"The number of grid is set to {num_grid}")
 
-    center = slab_length * args.center
     grid = Grid(slab_length, num_grid)
+    if len(args.center) == 1:
+        center = slab_length * args.center[0]
+    else:
+        center = [slab_length * c for c in args.center]
 
     diele = DielectricConstDist(ele, ion, dist(grid, center, args))
     diele.to_json_file()
@@ -55,9 +58,12 @@ def make_diele_dist(dist, args):
 
 
 def make_gauss_diele_dist(args):
-    def dist(grid, center, args_):
-        return GaussianDist.from_grid(grid, center, args_.std_dev)
-
+    if len(args.center) == 1:
+        def dist(grid, center, args_):
+            return GaussianDist.from_grid(grid, center, args_.std_dev)
+    else:
+        def dist(grid, center, args_):
+            return PeriodicGaussianDist.from_grid(grid, center, args_.std_dev)
     make_diele_dist(dist, args)
 
 

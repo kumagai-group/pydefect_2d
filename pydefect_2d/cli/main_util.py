@@ -9,7 +9,7 @@ from pydefect.cli.main import add_sub_parser
 
 from pydefect_2d.cli.main import add_2d_sub_parser
 from pydefect_2d.cli.main_util_function import plot_volumetric_data, \
-    make_gauss_model, make_slab_model
+    make_gauss_model, make_slab_model, add_vacuum, repeat_diele_dist
 
 
 def parse_args_main_util_vasp(args):
@@ -71,6 +71,32 @@ def parse_args_main_util_vasp(args):
         aliases=['sm'])
 
     parser_make_slab_model.set_defaults(func=make_slab_model)
+
+    # --------------------------------------------------------------------------
+    parser_add_vacuum = subparsers.add_parser(
+        name="add_vacuum",
+        description="Add vacuum.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[dielectric_dist],
+        aliases=['av'])
+    parser_add_vacuum.add_argument(
+        "-l", "--length", type=float,
+        help="Length of the vertical direction.")
+
+    parser_add_vacuum.set_defaults(func=add_vacuum)
+
+    # --------------------------------------------------------------------------
+    parser_repeat_diele = subparsers.add_parser(
+        name="repeat_diele",
+        description="Repeat DielectricConstDist.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[dielectric_dist],
+        aliases=['rd'])
+    parser_repeat_diele.add_argument(
+        "-m", "--mul", type=int,
+        help="Repetition.")
+
+    parser_repeat_diele.set_defaults(func=repeat_diele_dist)
 
     # --------------------------------------------------------------------------
     return parser.parse_args(args)

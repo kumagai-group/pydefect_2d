@@ -212,7 +212,7 @@ class SlabModel(MSONable, ToJsonFileMixIn, SlabModelPlotAbs):
     gauss_charge_model: GaussChargeModel
     gauss_charge_potential: GaussChargePotential
     charge_state: int
-    fp_potential: OneDFpPotential
+    fp_potential: OneDFpPotential = None
 
     def __post_init__(self):
         assert (self.diele_dist.dist.length
@@ -283,8 +283,11 @@ class SlabModel(MSONable, ToJsonFileMixIn, SlabModelPlotAbs):
     def potential_diff(self):
         grid_idx, z = self.gauss_charge_model.farthest_z_from_defect
         gauss_pot = self.xy_ave_pot[grid_idx]
-        fp_pot = self.fp_potential.potential_func(z)
-        return fp_pot - gauss_pot
+        if self.fp_potential:
+            fp_pot = self.fp_potential.potential_func(z)
+            return fp_pot - gauss_pot
+        else:
+            return None
 
 
 def electrostatic_energy_at_q1(potential: GaussChargePotential,

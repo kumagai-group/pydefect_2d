@@ -91,3 +91,26 @@ def test_slab_model(mocker):
     assert parsed_args == expected
 
 
+def test_add_vacuum(mocker):
+    mock_dielectric_dist = mocker.Mock(spec=DielectricConstDist, autospec=True)
+
+    def side_effect(filename):
+        if filename == "dielectric_distribution.json":
+            return mock_dielectric_dist
+        else:
+            raise ValueError
+
+    mocker.patch("pydefect_2d.cli.main.loadfn", side_effect=side_effect)
+
+    parsed_args = parse_args_main_util_vasp(["av",
+                                             "-dd",
+                                             "dielectric_distribution.json",
+                                             "-l", "30"])
+    expected = Namespace(
+        diele_dist=mock_dielectric_dist,
+        length=30.0,
+        func=parsed_args.func)
+
+    assert parsed_args == expected
+
+

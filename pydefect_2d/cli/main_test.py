@@ -3,7 +3,6 @@
 from argparse import Namespace
 from pathlib import Path
 
-from pydefect.analyzer.calc_results import CalcResults
 from pydefect.input_maker.supercell_info import SupercellInfo
 
 from pydefect_2d.correction.gauss_energy import GaussEnergies
@@ -32,7 +31,7 @@ def test_gauss_diele_dist(mocker):
                                         ])
     expected = Namespace(
         unitcell=mock_unitcell.from_yaml.return_value,
-        center=0.5,
+        center=[0.5],
         std_dev=0.1,
         denominator=1,
         perfect_locpot=mock_locpot_perfect,
