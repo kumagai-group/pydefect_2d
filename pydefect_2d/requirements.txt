@@ -1,0 +1,5 @@
+pydefect
+numpy
+monty
+pymatgen
+tabulate

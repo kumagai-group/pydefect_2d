@@ -14,15 +14,15 @@ reqs_list = [r.replace("==", "~=") for r in reqs_raw.split("\n")]
 #    long_description = fh.read()
 
 setup(
-    name='pydefect',
+    name='pydefect_2d',
     version=__version__,
     author='Yu Kumagai',
-    author_email='yuuukuma@gmail.com',
-    url='https://github.com/kumagai-group/pydefect',
+    author_email='yukumagai@tohoku.ac.jp',
+    url='https://github.com/kumagai-group/pydefect_2d',
     packages=find_packages(),
     license='MIT license',
-    description="Integrated environment for first-principles point-defect "
-                "calculations",
+    description="Package for correcting defect formation energies and "
+                "eigenvalues in two-dimensional materials",
     classifiers=[
         'Programming Language :: Python :: 3.7',
         "License :: OSI Approved :: MIT License",
@@ -33,11 +33,9 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'pydefect = pydefect.cli.main:main',
-            'pydefect_util = pydefect.cli.main_util:main',
-            'pydefect_vasp = pydefect.cli.vasp.main_vasp:main',
-            'pydefect_vasp_util = pydefect.cli.vasp.main_vasp_util:main',
-            'pydefect_print = pydefect.cli.main_print_json:main'
+            'pydefect_2d = pydefect_2d.cli.main:main',
+            'pydefect_2d_util = pydefect_2d.cli.main_util:main',
+            'pydefect_2d_plot = pydefect_2d.cli.main_plot_json:main',
         ]
     }
 )
