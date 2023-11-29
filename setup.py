@@ -1,6 +1,6 @@
 import os
 
-from . import __version__
+from pydefect_2d import __version__
 from setuptools import setup, find_packages
 
 cmdclass = {}
@@ -24,7 +24,7 @@ setup(
     description="Package for correcting defect formation energies and "
                 "eigenvalues in two-dimensional materials",
     classifiers=[
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.10',
         "License :: OSI Approved :: MIT License",
     ],
     install_requires=reqs_list,
