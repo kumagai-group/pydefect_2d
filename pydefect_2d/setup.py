@@ -1,6 +1,6 @@
 import os
 
-from pydefect import __version__
+from . import __version__
 from setuptools import setup, find_packages
 
 cmdclass = {}
