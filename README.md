@@ -17,7 +17,7 @@ We have also introduced an interpolation technique to lessen computational costs
 
 * In this code, we employ the correction method proposed by Noh et al. 
 [Phys. Rev. B, 89, 205417 (2014)](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.89.205417)
-and Komsa [Phys. Rev. X 4, 031044, (2014)](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.4.031044) 
+and Komsa [Phys. Rev. X 4, 031044 (2014)](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.4.031044) 
 (NK method).
 
 * In the current implementation, we can treat tetragonal systems only
@@ -31,9 +31,8 @@ which can be used in the pydefect code.
 Requirements
 ------------
 - Python 3.10 or higher
-- vise
-- pydefect
-- pymatgen
+- [vise](https://github.com/kumagai-group/vise)
+- [pydefect](https://github.com/kumagai-group/pydefect)
 - see requirements.txt for others
 
 License
@@ -42,31 +41,49 @@ Python code is licensed under the MIT License.
 
 
 Workflow for 2D Point Defect Calculations
------------------------ -----------------------
+-----------------------------------------
+<img src="https://github.com/kumagai-group/pydefect_2d/assets/4986887/99bd7211-588b-4292-9453-906b457f2650">
 
-1. Generate `unitcell.yaml` using pydefect
+Our goal is to evaluate the corrections of defect formation energies ($E_f$).
+The workflow is depicted above.
 
-2. Create dielectric profile using either gdd or sdd subcommand.
-   ``` pydefect_2d sdd -c 0.5 -s 0.5 -w 7.15 -wz 7.15 -u unitcell.yaml -pl ../../defects/6_30A/perfect/LOCPOT --denominator 2```
+1. (Step 5) Generate `unitcell.yaml` that is generated from the pristine slab model calculations using pydefect. 
+Only dielectric constants are used in this code.
 
-3. Perform standard defect calculations with pydefect.
+2. (Step 6) The NK correction method necessitates knowledge of the dielectric profiles. 
+To create a dielectric profile, use either gauss_diele_dist (gdd) or step_diele_dist (sdd) subcommand.
+An example is:
+``` pydefect_2d sdd -c 0.5 -s 0.5 -w 7.15 -wz 7.15 -u unitcell.yaml -pl ../../defects/6_30A/perfect/LOCPOT --denominator 2```
 
-4. Create the defects/correction directory.
+3. Create `correction/` in the defect calculation directory.
 
-5. Generate the 1d_gauss directory and create **gauss1_d_potential_xxxx.json** using the following command:
+6. (Step 7) T determine the charge center position, we need a series of one-dimensional (1D) potential profiles
+as a function of the Gaussian charge position (z<sub>0</sub>). To achieve this, we firstly create `1d_gauss/`
+in `correction/` and create **gauss1_d_potential_xxxx.json** using the 1d_gauss_models (1gm) subcommand:
+An example is:
    ```pydefect_2d 1gm -s ../../supercell_info.json -r 0.3 0.5 -dd ../dielectric_const_dist.json```
 
-6. Calculate Gaussian charge energy under 3D periodic boundary conditions and in isolated conditions.
-   ```pydefect_2d gmz -z 0.3{0,2,4,6,8} 0.4{0,2,4,6,8} 0.5 -s ../../supercell_info.json -cd . -dd ../dielectric_const_dist.json```
-
-7. Generate **gauss_energies.json** inside defects/correction/.
-    ```pydefect_2d ge```
-
-8. Compute the one-dimensional potential from first-principles calculations and determine the Gaussian charge center.
+7. (Step 8)
+Compute the one-dimensional potential from first-principles calculations and determine the Gaussian charge center.
+An example is:
    ```pydefect_2d 1fp -d . -pl ../../perfect/LOCPOT -od ../1d_gauss```
 
-9. Generate slab_model.json and correction.json (at this point, it converges with pydefect).
-   ```pydefect_2d 1sm -d Va_MoS6_-2 -dd dielectric_const_dist.json -od 1d_gauss -g correction/gauss_energies.json```
+5. (Steps 9 and 10) 
+We next prepare the Gaussian charge energies under both three-dimensional (3D) periodic boundary conditions 
+and open boundary conditions as a function of z<sub>0</sub>.
+An example is:
+   ```pydefect_2d gmz -z 0.3{0,2,4,6,8} 0.4{0,2,4,6,8} 0.5 -s ../../supercell_info.json -cd . -dd ../dielectric_const_dist.json```
+
+6. (Step 11)
+Then, we interpolate long-range correction term as a function of z<sub>0</sub>, and  
+generate **gauss_energies.json** inside defects/correction/.
+An example is:
+```pydefect_2d ge```
+
+8. (Step 12) Generate slab_model.json and correction.json (at this point, it converges with pydefect).
+If slab_center is given, `eigenvalue_shift.yaml` is also generated, which can be used for shifting the eigenvalues in the pydefect processes.
+An example is:
+```pydefect_2d 1sm -d Va_MoS6_-2 -dd dielectric_const_dist.json -od 1d_gauss -g correction/gauss_energies.json -s 0.5```
 
 Development notes
 -------------------
@@ -84,8 +101,7 @@ Please use the ["Fork and Pull"](https://guides.github.com/activities/forking/) 
 - Add unittests wherever possible including scripts for command line interfaces.
 
 ### Tests
-Run the tests using `pytest pydefect`.
-We also use integrated testing on GitHub via circleCI.
+Run the tests using `pytest pydefect_2d`.
 
 Citing pydefect_2d
 ---------------
