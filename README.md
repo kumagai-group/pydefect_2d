@@ -42,9 +42,9 @@ Python code is licensed under the MIT License.
 
 Workflow for 2D Point Defect Calculations
 -----------------------------------------
-<img src="https://github.com/kumagai-group/pydefect_2d/assets/4986887/99bd7211-588b-4292-9453-906b457f2650">
+<img src="https://github.com/kumagai-group/pydefect_2d/assets/4986887/99bd7211-588b-4292-9453-906b457f2650" width="600" alt="">
 
-Our goal is to evaluate the corrections of defect formation energies ($E_f$).
+Our goal is to evaluate the corrections of defect formation energies (E<sub>f</sub>).
 The workflow is depicted above.
 
 1. (Step 5) Generate `unitcell.yaml` that is generated from the pristine slab model calculations using pydefect. 
