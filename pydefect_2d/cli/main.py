@@ -193,6 +193,10 @@ def parse_args_main_vasp(args):
     parser_make_1d_slab_model.add_argument(
         "-g", "--gauss_energies", type=loadfn, required=True,
         help="GaussEnergies.json file path.")
+    parser_make_1d_slab_model.add_argument(
+        "-s", "--slab_center", type=float,
+        help="Slab center position in fractional coord. This is used for "
+             "estimating the eigenvalue shift.")
     parser_make_1d_slab_model.set_defaults(func=make_1d_slab_model)
 
     # --------------------------------------------------------------------------

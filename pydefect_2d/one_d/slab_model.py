@@ -2,6 +2,7 @@
 #  Copyright (c) 2023 Kumagai group.
 from dataclasses import dataclass
 
+import numpy as np
 from monty.json import MSONable
 from tabulate import tabulate
 from vise.util.mix_in import ToJsonFileMixIn
@@ -43,6 +44,12 @@ class OneDSlabModel(MSONable, ToJsonFileMixIn, SlabModelPlotAbs):
     @property
     def grid(self) -> Grid:
         return self.one_d_gauss_potential.grid
+
+    def get_xy_ave_potential(self, frac_coord):
+        z_num_grid = self.grid.num_grid
+        z_frac_coords = np.linspace(0, 1, z_num_grid + 1)
+        idx = (np.abs(z_frac_coords - frac_coord)).argmin()
+        return float(self.one_d_gauss_potential.potential[idx])
 
     def __str__(self):
         header = ["pos (Å)", "charge", "potential"]

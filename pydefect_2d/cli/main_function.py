@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
+import yaml
 from matplotlib import pyplot as plt
 from monty.serialization import loadfn
 from pydefect.cli.main_tools import parse_dirs
@@ -46,10 +47,13 @@ def make_diele_dist(dist, args):
     logger.info(f"Original #grid: {orig_num_grid}, #grid: {num_grid}")
 
     grid = Grid(slab_length, num_grid)
-    if len(args.center) == 1:
-        center = slab_length * args.center[0]
+    if isinstance(args.center, list):
+        if len(args.center) == 1:
+            center = slab_length * args.center[0]
+        else:
+            center = [slab_length * c for c in args.center]
     else:
-        center = [slab_length * c for c in args.center]
+        center = slab_length * args.center
 
     diele = DielectricConstDist(ele, ion, dist(grid, center, args))
     diele.to_json_file()
@@ -139,6 +143,10 @@ def make_1d_fp_potential(args):
     perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
 
     def _inner(_dir: Path):
+        defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
+        if defect_entry.charge == 0:
+            return
+
         fp_potential = _make_1d_fp_potential(_dir, perfect_pot)
         pot_grads = _make_pot_diff_grads(_dir, fp_potential, args.one_d_dir)
         pot_grads.to_json_file()
@@ -149,7 +157,7 @@ def make_1d_fp_potential(args):
         logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_pos}.")
 
         print(fp_potential.gauss_pos)
-        fp_potential.to_json_file(filename)
+        fp_potential.to_json_file(_dir / filename)
 
     parse_dirs(args.dirs, _inner, True, filename)
 
@@ -261,5 +269,10 @@ def make_1d_slab_model(args):
         SlabModelPlotter(plt, slab_model)
         plt.savefig(dir_ / "potential_profile.pdf")
         correction.to_json_file(dir_ / "correction.json")
+
+        if args.slab_center:
+            shift = slab_model.get_xy_ave_potential(frac_coord=args.slab_center)
+            d = {"shift_value": shift}
+            Path(dir_ / "eigenvalue_shift.yaml").write_text(yaml.dump(d))
 
     parse_dirs(args.dirs, _inner, True, filename)

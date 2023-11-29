@@ -196,12 +196,14 @@ def test_make_1d_slab_model(mocker):
                                         "-d", "Va_O1_1",
                                         "-dd", "dielectric_const_dist.json",
                                         "-od", "1d_pots",
-                                        "-g", "gauss_energies.json"])
+                                        "-g", "gauss_energies.json",
+                                        "-s", "0.5"])
     expected = Namespace(
         dirs=[Path("Va_O1_1")],
         diele_dist=mock_dielectric_dist,
         one_d_dir=Path("1d_pots"),
         gauss_energies=mock_gauss_energies,
+        slab_center=0.5,
         func=parsed_args.func)
 
     assert parsed_args == expected

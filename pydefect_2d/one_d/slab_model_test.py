@@ -15,10 +15,10 @@ def test_one_d_slab_model(test_files):
                                isolated_energy=10.12345,
                                periodic_energy=0.12348)
 
-    one_d_pot_diff = OneDSlabModel(charge_state=1,
+    one_d_slab_model = OneDSlabModel(charge_state=1,
                                    diele_dist=diele_dist,
                                    one_d_gauss_charge=charge,
                                    one_d_gauss_potential=potential,
                                    one_d_fp_potential=fp_pot,
                                    gauss_energy=gauss_energy)
-    print(one_d_pot_diff)
+    print(one_d_slab_model)

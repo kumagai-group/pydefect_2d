@@ -37,7 +37,7 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
         charge = self.periodic_charges.mean() * self.grids.volume
         result = [f"Standard deviation (A): {self.std_dev:.2}",
                   f"Charge sum (|e|): {charge:.3}"]
-        return "\n".join(result)
+        # return "\n".join(result)
 
     def __post_init__(self):
         if self.periodic_charges is None:
@@ -103,8 +103,9 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
     def xy_ave_potential(self):
         return np.real(self.potential.mean(axis=(0, 1)))
 
-    def get_potential(self, coord):
-        x, y, z = coord
+
+    def get_potential(self, cart_coord):
+        x, y, z = cart_coord
         xi, yi = self.grids.xy_grids.nearest_grid_point(x, y)[0]
         zi = self.grids.z_grid.nearest_grid_point(z)[0]
         return self.potential[xi, yi, zi]

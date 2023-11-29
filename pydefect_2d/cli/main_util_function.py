@@ -148,3 +148,8 @@ def add_vacuum(args):
 def repeat_diele_dist(args):
     new_diele_dist = RepeatDieleDist(args.diele_dist, args.mul).diele_const_dist
     new_diele_dist.to_json_file(f"dielectric_const_dist_x{args.mul}.json")
+
+
+def make_eigenvalue_shift(args):
+
+    new_diele_dist.to_json_file(f"dielectric_const_dist_x{args.mul}.json")
