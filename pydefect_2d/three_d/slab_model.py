@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #  Copyright (c) 2023 Kumagai group.
 import multiprocessing as multi
+from abc import ABC
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import product
@@ -26,18 +27,36 @@ from pydefect_2d.util.utils import with_end_point
 
 
 @dataclass
-class GaussChargeModel(MSONable, ToJsonFileMixIn):
-    """Gauss charge model with 1|e| under periodic boundary condition. """
+class ChargeModel(ABC):
     grids: Grids
-    std_dev: float
-    gauss_pos_in_frac: float  # in fractional coord. x=y=0
     periodic_charges: np.array = None
+
+    @cached_property
+    def reciprocal_charge(self):
+        result = fftn(self.periodic_charges)
+        result[0, 0, 0] = 0  # introduce background charge
+        return result
+
+    @cached_property
+    def xy_average_charge(self) -> np.array:
+        return np.real(self.periodic_charges.mean(axis=(0, 1)))
+
+    @cached_property
+    def xy_integrated_charge(self) -> np.array:
+        return self.xy_average_charge * self.grids.xy_grids.xy_area
+
+
+@dataclass
+class GaussChargeModel(ChargeModel, MSONable, ToJsonFileMixIn):
+    """Gauss charge model with 1|e| under periodic boundary condition. """
+    std_dev: float = None
+    gauss_pos_in_frac: float = None  # in fractional coord. x=y=0
 
     def __str__(self):
         charge = self.periodic_charges.mean() * self.grids.volume
         result = [f"Standard deviation (A): {self.std_dev:.2}",
                   f"Charge sum (|e|): {charge:.3}"]
-        # return "\n".join(result)
+        return "\n".join(result)
 
     def __post_init__(self):
         if self.periodic_charges is None:
@@ -67,20 +86,6 @@ class GaussChargeModel(MSONable, ToJsonFileMixIn):
              for i in range(-1, 2)]
         ) ** 2
 
-    @cached_property
-    def reciprocal_charge(self):
-        result = fftn(self.periodic_charges)
-        result[0, 0, 0] = 0  # introduce background charge
-        return result
-
-    @cached_property
-    def xy_average_charge(self) -> np.array:
-        return np.real(self.periodic_charges.mean(axis=(0, 1)))
-
-    @cached_property
-    def xy_integrated_charge(self) -> np.array:
-        return self.xy_average_charge * self.grids.xy_grids.xy_area
-
     @property
     def farthest_z_from_defect(self) -> Tuple[int, float]:
         rel_z_in_frac = (self.gauss_pos_in_frac + 0.5) % 1.
@@ -102,7 +107,6 @@ class GaussChargePotential(MSONable, ToJsonFileMixIn):
     @cached_property
     def xy_ave_potential(self):
         return np.real(self.potential.mean(axis=(0, 1)))
-
 
     def get_potential(self, cart_coord):
         x, y, z = cart_coord
@@ -184,7 +188,7 @@ class CalcGaussChargePotential:
     def reciprocal_potential(self):
         x_grids, y_grids = self.xy_num_grids
 
-        result = np.zeros(self.num_grids, dtype=np.complex_)
+        result = np.zeros(self.num_grids, dtype=np.complex128)
         grids = [[i_gx, i_gy] for i_gx, i_gy
                  in product(range(x_grids), range(y_grids))]
 

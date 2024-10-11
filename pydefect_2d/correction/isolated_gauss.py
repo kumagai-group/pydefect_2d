@@ -36,12 +36,13 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         return [k_exp * uk for k_exp, uk in zip(self.k_exps, self.U_ks)]
 
     @cached_property
-    def self_energy(self):
+    def self_energy(self) -> float:
         linear_model = np.polyfit(self.ks[:2], self.Us[:2], 1)
         linear_model_fn = np.poly1d(linear_model)
         x0, y0, = 0.0, linear_model_fn(0.0)
         x, y = np.insert(self.ks, 0, x0), np.insert(self.Us, 0, y0)
-        return integrate.simpson(y, x=x)
+        return float(integrate.simpson(y=y, x=x))
+        # return float(integrate.trapezoid(y, x))
 
     def to_plot(self, plt):
         fig, axs = plt.subplots(3, 1, tight_layout=True, sharex=True)

@@ -139,12 +139,12 @@ class GaussianDist(Dist):
 
 @dataclass
 class PeriodicGaussianDist(Dist):
-    centers: List[float]  # in Å
+    center: float  # in Å
     sigma: float  # in Å
 
     @classmethod
-    def from_grid(cls, grid: Grid, centers, sigma):
-        return cls(grid.length, grid.num_grid, centers, sigma)
+    def from_grid(cls, grid: Grid, center: float, sigma: float):
+        return cls(grid.length, grid.num_grid, center, sigma)
 
     @property
     def unscaled_in_plane_dist(self) -> np.ndarray:
@@ -166,6 +166,7 @@ class PeriodicGaussianDist(Dist):
         result = np.zeros(self.grid.num_grid)
         for g in self.grid_points():
             rel = g - self.center
+            print(rel)
             shortest = min([abs(rel),
                             abs(rel - self.length),
                             abs(rel + self.length)])

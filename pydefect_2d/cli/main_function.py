@@ -121,7 +121,6 @@ def make_gauss_model_from_z(args):
 
         gauss_charge = _make_gauss_charge_model(grids, args.std_dev, z_pos,
                                                 args.correction_dir)
-
         _make_gauss_potential(args.diele_dist, gauss_charge, args.multiprocess,
                               args.correction_dir)
 
@@ -196,15 +195,16 @@ def _1d_gauss_pots(one_d_dir) -> List[OneDGaussPotential]:
     return sorted(result, key=lambda x: x.gauss_pos)
 
 
-def _make_gauss_charge_model(grids, std_dev, defect_z_pos, dir_):
+def _make_gauss_charge_model(grids, std_dev, defect_z_pos, dir_=Path.cwd()):
     logger.info(f"GaussChargeModel is being created.")
-    result = GaussChargeModel(grids, std_dev, defect_z_pos)
+    result = GaussChargeModel(grids,
+                              std_dev=std_dev, gauss_pos_in_frac=defect_z_pos)
     filename = add_z_to_filename(result.json_filename, defect_z_pos)
     result.to_json_file(dir_ / filename)
     return result
 
 
-def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess, dir_):
+def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess, dir_=Path.cwd()):
     logger.info(f"GaussChargePotential is being calculated.")
     result = CalcGaussChargePotential(
         dielectric_const=diele_dist,
@@ -217,7 +217,7 @@ def _make_gauss_potential(diele_dist, gauss_charge_model, multiprocess, dir_):
 
 
 def _make_isolated_gauss(diele_dist, gauss_charge_model, k_max, k_mesh_dist,
-                         dir_):
+                         dir_=Path.cwd()):
     logger.info("Calculating isolated gauss charge self energy...")
     calculator = CalcIsolatedGaussEnergy(gauss_charge_model=gauss_charge_model,
                                          diele_const_dist=diele_dist,

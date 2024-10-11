@@ -28,7 +28,7 @@ def test_make_gausses_diele_dist(test_files, tmpdir):
         ["gdd",
          "--unitcell", str(test_files / "unitcell.yaml"),
          "-pl", str(test_files / "perfect" / "LOCPOT"),
-         "--center", "0.2", "0.4",
+         "--center", "0.2",
          "--std_dev", "1.0",
          "--denominator", "4"])
     make_gauss_diele_dist(args)

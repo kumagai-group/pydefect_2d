@@ -4,7 +4,7 @@ import pytest
 
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.dielectric.distribution import StepDist
-from pydefect_2d.dielectric.make_extended_diele_dist import AddVacuum, \
+from pydefect_2d.dielectric.make_extended_diele_dist import ChangeVacuum, \
     RepeatDieleDist
 
 
@@ -21,7 +21,7 @@ def diele_dist():
 
 
 def test_add_vacuum(diele_dist):
-    actual = AddVacuum(diele_dist, 10.0).diele_const_dist
+    actual = ChangeVacuum(diele_dist, new_l=20.0).diele_const_dist
     dist = StepDist(length=20.0,
                     num_grid=20,
                     center=10.0,

@@ -91,7 +91,7 @@ def make_gauss_energy(corr_dir: Path, z: float):
     pot: GaussChargePotential = loadfn(corr_dir / pot_fname)
     isolated: IsolatedGaussEnergy = loadfn(corr_dir / iso_fname)
     periodic_energy = electrostatic_energy_at_q1(pot, charge)
-    return GaussEnergy(z, isolated.self_energy, periodic_energy)
+    return GaussEnergy(z, float(isolated.self_energy), float(periodic_energy))
 
 
 def make_gauss_energies(corr_dir: Path, z_range: List[float] = None):

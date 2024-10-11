@@ -40,8 +40,8 @@ class ExtendDieleDist(ABC):
 
 
 @dataclass
-class AddVacuum(ExtendDieleDist):
-    delta_l: float
+class ChangeVacuum(ExtendDieleDist):
+    new_l: float
 
     @property
     def diele_const_dist(self):
@@ -54,8 +54,8 @@ class AddVacuum(ExtendDieleDist):
         return self.orig_diele_dist.dist.length
 
     @property
-    def new_l(self):
-        return self.orig_diele_dist.dist.length + self.delta_l
+    def delta_l(self):
+        return self.new_l - self.orig_diele_dist.dist.length
 
     def _new_ave_diele(self, old_ave_diele):
         return [(old_ave_diele[0] * self.old_l + self.delta_l) / self.new_l,

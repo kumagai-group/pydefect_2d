@@ -14,7 +14,7 @@ from vise.util.logger import get_logger
 from pydefect_2d.cli.main_function import _make_gauss_charge_model, \
     _make_gauss_potential, _make_isolated_gauss
 from pydefect_2d.correction.correction_2d import Gauss2dCorrection
-from pydefect_2d.dielectric.make_extended_diele_dist import AddVacuum, \
+from pydefect_2d.dielectric.make_extended_diele_dist import ChangeVacuum, \
     RepeatDieleDist
 from pydefect_2d.one_d.potential import OneDFpPotential
 from pydefect_2d.three_d.slab_model import SlabModel
@@ -141,7 +141,7 @@ def _make_correction(isolated_gauss_energy, slab_model):
 
 def add_vacuum(args):
     added_length = args.length - args.diele_dist.dist.length
-    new_diele_dist = AddVacuum(args.diele_dist, added_length).diele_const_dist
+    new_diele_dist = ChangeVacuum(args.diele_dist, added_length).diele_const_dist
     new_diele_dist.to_json_file(f"dielectric_const_dist_{args.length}Å.json")
 
 

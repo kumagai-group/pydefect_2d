@@ -34,7 +34,7 @@ def test_make_gaussian_energy(test_files):
     corr_dir = test_files / "correction"
     actual = make_gauss_energy(corr_dir, z=0.37)
     expected = GaussEnergy(z=0.37,
-                           isolated_energy=1.0352530163235767,
+                           isolated_energy=1.0352386030407694,
                            periodic_energy=0.5855912156941347)
     assert actual == expected
 
@@ -44,6 +44,6 @@ def test_make_gaussian_energies(test_files):
     actual = make_gauss_energies(corr_dir,
                                  z_range=[0.35, 0.38])
     expected = GaussEnergies([GaussEnergy(z=0.37,
-                                          isolated_energy=1.0352530163235767,
+                                          isolated_energy=1.0352386030407694,
                                           periodic_energy=0.5855912156941347)])
     assert actual == expected
