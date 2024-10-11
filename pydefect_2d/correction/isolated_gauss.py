@@ -10,8 +10,8 @@ from typing import List
 import numpy as np
 from monty.json import MSONable
 from numpy import cos, exp, log10
-from scipy import integrate, e
-from scipy.constants import pi, epsilon_0, elementary_charge, angstrom
+from scipy import integrate
+from scipy.constants import pi, epsilon_0, elementary_charge, angstrom, e
 from scipy.fft import fft
 from scipy.linalg import pinvh
 from tqdm import tqdm
@@ -41,7 +41,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         linear_model_fn = np.poly1d(linear_model)
         x0, y0, = 0.0, linear_model_fn(0.0)
         x, y = np.insert(self.ks, 0, x0), np.insert(self.Us, 0, y0)
-        return integrate.simps(y, x)
+        return integrate.simpson(y, x=x)
 
     def to_plot(self, plt):
         fig, axs = plt.subplots(3, 1, tight_layout=True, sharex=True)
