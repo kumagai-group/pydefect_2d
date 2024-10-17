@@ -60,14 +60,13 @@ class GaussChargeModel(ChargeModel, MSONable, ToJsonFileMixIn):
 
     def __post_init__(self):
         if self.periodic_charges is None:
-            self.periodic_charges = self._make_periodic_gauss_charge_profile
+            self.set_periodic_gauss_charge_profile()
 
     @property
     def gauss_pos_in_cart(self):
         return self.gauss_pos_in_frac * self.grids.z_grid.length
 
-    @property
-    def _make_periodic_gauss_charge_profile(self):
+    def set_periodic_gauss_charge_profile(self):
         coefficient = 1 / self.std_dev ** 3 / (2 * pi) ** 1.5
 
         (nx, ny), nz = self.grids.xy_grids.num_grids, self.grids.z_grid.num_grid
@@ -78,7 +77,7 @@ class GaussChargeModel(ChargeModel, MSONable, ToJsonFileMixIn):
             xyz2 = xy2 + self._min_z2(lz)
             gauss[:, :, nz] = exp(- xyz2 / (2 * self.std_dev ** 2))
 
-        return coefficient * gauss
+        self.periodic_charges = coefficient * gauss
 
     def _min_z2(self, lz):
         return min(
