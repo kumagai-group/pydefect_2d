@@ -68,6 +68,10 @@ def add_2d_sub_parser(_argparse, name: str):
         result.add_argument(
             "--no_multiprocess", dest="multiprocess", action="store_false",
             help="Switch of the multiprocess.")
+    elif name == "gauss_charge_model":
+        result.add_argument(
+            "-gcm", "--gauss_charge_model", type=loadfn, required=True,
+            help="gauss_charge_model.json file")
     else:
         raise ValueError
     return result
