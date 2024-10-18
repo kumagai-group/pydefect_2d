@@ -41,10 +41,7 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         linear_model_fn = np.poly1d(linear_model)
         x0, y0, = 0.0, linear_model_fn(0.0)
         x, y = np.insert(self.ks, 0, x0), np.insert(self.Us, 0, y0)
-        for xx, yy in zip(x, y):
-            print(xx, yy)
         return float(integrate.simpson(y=y, x=x))
-        # return float(integrate.trapezoid(y, x))
 
     def to_plot(self, plt):
         fig, axs = plt.subplots(3, 1, tight_layout=True, sharex=True)
