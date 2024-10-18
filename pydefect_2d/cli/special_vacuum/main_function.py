@@ -111,7 +111,7 @@ def calc_special_vacuum(args):
                                charge_state=1)
 
         energies.append(slab_model.electrostatic_energy)
-        lengths.append(str(_dir).replace("Å", ""))
+        lengths.append(slab_model.z_length)
 
     parse_dirs(args.dirs, _inner, True)
     sv = SpecialVacuum(lengths, energies, args.isolated_gauss_energy)
