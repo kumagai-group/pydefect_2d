@@ -9,8 +9,13 @@ from pydefect_2d.cli.special_vacuum.main_function import \
     extend_dielectric_const_dist, SpecialVacuum
 
 
-def test_special_vacuum():
-    sv = SpecialVacuum(lengths=[10, 20, 30], electrostatic_energies=[-0.5, 1.5, 2.5])
+def test_special_vacuum(mocker):
+    iso = mocker.stub()
+    iso.self_energy = 1.0
+
+    sv = SpecialVacuum(lengths=[10, 20, 30],
+                       electrostatic_energies=[-0.5, 1.5, 2.5],
+                       isolated_gauss_energy=iso)
     sv.to_plot(plt.gca())
     print(sv)
     plt.show()

@@ -44,6 +44,9 @@ def parse_args_special_vac(args):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[dir_parser],
         aliases=["sv"])
+    parser_sv_length.add_argument(
+        "-i", "--isolated_gauss_energy", type=loadfn, required=True,
+        help="isolated_gauss_energy.json file")
     parser_sv_length.set_defaults(func=calc_special_vacuum)
     # --------------------------------------------------------------------------
     return parser.parse_args(args)

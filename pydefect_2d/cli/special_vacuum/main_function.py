@@ -16,6 +16,7 @@ from tabulate import tabulate
 from vise.util.logger import get_logger
 from vise.util.mix_in import ToJsonFileMixIn
 
+from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.dielectric.make_extended_diele_dist import ChangeVacuum
 from pydefect_2d.three_d.grids import Grid
 from pydefect_2d.three_d.slab_model import GaussChargeModel, \
@@ -28,21 +29,36 @@ logger = get_logger(__name__)
 class SpecialVacuum(MSONable, ToJsonFileMixIn):
     lengths: List[float]
     electrostatic_energies: List[float]
+    isolated_gauss_energy: IsolatedGaussEnergy
+
+    @property
+    def iso_energy(self) -> float:
+        return self.isolated_gauss_energy.self_energy
+
+    @property
+    def relative_energies(self) -> List[float]:
+        return [e - self.iso_energy for e in self.electrostatic_energies]
 
     def __str__(self):
         data = [[length, energy] for length, energy
                 in zip(self.lengths, self.electrostatic_energies)]
+        iso = str(self.isolated_gauss_energy)
         table = tabulate(data,
                          headers=["Length (Å)", "Electrostatic energy (eV)"],
                          floatfmt=".2f", tablefmt="simple")
         try:
-            sv_length = fsolve(self.interpolate, np.array([0]))
+            sv_length = fsolve(self.rel_interpolate, np.array([0.0]))
             length_str = f"Special vacuum length: {sv_length[0]:.3f}"
         except:
             length_str = ("Special vacuum length is not determined. "
                           "Check the lengths and electrostatic energies")
 
-        return "\n".join([table, length_str])
+        return "\n".join([iso, table, length_str])
+
+    @property
+    def rel_interpolate(self):
+        return interpolate.interp1d(self.lengths, self.relative_energies,
+                                    fill_value="extrapolate")
 
     @property
     def interpolate(self):
@@ -54,6 +70,8 @@ class SpecialVacuum(MSONable, ToJsonFileMixIn):
         ax.set_ylabel("Electrostatic energy (V)")
         ax.scatter(self.lengths, self.electrostatic_energies)
 
+        ax.axhline(self.iso_energy, color="black", linestyle="--")
+
         xs = np.linspace(min(self.lengths), max(self.lengths), num=100)
         ys = [self.interpolate(x) for x in xs]
         ax.plot(xs, ys, '-')
@@ -62,7 +80,7 @@ class SpecialVacuum(MSONable, ToJsonFileMixIn):
 def extend_dielectric_const_dist(args):
     for new_l in args.slab_lengths:
         logger.info(f"Extending dielectric constant distribution to {new_l}.")
-        p = Path(f"{new_l}Å")
+        p = Path(f"{new_l}A")
         p.mkdir(exist_ok=True)
 
         change_vac = ChangeVacuum(args.diele_dist, new_l=new_l)
@@ -96,6 +114,6 @@ def calc_special_vacuum(args):
         lengths.append(str(_dir).replace("Å", ""))
 
     parse_dirs(args.dirs, _inner, True)
-    sv = SpecialVacuum(lengths, energies)
+    sv = SpecialVacuum(lengths, energies, args.isolated_gauss_energy)
     sv.to_json_file()
     print(sv)

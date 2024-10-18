@@ -4,6 +4,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from pydefect_2d.cli.special_vacuum.main import parse_args_special_vac
+from pydefect_2d.correction.isolated_gauss import IsolatedGaussEnergy
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 from pydefect_2d.three_d.slab_model import GaussChargeModel
 
@@ -37,12 +38,26 @@ def test_special_vacuum_extend_dielectric_dist(mocker):
     assert parsed_args == expected
 
 
-def test_special_vacuum():
+def test_special_vacuum(mocker):
+
+    mock_isolated_gauss_energy = mocker.Mock(spec=IsolatedGaussEnergy,
+                                             autospec=True)
+
+    def side_effect(filename):
+        if filename == "isolated_gauss_energy.json":
+            return mock_isolated_gauss_energy
+        else:
+            raise ValueError
+
+    mocker.patch("pydefect_2d.cli.special_vacuum.main.loadfn",
+                 side_effect=side_effect)
 
     parsed_args = parse_args_special_vac(["sv",
-                                          "-d", "a", "b"])
+                                          "-d", "a", "b",
+                                          "-i", "isolated_gauss_energy.json"])
     expected = Namespace(
         dirs=[Path("a"), Path("b")],
+        isolated_gauss_energy=mock_isolated_gauss_energy,
         func=parsed_args.func)
 
     assert parsed_args == expected
