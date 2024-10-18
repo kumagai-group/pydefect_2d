@@ -22,6 +22,6 @@ def gauss_energy(test_files):
 
 
 def test_isolated_gaussian_energy(gauss_energy: IsolatedGaussEnergy):
-    assert gauss_energy.self_energy == 1.0186539512068704
+    assert gauss_energy.self_energy == 1.017341755965101
 
 

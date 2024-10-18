@@ -11,7 +11,7 @@ import numpy as np
 from monty.json import MSONable
 from numpy import cos, exp, log10
 from scipy import integrate
-from scipy.constants import pi, epsilon_0, elementary_charge, angstrom, e
+from scipy.constants import pi, epsilon_0, elementary_charge, angstrom
 from scipy.fft import fft
 from scipy.linalg import pinvh
 from tqdm import tqdm
@@ -41,6 +41,8 @@ class IsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         linear_model_fn = np.poly1d(linear_model)
         x0, y0, = 0.0, linear_model_fn(0.0)
         x, y = np.insert(self.ks, 0, x0), np.insert(self.Us, 0, y0)
+        for xx, yy in zip(x, y):
+            print(xx, yy)
         return float(integrate.simpson(y=y, x=x))
         # return float(integrate.trapezoid(y, x))
 
@@ -112,7 +114,7 @@ class CalcIsolatedGaussEnergy(MSONable, ToJsonFileMixIn):
         return fft(np.array(self.diele_const[0]) - 1.0) / self.num_grid
 
     def inv_K_G(self, G, k):
-        denominator = 1. - e**(-k*self.L/2) * cos(G*self.L/2)
+        denominator = 1. - exp(-k*self.L/2) * cos(G*self.L/2)
         return self.L * (k**2+G**2) / denominator
 
     def D_GG(self, i, j, k):
