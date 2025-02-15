@@ -206,7 +206,7 @@ class CalcGaussChargePotential:
 
     @cached_property
     def potential(self):
-        real = ifftn(self.reciprocal_potential)
+        real = ifftn(self.reciprocal_potential).real
         return GaussChargePotential(self.gauss_charge_model.grids, real)
 
 
