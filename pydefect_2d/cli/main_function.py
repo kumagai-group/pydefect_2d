@@ -11,6 +11,7 @@ import yaml
 from matplotlib import pyplot as plt
 from monty.serialization import loadfn
 from pydefect.cli.main_tools import parse_dirs
+from pydefect.corrections.no_correction import NoCorrection
 from pydefect.input_maker.defect_entry import DefectEntry
 from pymatgen.io.vasp import Locpot
 from vise.util.logger import get_logger
@@ -238,6 +239,12 @@ def make_1d_slab_model(args):
     filename = "1d_slab_model.json"
 
     def _inner(dir_: Path):
+        defect_entry: DefectEntry = loadfn(dir_ / "defect_entry.json")
+        if defect_entry.charge == 0:
+            correction = NoCorrection()
+            correction.to_json_file(dir_ / "correction.json")
+            return
+
         one_d_fp_potential = loadfn(dir_ / "1d_fp_potential.json")
         defect_entry: DefectEntry = loadfn(dir_ / "defect_entry.json")
 
