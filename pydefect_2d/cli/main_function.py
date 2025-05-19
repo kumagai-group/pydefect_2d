@@ -137,9 +137,9 @@ def make_gaussian_energies_from_args(args):
     plt.clf()
 
 
-def make_1d_fp_potential(args):
+def make_1d_fp_potential_tmp(perfect_locpot, one_d_dir, dirs):
     filename = "1d_fp_potential.json"
-    perfect_pot = args.perfect_locpot.get_average_along_axis(ind=2)
+    perfect_pot = perfect_locpot.get_average_along_axis(ind=2)
 
     def _inner(_dir: Path):
         defect_entry: DefectEntry = loadfn(_dir / "defect_entry.json")
@@ -147,10 +147,10 @@ def make_1d_fp_potential(args):
             return
 
         fp_potential = _make_1d_fp_potential(_dir, perfect_pot)
-        pot_grads = _make_pot_diff_grads(_dir, fp_potential, args.one_d_dir)
-        pot_grads.to_json_file()
+        pot_grads = _make_pot_diff_grads(_dir, fp_potential, one_d_dir)
+        pot_grads.to_json_file(_dir / "pot_diff_gradients.json")
         pot_grads.to_plot(plt.gca())
-        plt.savefig("pot_diff_gradients.pdf")
+        plt.savefig(_dir / "pot_diff_gradients.pdf")
 
         fp_potential.gauss_pos = pot_grads.gauss_pos_w_min_grad()
         logger.info(f"{_dir}: gauss pos is {fp_potential.gauss_pos}.")
@@ -158,7 +158,11 @@ def make_1d_fp_potential(args):
         print(fp_potential.gauss_pos)
         fp_potential.to_json_file(_dir / filename)
 
-    parse_dirs(args.dirs, _inner, True, filename)
+    parse_dirs(dirs, _inner, True, filename)
+
+
+def make_1d_fp_potential(args):
+    make_1d_fp_potential_tmp(args.perfect_locpot, args.one_d_dir, args.dirs)
 
 
 def _make_1d_fp_potential(_dir, perfect_pot) -> OneDFpPotential:
