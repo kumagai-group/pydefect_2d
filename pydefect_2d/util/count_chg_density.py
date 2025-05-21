@@ -57,7 +57,6 @@ def vacuum_range(diele: DielectricConstDist,
     num_z_grid = diele.dist.num_grid
     z_grid = np.linspace(0.0, 1.0, num_z_grid, endpoint=False)
     z_diele_profile = diele.static[2]
-    print(z_diele_profile)
 
     for i, v in enumerate(z_diele_profile):
         if v > thr:
