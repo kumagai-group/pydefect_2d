@@ -5,11 +5,13 @@ import argparse
 import sys
 from pathlib import Path
 
+from monty.serialization import loadfn
 from pydefect.cli.main import add_sub_parser
 
 from pydefect_2d.cli.main import add_2d_sub_parser
 from pydefect_2d.cli.main_util_function import plot_volumetric_data, \
-    make_gauss_model, make_slab_model, add_vacuum, repeat_diele_dist
+    make_gauss_model, make_slab_model, add_vacuum, repeat_diele_dist, \
+    check_spill_out
 
 
 def parse_args_main_util_vasp(args):
@@ -108,8 +110,11 @@ def parse_args_main_util_vasp(args):
         "-t", "--threshold", type=float, default=1.001,
         help="Threshold of dielectric constant in the z-direction to "
              "determine the range of integration.")
+    parser_repeat_diele.add_argument(
+        "-c", "--chgcar", type=loadfn, required=True,
+        help="CHGCAR file.")
 
-    parser_repeat_diele.set_defaults(func=repeat_diele_dist)
+    parser_repeat_diele.set_defaults(func=check_spill_out)
     # --------------------------------------------------------------------------
     return parser.parse_args(args)
 
