@@ -97,7 +97,19 @@ def parse_args_main_util_vasp(args):
         help="Repetition.")
 
     parser_repeat_diele.set_defaults(func=repeat_diele_dist)
+    # --------------------------------------------------------------------------
+    parser_repeat_diele = subparsers.add_parser(
+        name="check_spill_out",
+        description="Check electron spill out in the vacuum region.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[dielectric_dist],
+        aliases=['cs'])
+    parser_repeat_diele.add_argument(
+        "-t", "--threshold", type=float, default=1.001,
+        help="Threshold of dielectric constant in the z-direction to "
+             "determine the range of integration.")
 
+    parser_repeat_diele.set_defaults(func=repeat_diele_dist)
     # --------------------------------------------------------------------------
     return parser.parse_args(args)
 

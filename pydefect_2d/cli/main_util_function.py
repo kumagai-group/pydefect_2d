@@ -19,6 +19,7 @@ from pydefect_2d.dielectric.make_extended_diele_dist import ChangeVacuum, \
 from pydefect_2d.one_d.potential import OneDFpPotential
 from pydefect_2d.three_d.slab_model import SlabModel
 from pydefect_2d.three_d.slab_model_plotter import SlabModelPlotter
+from pydefect_2d.util.count_chg_density import vacuum_range, count_chg_density
 from pydefect_2d.util.utils import show_x_values
 from pydefect_2d.three_d.grids import Grids
 
@@ -150,6 +151,9 @@ def repeat_diele_dist(args):
     new_diele_dist.to_json_file(f"dielectric_const_dist_x{args.mul}.json")
 
 
-def make_eigenvalue_shift(args):
-
-    new_diele_dist.to_json_file(f"dielectric_const_dist_x{args.mul}.json")
+def check_spill_out(args):
+    range_ = vacuum_range(args.diele_dist, args.threshold)
+    spill_out = count_chg_density(args.chgcar, range_)
+    print(f"""threshold: {args.threshold},
+range: {range_[0]} -- {range_[1]}
+Spill out (|e|): {spill_out}""")

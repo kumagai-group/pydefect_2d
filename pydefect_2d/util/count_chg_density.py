@@ -5,6 +5,8 @@ from typing import Tuple
 import numpy as np
 from pymatgen.io.vasp import Chgcar
 
+from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
+
 
 def count_chg_density(chgcar: Chgcar, range_: Tuple[float, float]) -> float:
     """
@@ -44,3 +46,31 @@ def count_chg_density(chgcar: Chgcar, range_: Tuple[float, float]) -> float:
         charge = float(z_density[idx_start:].sum() + z_density[:idx_end].sum())
 
     return charge / n_grid
+
+
+def vacuum_range(diele: DielectricConstDist,
+                 thr: float = 1.0001) -> Tuple[float, float]:
+    num_z_grid = diele.dist.num_grid
+    z_grid = np.linspace(0.0, 1.0, num_z_grid, endpoint=False)
+    z_diele_profile = diele.static[2]
+    print(z_diele_profile)
+
+    for i, v in enumerate(z_diele_profile):
+        if v > thr:
+            first_idx = i
+            break
+    else:
+        raise ValueError
+
+    for i, v in enumerate(z_diele_profile[::-1]):
+        if v > thr:
+            _idx = i
+            break
+    else:
+        raise ValueError
+    last_idx = num_z_grid - _idx
+
+    return float(z_grid[last_idx]), float(z_grid[first_idx])
+
+
+
