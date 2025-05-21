@@ -156,4 +156,5 @@ def check_spill_out(args):
     spill_out = count_chg_density(args.chgcar, range_)
     print(f"""threshold: {args.threshold},
 range: {range_[0]} -- {range_[1]}
-Spill out (|e|): {spill_out}""")
+Spill out (|e|): {spill_out[0]},
+ratio: {spill_out[1]}""")

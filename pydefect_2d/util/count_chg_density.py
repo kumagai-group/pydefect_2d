@@ -8,7 +8,8 @@ from pymatgen.io.vasp import Chgcar
 from pydefect_2d.dielectric.dielectric_distribution import DielectricConstDist
 
 
-def count_chg_density(chgcar: Chgcar, range_: Tuple[float, float]) -> float:
+def count_chg_density(chgcar: Chgcar, range_: Tuple[float, float]
+                      ) -> Tuple[float, float]:
     """
     Integrate the planar charge density within a fractional-z range and
     normalise by the total number of grid planes (len(z)), reproducing the
@@ -45,7 +46,10 @@ def count_chg_density(chgcar: Chgcar, range_: Tuple[float, float]) -> float:
     else:
         charge = float(z_density[idx_start:].sum() + z_density[:idx_end].sum())
 
-    return charge / n_grid
+    charge /= n_grid
+    total_charge = z_density.sum() / n_grid
+
+    return charge, charge / total_charge
 
 
 def vacuum_range(diele: DielectricConstDist,
