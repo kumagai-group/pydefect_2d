@@ -7,6 +7,7 @@ from pathlib import Path
 
 from monty.serialization import loadfn
 from pydefect.cli.main import add_sub_parser
+from pymatgen.io.vasp import Chgcar
 
 from pydefect_2d.cli.main import add_2d_sub_parser
 from pydefect_2d.cli.main_util_function import plot_volumetric_data, \
@@ -111,7 +112,7 @@ def parse_args_main_util_vasp(args):
         help="Threshold of dielectric constant in the z-direction to "
              "determine the range of integration.")
     parser_repeat_diele.add_argument(
-        "-c", "--chgcar", type=loadfn, required=True,
+        "-c", "--chgcar", type=Chgcar.from_file, required=True,
         help="CHGCAR file.")
 
     parser_repeat_diele.set_defaults(func=check_spill_out)
