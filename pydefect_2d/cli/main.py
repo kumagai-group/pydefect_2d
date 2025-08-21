@@ -198,8 +198,13 @@ def parse_args_main_vasp(args):
         "-g", "--gauss_energies", type=loadfn, required=True,
         help="GaussEnergies.json file path.")
     parser_make_1d_slab_model.add_argument(
-        "-s", "--slab_center", type=float,
-        help="Slab center position in fractional coord. This is used for "
+        "--write_eigenvalue_shift", type=bool,
+        help="Whether write eigenvalue_shift.yaml file. By default, the "
+             "potential shift is estimated at the position of defect center "
+             "written in the defect_entry.json")
+    parser_make_1d_slab_model.add_argument(
+        "-dc", "--defect_center", type=float,
+        help="Defect center position in fractional coord. This is used for "
              "estimating the eigenvalue shift.")
     parser_make_1d_slab_model.set_defaults(func=make_1d_slab_model)
 

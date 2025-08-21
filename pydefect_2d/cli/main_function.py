@@ -281,8 +281,9 @@ def make_1d_slab_model(args):
         plt.savefig(dir_ / "potential_profile.pdf")
         correction.to_json_file(dir_ / "correction.json")
 
-        if args.slab_center:
-            shift = slab_model.get_xy_ave_potential(frac_coord=args.slab_center)
+        if args.write_eigenvalue_shift:
+            defect_center = args.defect_center or defect_entry.defect_center
+            shift = slab_model.get_xy_ave_potential(frac_coord=defect_center)
             d = {"shift_value": shift}
             Path(dir_ / "eigenvalue_shift.yaml").write_text(yaml.dump(d))
 
