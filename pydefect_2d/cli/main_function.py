@@ -282,9 +282,10 @@ def make_1d_slab_model(args):
         correction.to_json_file(dir_ / "correction.json")
 
         if args.write_eigenvalue_shift:
-            defect_center = args.defect_center or defect_entry.defect_center
+            defect_center = args.defect_center or defect_entry.defect_center[2]
             shift = slab_model.get_xy_ave_potential(frac_coord=defect_center)
             d = {"shift_value": shift}
+            # Sign is canceled out because the potential is for positive charge.
             Path(dir_ / "eigenvalue_shift.yaml").write_text(yaml.dump(d))
 
     parse_dirs(args.dirs, _inner, True, filename)
