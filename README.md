@@ -57,22 +57,23 @@ An example is:
 
 3. Create `correction/` in the defect calculation directory.
 
-4. (Step 7) T determine the charge center position, we need a series of one-dimensional (1D) potential profiles
+4. (Step 7) To determine the charge center position, we need a series of one-dimensional (1D) potential profiles
 as a function of the Gaussian charge position (z<sub>0</sub>). To achieve this, we firstly create `1d_gauss/`
 in `correction/` and create **gauss1_d_potential_xxxx.json** using the 1d_gauss_models (1gm) subcommand:
 An example is:
    ```pydefect_2d 1gm -s ../../supercell_info.json -r 0.3 0.5 -dd ../dielectric_const_dist.json```
 
 5. (Step 8)
-Compute the one-dimensional potential from first-principles calculations and determine the Gaussian charge center.
+Move to the calculation directory of a defect and 
+compute the one-dimensional potential from first-principles calculations and determine the Gaussian charge center.
 An example is:
-   ```pydefect_2d 1fp -d . -pl ../../perfect/LOCPOT -od ../1d_gauss```
+   ```pydefect_2d 1fp -d . -pl ../perfect/LOCPOT -od ../correction/1d_gauss```
 
 6. (Steps 9 and 10) 
 We next prepare the Gaussian charge energies under both three-dimensional (3D) periodic boundary conditions 
 and open boundary conditions as a function of z<sub>0</sub>.
-An example is:
-   ```pydefect_2d gmz -z 0.3{0,2,4,6,8} 0.4{0,2,4,6,8} 0.5 -s ../../supercell_info.json -cd . -dd ../dielectric_const_dist.json```
+Please go back to the correction folder and type e.g., 
+   ```pydefect_2d gmz -z 0.3{0,2,4,6,8} 0.4{0,2,4,6,8} 0.5 -s ../supercell_info.json -cd . -dd ../dielectric_const_dist.json```
 
 7. (Step 11)
 Then, we interpolate long-range correction term as a function of z<sub>0</sub>, and  
